@@ -45,68 +45,71 @@ export default function EjerciciosPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
+      <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold font-headline text-primary">Biblioteca de Ejercicios</h1>
         <p className="text-lg text-muted-foreground mt-2">Explora nuestra colección de ejercicios de futsal. Filtra por nombre, fase, categoría o edad.</p>
       </div>
       
-      <div className="flex flex-col lg:flex-row gap-4 mb-6 p-4 bg-card rounded-lg border items-center">
-        <div className="relative w-full lg:flex-grow">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar ejercicio por nombre..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="mb-6 p-4 bg-card rounded-lg border">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <div className="relative md:col-span-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar ejercicio por nombre..." 
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select onValueChange={setPhaseFilter} defaultValue="Todas">
+              <SelectTrigger>
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Fase" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas las Fases</SelectItem>
+                <SelectItem value="Calentamiento">Calentamiento</SelectItem>
+                <SelectItem value="Fase Principal">Fase Principal</SelectItem>
+                <SelectItem value="Vuelta a la Calma">Vuelta a la Calma</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={setCategoryFilter} defaultValue="Todas">
+              <SelectTrigger>
+                 <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas las Categorías</SelectItem>
+                <SelectItem value="Técnica individual">Técnica individual</SelectItem>
+                <SelectItem value="Táctica">Táctica</SelectItem>
+                <SelectItem value="Físico">Físico</SelectItem>
+                <SelectItem value="Psicológico">Psicológico</SelectItem>
+                <SelectItem value="Estrategia">Estrategia</SelectItem>
+                <SelectItem value="Posesión y circulación del balón">Posesión y circulación del balón</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select onValueChange={setAgeFilter} defaultValue="Todas">
+              <SelectTrigger>
+                 <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Edad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todas las Edades</SelectItem>
+                <SelectItem value="Infantil">Infantil</SelectItem>
+                <SelectItem value="Cadete">Cadete</SelectItem>
+                <SelectItem value="Juvenil">Juvenil</SelectItem>
+                <SelectItem value="Senior">Senior</SelectItem>
+              </SelectContent>
+            </Select>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:w-auto">
-          <Select onValueChange={setPhaseFilter} defaultValue="Todas">
-            <SelectTrigger>
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Fase" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todas">Todas las Fases</SelectItem>
-              <SelectItem value="Calentamiento">Calentamiento</SelectItem>
-              <SelectItem value="Fase Principal">Fase Principal</SelectItem>
-              <SelectItem value="Vuelta a la Calma">Vuelta a la Calma</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select onValueChange={setCategoryFilter} defaultValue="Todas">
-            <SelectTrigger>
-               <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todas">Todas las Categorías</SelectItem>
-              <SelectItem value="Técnica individual">Técnica individual</SelectItem>
-              <SelectItem value="Táctica">Táctica</SelectItem>
-              <SelectItem value="Físico">Físico</SelectItem>
-              <SelectItem value="Psicológico">Psicológico</SelectItem>
-              <SelectItem value="Estrategia">Estrategia</SelectItem>
-              <SelectItem value="Posesión y circulación del balón">Posesión y circulación del balón</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select onValueChange={setAgeFilter} defaultValue="Todas">
-            <SelectTrigger>
-               <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Edad" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Todas">Todas las Edades</SelectItem>
-              <SelectItem value="Infantil">Infantil</SelectItem>
-              <SelectItem value="Cadete">Cadete</SelectItem>
-              <SelectItem value="Juvenil">Juvenil</SelectItem>
-              <SelectItem value="Senior">Senior</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {!isLoading && exercises && (
+            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {exercises.length} ejercicios.</p>
+        )}
       </div>
       
       {isLoading && (
         <>
-          <p className="text-sm text-muted-foreground mb-6">Cargando ejercicios...</p>
+          <p className="text-sm text-muted-foreground text-center mb-6">Cargando ejercicios...</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm">
@@ -126,8 +129,6 @@ export default function EjerciciosPage() {
 
       {!isLoading && exercises && (
         <>
-          <p className="text-sm text-muted-foreground mb-6">Mostrando {filteredExercises.length} de {exercises.length} ejercicios.</p>
-
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
@@ -166,5 +167,3 @@ export default function EjerciciosPage() {
     </div>
   );
 }
-
-    
