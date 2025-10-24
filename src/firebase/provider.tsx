@@ -1,11 +1,11 @@
 'use client';
 
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useMemo } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
-import { useMemo } from 'react';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+
 
 interface FirebaseProviderProps {
   children: ReactNode;
