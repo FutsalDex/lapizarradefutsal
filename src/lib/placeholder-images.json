@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A futsal court seen from above during a match.",
+      "imageUrl": "https://images.unsplash.com/photo-1598026878267-1f22ae804eac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmdXRzYWwlMjBjb3VydHxlbnwwfHx8fDE3NjEyODM5NjR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal court"
+    },
+    {
+      "id": "exercise-1",
+      "description": "Players in a futsal drill.",
+      "imageUrl": "https://images.unsplash.com/photo-1717643543290-86abf3f154c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmdXRzYWwlMjBkcmlsbHxlbnwwfHx8fDE3NjEyMTgxMjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal drill"
+    },
+    {
+      "id": "exercise-2",
+      "description": "An attacking play in a futsal match.",
+      "imageUrl": "https://images.unsplash.com/photo-1733648222907-0bb67d214c13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmdXRzYWwlMjBhdHRhY2t8ZW58MHx8fHwxNzYxMjgzOTY0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal attack"
+    },
+    {
+      "id": "exercise-3",
+      "description": "An agility ladder on a court.",
+      "imageUrl": "https://images.unsplash.com/photo-1746950061282-be919bf6c570?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxhZ2lsaXR5JTIwbGFkZGVyfGVufDB8fHx8MTc2MTI4Mzk2NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "agility ladder"
+    },
+    {
+      "id": "exercise-4",
+      "description": "A futsal game in action.",
+      "imageUrl": "https://images.unsplash.com/photo-1663246544984-2730f63628b4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZnV0c2FsJTIwZ2FtZXxlbnwwfHx8fDE3NjEyMzE3ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal game"
+    },
+    {
+      "id": "exercise-5",
+      "description": "A player shooting at the futsal goal.",
+      "imageUrl": "https://images.unsplash.com/photo-1548212668-a6821525ae8f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmdXRzYWwlMjBzaG90fGVufDB8fHx8MTc2MTI4Mzk2NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal shot"
+    },
+    {
+      "id": "exercise-6",
+      "description": "A coach explaining tactics on a board.",
+      "imageUrl": "https://images.unsplash.com/photo-1543503430-9bb747e6b206?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxmdXRzYWwlMjB0YWN0aWNzfGVufDB8fHx8MTc2MTIwMDg2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futsal tactics"
+    }
+  ]
 }
