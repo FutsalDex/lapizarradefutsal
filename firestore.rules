@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 🔐 Funciones reutilizables
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
+    // 👤 Usuarios
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // 🏋️ Ejercicios
+    match /exercises/{exerciseId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // 🏟️ Equipos
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
+
+      match /players/{playerId} {
+        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
+                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
+                            || isAdmin());
+      }
+
+      match /attendance/{attendanceId} {
+        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
+                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
+                            || isAdmin());
+      }
+    }
+
+    // 📅 Colecciones generales
+    match /matches/{matchId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /sessions/{sessionId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /teamMembers/{memberId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /referrals/{referralId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /invitations/{invitationId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

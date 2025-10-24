@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClipboardList, Presentation, Share2, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import placeholderImages from '@/lib/placeholder-images.json';
+import { placeholderImages } from '@/lib/placeholder-images';
 
 const features = [
   {
@@ -32,7 +32,7 @@ const features = [
   },
 ];
 
-const heroImage = placeholderImages.placeholderImages.find(p => p.id === "hero");
+const heroImage = placeholderImages.find(p => p.id === "hero");
 
 export default function Home() {
   return (
