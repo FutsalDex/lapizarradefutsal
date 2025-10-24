@@ -24,7 +24,7 @@ export default function EjerciciosPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold font-headline">Biblioteca de Ejercicios</h1>
+        <h1 className="text-4xl font-bold font-headline">Ver Ejercicios</h1>
         <p className="text-lg text-muted-foreground mt-2">Encuentra la inspiración para tu próximo entrenamiento.</p>
       </div>
       

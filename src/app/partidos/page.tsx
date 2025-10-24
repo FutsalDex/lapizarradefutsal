@@ -30,8 +30,8 @@ export default function PartidosPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div className='text-center md:text-left'>
-          <h1 className="text-4xl font-bold font-headline">Seguimiento de Partidos</h1>
-          <p className="text-lg text-muted-foreground mt-2">Analiza el rendimiento de tu equipo partido a partido.</p>
+          <h1 className="text-4xl font-bold font-headline">Mi Equipo</h1>
+          <p className="text-lg text-muted-foreground mt-2">Gestiona tu equipo y analiza su rendimiento partido a partido.</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>

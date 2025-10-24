@@ -9,10 +9,10 @@ export default function SesionesPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div className="text-center md:text-left">
-          <h1 className="text-4xl font-bold font-headline">Gestor de Sesiones</h1>
+          <h1 className="text-4xl font-bold font-headline">Crear Sesión</h1>
           <p className="text-lg text-muted-foreground mt-2">Organiza y planifica tus entrenamientos.</p>
         </div>
-        <Button asChild className="mt-4 md:mt-0 w-full md:w-auto bg-accent hover:bg-accent/90">
+        <Button asChild className="mt-4 md:mt-0 w-full md:w-auto">
           <Link href="#">
             <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Sesión
           </Link>

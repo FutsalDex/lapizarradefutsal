@@ -3,48 +3,50 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Logo } from "./logo";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu } from "lucide-react";
+import { Menu, UserCircle, BookOpen, Edit, Users, Heart, LayoutDashboard, Share2, Lightbulb } from "lucide-react";
+import { Logo } from "./logo";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ejercicios" },
-  { href: "/sesiones", label: "Sesiones" },
-  { href: "/partidos", label: "Partidos" },
-  { href: "/tacticas", label: "Tácticas" },
-  { href: "/ia-sugerencias", label: "Sugerencias IA" },
+  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen /> },
+  { href: "/sesiones", label: "Crear Sesión", icon: <Edit /> },
+  { href: "/partidos", label: "Mi Equipo", icon: <Users /> },
+  { href: "#", label: "Favoritos", icon: <Heart /> },
+  { href: "#", label: "Panel Admin", icon: <LayoutDashboard /> },
+  { href: "/tacticas", label: "Tácticas", icon: <Share2 /> },
+  { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb /> },
 ];
 
 export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
       <div className="container flex h-16 items-center">
-        <div className="mr-4 hidden md:flex">
+        <div className="mr-8 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Logo />
-            <span className="hidden font-bold sm:inline-block font-headline">
+            <span className="font-bold text-lg sm:inline-block font-headline">
               LaPizarra
             </span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
+          <nav className="flex items-center space-x-4 text-sm font-medium">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "transition-colors hover:text-foreground/80",
+                  "flex items-center gap-2 transition-colors hover:text-white",
                   pathname === link.href
-                    ? "text-foreground"
-                    : "text-foreground/60"
+                    ? "text-white"
+                    : "text-primary-foreground/80"
                 )}
               >
+                {link.icon}
                 {link.label}
               </Link>
             ))}
@@ -53,37 +55,44 @@ export function Header() {
         
         <div className="flex flex-1 items-center justify-between md:hidden">
            <Link href="/" className="flex items-center space-x-2">
-            <Logo />
-            <span className="font-bold font-headline">
+            <span className="font-bold font-headline text-lg">
               LaPizarra
             </span>
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:bg-primary/80">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
-              <nav className="grid gap-6 text-lg font-medium mt-8">
+            <SheetContent side="right" className="bg-primary text-primary-foreground">
+              <nav className="grid gap-4 text-lg font-medium mt-8">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "flex items-center text-lg font-semibold transition-colors hover:text-foreground/80",
-                      pathname === link.href
-                        ? "text-foreground"
-                        : "text-muted-foreground"
+                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-white",
+                       pathname === link.href
+                        ? "bg-black/10 text-white"
+                        : "text-primary-foreground/80"
                     )}
                   >
+                    {link.icon}
                     {link.label}
                   </Link>
                 ))}
               </nav>
             </SheetContent>
           </Sheet>
+        </div>
+
+        <div className="hidden md:flex flex-1 justify-end">
+           <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/80">
+            <UserCircle className="h-6 w-6" />
+            <span className="sr-only">Perfil de usuario</span>
+          </Button>
         </div>
       </div>
     </header>

@@ -16,8 +16,8 @@ const fontHeadline = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'LaPizarra - Entrenador de Futsal',
-  description: 'Herramientas para entrenadores de futbol sala.',
+  title: 'LaPizarra',
+  description: 'Tu compañero definitivo para el entrenamiento de fútbol sala.',
 };
 
 export default function RootLayout({
