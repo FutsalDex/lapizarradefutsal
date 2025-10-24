@@ -12,20 +12,20 @@ import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen /> },
-  { href: "/sesiones", label: "Crear Sesión", icon: <Edit /> },
-  { href: "/partidos", label: "Mi Equipo", icon: <Users /> },
-  { href: "/favoritos", label: "Favoritos", icon: <Heart /> },
-  { href: "/tacticas", label: "Tácticas", icon: <Share2 /> },
-  { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb /> },
-  { href: "/admin", label: "Panel Admin", icon: <Shield /> },
+  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
+  { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
+  { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
+  { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
+  { href: "/tacticas", label: "Tácticas", icon: <Share2 className="h-4 w-4" /> },
+  { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb className="h-4 w-4" /> },
+  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
 ];
 
 export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-8 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -33,16 +33,16 @@ export function Header() {
               LaPizarra
             </span>
           </Link>
-          <nav className="flex items-center space-x-4 text-sm font-medium">
+          <nav className="flex items-center space-x-2 text-sm font-light">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2 transition-colors hover:text-white",
+                  "flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:text-primary",
                   pathname === link.href
-                    ? "text-white"
-                    : "text-primary-foreground/80"
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground"
                 )}
               >
                 {link.icon}
@@ -60,22 +60,22 @@ export function Header() {
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-primary/80">
+              <Button variant="ghost" size="icon">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="bg-primary text-primary-foreground">
+            <SheetContent side="right">
               <nav className="grid gap-4 text-lg font-medium mt-8">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-white",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
                        pathname === link.href
-                        ? "bg-black/10 text-white"
-                        : "text-primary-foreground/80"
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     )}
                   >
                     {link.icon}
@@ -88,7 +88,7 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex flex-1 justify-end">
-           <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/80">
+           <Button variant="ghost" size="icon" className="rounded-full">
             <UserCircle className="h-6 w-6" />
             <span className="sr-only">Perfil de usuario</span>
           </Button>

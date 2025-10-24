@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className="dark" style={{ colorScheme: 'dark' }}>
       <body className={cn('antialiased', fontBody.variable, fontHeadline.variable)}>
         <div className="flex min-h-screen w-full flex-col">
           <Header />
