@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Heart, Search, Filter, Eye, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [phaseFilter, setPhaseFilter] = useState('Todas');
@@ -31,6 +30,7 @@ export default function EjerciciosPage() {
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     return exercises.filter(exercise => {
+      if (!exercise.title) return false;
       const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
       // Note: Phase and Age filters are not in the data model yet, so they are placeholders
@@ -125,7 +125,7 @@ export default function EjerciciosPage() {
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-56 w-full">
                   <Image
-                    src={exercise.imageUrl}
+                    src={exercise.diagramUrl || 'https://picsum.photos/seed/placeholder/600/400'}
                     alt={exercise.title}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
