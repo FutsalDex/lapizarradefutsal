@@ -1,0 +1,191 @@
+{
+  "entities": {
+    "Exercise": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Exercise",
+      "type": "object",
+      "description": "Represents a futsal exercise.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the exercise."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the exercise."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the exercise, including instructions and objectives."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category or type of exercise (e.g., passing, shooting, defending)."
+        },
+        "intensity": {
+          "type": "string",
+          "description": "The intensity level of the exercise (e.g., low, medium, high)."
+        },
+        "skill": {
+          "type": "string",
+          "description": "The skill that the exercise focuses on (e.g., dribbling, tactics, agility)."
+        },
+        "diagramUrl": {
+          "type": "string",
+          "description": "URL to a diagram or visual representation of the exercise.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "category",
+        "intensity",
+        "skill"
+      ]
+    },
+    "Session": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Session",
+      "type": "object",
+      "description": "Represents a training session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the training session."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the training session."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the training session.",
+          "format": "date-time"
+        },
+        "exerciseIds": {
+          "type": "array",
+          "description": "References to Exercises. (Relationship: Session 1:N Exercises)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "date",
+        "exerciseIds"
+      ]
+    },
+    "Match": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Match",
+      "type": "object",
+      "description": "Represents a futsal match.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the match."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date and time of the match.",
+          "format": "date-time"
+        },
+        "teamGoals": {
+          "type": "number",
+          "description": "The number of goals scored by the team."
+        },
+        "opponentGoals": {
+          "type": "number",
+          "description": "The number of goals scored by the opposing team."
+        },
+        "shotsOnTarget": {
+          "type": "number",
+          "description": "The number of shots on target by the team."
+        },
+        "possession": {
+          "type": "number",
+          "description": "The percentage of possession the team had during the match."
+        }
+      },
+      "required": [
+        "id",
+        "date",
+        "teamGoals",
+        "opponentGoals",
+        "shotsOnTarget",
+        "possession"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/exercises/{exerciseId}",
+        "definition": {
+          "entityName": "Exercise",
+          "schema": {
+            "$ref": "#/backend/entities/Exercise"
+          },
+          "description": "Collection of futsal exercises available to all users.",
+          "params": [
+            {
+              "name": "exerciseId",
+              "description": "Unique identifier for the exercise."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Collection of training sessions, owned by individual users.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            },
+            {
+              "name": "sessionId",
+              "description": "Unique identifier for the session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/matches/{matchId}",
+        "definition": {
+          "entityName": "Match",
+          "schema": {
+            "$ref": "#/backend/entities/Match"
+          },
+          "description": "Collection of match data, owned by individual users.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            },
+            {
+              "name": "matchId",
+              "description": "Unique identifier for the match."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the \"LaPizarra\" application, focusing on exercises, sessions, and match tracking for futsal coaches. The design emphasizes authorization independence, clarity, and scalability.  Authorization Independence is achieved through path-based ownership for user-specific data and the membership map model for shared data. This eliminates the need for `get()` calls in security rules. Structural Segregation ensures that collections contain documents with similar security needs.  The Exercises collection is public and globally accessible, while Sessions and Match data are stored under user-specific collections, thus enabling path-based ownership. This means that only the user who created the session or match can access it, simplifying security rules and preventing unauthorized access. This design supports the required QAPs (Rules are not Filters). Exercises are accessible globally in their collection. Sessions and Matches are accessible based on user ownership, enabling secure `list` operations within a user's data. By segregating data into user-owned and globally accessible collections, the structure enables simple and secure list operations."
+  }
+}

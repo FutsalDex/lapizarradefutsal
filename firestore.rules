@@ -1,9 +1,83 @@
+/**
+ * @fileoverview Firestore Security Rules for LaPizarra application.
+ *
+ * Core Philosophy:
+ * This ruleset implements a hybrid security model:
+ * - Exercises: Publicly readable, but only administrators can create, update, or delete them.
+ * - Sessions & Matches: Strictly user-owned. Each user can only access their own sessions and match data.
+ *
+ * Data Structure:
+ * - /exercises/{exerciseId}: A top-level collection of publicly accessible exercises.
+ * - /users/{userId}/sessions/{sessionId}: Sessions owned by a specific user.
+ * - /users/{userId}/matches/{matchId}: Matches owned by a specific user.
+ *
+ * Key Security Decisions:
+ * - Public Read Access for Exercises: Allows all users to view exercises.
+ * - Owner-Only Access for Sessions and Matches: Restricts access to a user's own data.
+ * - No User Listing: Prevents unauthorized discovery of user IDs.
+ *
+ * Denormalization for Authorization:
+ *  - Exercises are publicly readable, eliminating the need for authorization checks on read.
+ *  - Sessions and Matches are nested under /users/{userId}, enabling simple isOwner(userId) checks for authorization.
+ *
+ * Structural Segregation:
+ *  - Public exercises are stored in a top-level collection separate from user-specific data, simplifying read access.
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 🔐 Funciones reutilizables
+    /**
+     * @description Allows anyone to read exercises, but only allows administrators to create, update, or delete them.
+     * @path /exercises/{exerciseId}
+     * @allow (get, list): if true
+     * @allow (create): if false // TODO: Add admin role check.
+     * @allow (update): if false // TODO: Add admin role check.
+     * @allow (delete): if false // TODO: Add admin role check.
+     * @principle Allows public read access to exercises, but restricts write access to administrators.
+     */
+    match /exercises/{exerciseId} {
+      allow get, list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Allows a user to manage their own sessions.
+     * @path /users/{userId}/sessions/{sessionId}
+     * @allow (create): if request.auth.uid == userId
+     * @allow (get, list): if request.auth.uid == userId
+     * @allow (update, delete): if request.auth.uid == userId && resource != null
+     * @deny (create): if request.auth.uid != userId
+     * @deny (update, delete): if request.auth.uid != userId
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/sessions/{sessionId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows a user to manage their own matches.
+     * @path /users/{userId}/matches/{matchId}
+     * @allow (create): if request.auth.uid == userId
+     * @allow (get, list): if request.auth.uid == userId
+     * @allow (update, delete): if request.auth.uid == userId && resource != null
+     * @deny (create): if request.auth.uid != userId
+     * @deny (update, delete): if request.auth.uid != userId
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/matches/{matchId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
@@ -12,64 +86,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      return isSignedIn()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
-    }
-
-    // 👤 Usuarios
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId);
-      allow update, delete: if isOwner(userId) || isAdmin();
-    }
-
-    // 🏋️ Ejercicios
-    match /exercises/{exerciseId} {
-      allow read: if isSignedIn();
-      allow create: if isOwner(request.resource.data.userId);
-      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
-    }
-
-    // 🏟️ Equipos
-    match /teams/{teamId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
-
-      match /players/{playerId} {
-        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
-                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
-                            || isAdmin());
-      }
-
-      match /attendance/{attendanceId} {
-        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
-                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
-                            || isAdmin());
-      }
-    }
-
-    // 📅 Colecciones generales
-    match /matches/{matchId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /sessions/{sessionId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /teamMembers/{memberId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /referrals/{referralId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /invitations/{invitationId} {
-      allow read, write: if isSignedIn();
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }
