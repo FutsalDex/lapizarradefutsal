@@ -4,7 +4,8 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { collection } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
