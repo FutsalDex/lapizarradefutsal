@@ -16,16 +16,16 @@ const navLinks = [
   { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
   { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
   { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
+  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
   { href: "/tacticas", label: "Tácticas", icon: <Share2 className="h-4 w-4" /> },
   { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb className="h-4 w-4" /> },
-  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
 ];
 
 export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
       <div className="container flex h-16 items-center">
         <div className="mr-8 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -39,10 +39,10 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:text-primary",
+                  "flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-primary-foreground/10",
                   pathname === link.href
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground"
+                    ? "bg-primary-foreground/20"
+                    : "text-primary-foreground/80"
                 )}
               >
                 {link.icon}
@@ -60,7 +60,7 @@ export function Header() {
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
@@ -88,7 +88,7 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex flex-1 justify-end">
-           <Button variant="ghost" size="icon" className="rounded-full">
+           <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
             <UserCircle className="h-6 w-6" />
             <span className="sr-only">Perfil de usuario</span>
           </Button>
