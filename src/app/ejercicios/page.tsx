@@ -1,15 +1,16 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { collection, query } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, Loader2 } from 'lucide-react';
+import { Heart, Search, Filter, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EjerciciosPage() {
@@ -30,13 +31,16 @@ export default function EjerciciosPage() {
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     return exercises.filter(exercise => {
-      if (!exercise.title) return false;
-      const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
-      // Note: Phase and Age filters are not in the data model yet, so they are placeholders
-      return matchesSearch && matchesCategory;
+      if (!exercise.Visible || !exercise.Ejercicio) return false;
+
+      const matchesSearch = exercise.Ejercicio.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'Todas' || exercise['Categoría'] === categoryFilter;
+      const matchesPhase = phaseFilter === 'Todas' || exercise['Fase'] === phaseFilter;
+      const matchesAge = ageFilter === 'Todas' || exercise['Edad']?.includes(ageFilter.toLowerCase());
+
+      return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
-  }, [exercises, searchTerm, categoryFilter]);
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
   
 
   return (
@@ -64,7 +68,9 @@ export default function EjerciciosPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas las Fases</SelectItem>
-              <SelectItem value="Principal">Principal</SelectItem>
+              <SelectItem value="Calentamiento">Calentamiento</SelectItem>
+              <SelectItem value="Fase Principal">Fase Principal</SelectItem>
+              <SelectItem value="Vuelta a la Calma">Vuelta a la Calma</SelectItem>
             </SelectContent>
           </Select>
           <Select onValueChange={setCategoryFilter} defaultValue="Todas">
@@ -73,11 +79,13 @@ export default function EjerciciosPage() {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Todos">Todas las Categorías</SelectItem>
-              <SelectItem value="Técnica">Técnica</SelectItem>
+              <SelectItem value="Todas">Todas las Categorías</SelectItem>
+              <SelectItem value="Técnica individual">Técnica individual</SelectItem>
               <SelectItem value="Táctica">Táctica</SelectItem>
               <SelectItem value="Físico">Físico</SelectItem>
-              <SelectItem value="Porteros">Porteros</SelectItem>
+              <SelectItem value="Psicológico">Psicológico</SelectItem>
+              <SelectItem value="Estrategia">Estrategia</SelectItem>
+              <SelectItem value="Posesión y circulación del balón">Posesión y circulación del balón</SelectItem>
             </SelectContent>
           </Select>
           <Select onValueChange={setAgeFilter} defaultValue="Todas">
@@ -87,10 +95,10 @@ export default function EjerciciosPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas las Edades</SelectItem>
-              <SelectItem value="Infantil">Infantil (12-13)</SelectItem>
-              <SelectItem value="Cadete">Cadete (14-15)</SelectItem>
-              <SelectItem value="Juvenil">Juvenil (16-18)</SelectItem>
-              <SelectItem value="Senior">Senior (+18)</SelectItem>
+              <SelectItem value="Infantil">Infantil</SelectItem>
+              <SelectItem value="Cadete">Cadete</SelectItem>
+              <SelectItem value="Juvenil">Juvenil</SelectItem>
+              <SelectItem value="Senior">Senior</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -125,16 +133,16 @@ export default function EjerciciosPage() {
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-56 w-full">
                   <Image
-                    src={exercise.diagramUrl || 'https://picsum.photos/seed/placeholder/600/400'}
-                    alt={exercise.title}
+                    src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/600/400'}
+                    alt={exercise.Ejercicio}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover"
-                    data-ai-hint={exercise.imageHint}
+                    data-ai-hint={exercise.aiHint}
                   />
                 </div>
                 <CardContent className="p-4 flex-grow">
-                  <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.title}</h3>
+                  <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.Ejercicio}</h3>
                 </CardContent>
                  <CardFooter className="p-4 bg-muted/30 flex justify-between items-center">
                   <Button variant="outline" size="sm">
@@ -158,3 +166,5 @@ export default function EjerciciosPage() {
     </div>
   );
 }
+
+    

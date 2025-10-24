@@ -1,3 +1,4 @@
+
 import placeholderImages from './placeholder-images.json';
 
 const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.startsWith('exercise-'));
@@ -12,6 +13,15 @@ export type Exercise = {
   diagramUrl: string;
   imageUrl: string;
   imageHint: string;
+  // Campos de la base de datos
+  "Ejercicio": string;
+  "Descripción de la tarea": string;
+  "Categoría": string;
+  "Fase": string;
+  "Edad": string[];
+  "Imagen": string;
+  "aiHint": string;
+  "Visible": boolean;
 };
 
 export const exercises: Exercise[] = [
@@ -24,7 +34,15 @@ export const exercises: Exercise[] = [
     intensity: 'Media',
     diagramUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
     imageUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
-    imageHint: exerciseImages[0]?.imageHint || 'futsal drill'
+    imageHint: exerciseImages[0]?.imageHint || 'futsal drill',
+    "Ejercicio": 'Rondo 4 vs 1',
+    "Descripción de la tarea": 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
+    "Categoría": 'Técnica',
+    "Fase": 'Fase Principal',
+    "Edad": ['infantil', 'cadete', 'juvenil', 'senior'],
+    "Imagen": exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
+    "aiHint": 'futsal drill',
+    "Visible": true,
   },
   {
     id: '2',
@@ -35,7 +53,15 @@ export const exercises: Exercise[] = [
     intensity: 'Alta',
     diagramUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
     imageUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
-    imageHint: exerciseImages[1]?.imageHint || 'futsal attack'
+    imageHint: exerciseImages[1]?.imageHint || 'futsal attack',
+    "Ejercicio": 'Finalización 2 vs 1',
+    "Descripción de la tarea": 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
+    "Categoría": 'Táctica',
+    "Fase": 'Fase Principal',
+    "Edad": ['cadete', 'juvenil', 'senior'],
+    "Imagen": exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
+    "aiHint": 'futsal attack',
+    "Visible": true,
   },
   {
     id: '3',
@@ -46,7 +72,15 @@ export const exercises: Exercise[] = [
     intensity: 'Alta',
     diagramUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
     imageUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
-    imageHint: exerciseImages[2]?.imageHint || 'agility ladder'
+    imageHint: exerciseImages[2]?.imageHint || 'agility ladder',
+    "Ejercicio": 'Circuito de Agilidad',
+    "Descripción de la tarea": 'Recorrido con conos, escaleras y vallas para mejorar la coordinación, velocidad y cambios de dirección.',
+    "Categoría": 'Físico',
+    "Fase": 'Fase Principal',
+    "Edad": ['infantil', 'cadete', 'juvenil', 'senior'],
+    "Imagen": exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
+    "aiHint": 'agility ladder',
+    "Visible": true,
   },
   {
     id: '4',
@@ -57,7 +91,15 @@ export const exercises: Exercise[] = [
     intensity: 'Media',
     diagramUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
     imageUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
-    imageHint: exerciseImages[3]?.imageHint || 'futsal game'
+    imageHint: exerciseImages[3]?.imageHint || 'futsal game',
+    "Ejercicio": 'Juego de Posesión 3 vs 3',
+    "Descripción de la tarea": 'Partido en espacio reducido con el objetivo de mantener la posesión del balón el mayor tiempo posible.',
+    "Categoría": 'Táctica',
+    "Fase": 'Fase Principal',
+    "Edad": ['juvenil', 'senior'],
+    "Imagen": exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
+    "aiHint": 'futsal game',
+    "Visible": true,
   },
   {
     id: '5',
@@ -68,7 +110,15 @@ export const exercises: Exercise[] = [
     intensity: 'Media',
     diagramUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
     imageUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
-    imageHint: exerciseImages[4]?.imageHint || 'futsal shot'
+    imageHint: exerciseImages[4]?.imageHint || 'futsal shot',
+    "Ejercicio": 'Tiros a Puerta con Oposición',
+    "Descripción de la tarea": 'Ejercicios de finalización con un defensor activo para simular condiciones de partido real.',
+    "Categoría": 'Técnica',
+    "Fase": 'Fase Principal',
+    "Edad": ['cadete', 'juvenil', 'senior'],
+    "Imagen": exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
+    "aiHint": 'futsal shot',
+    "Visible": true,
   },
   {
     id: '6',
@@ -79,7 +129,15 @@ export const exercises: Exercise[] = [
     intensity: 'Alta',
     diagramUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
     imageUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
-    imageHint: exerciseImages[5]?.imageHint || 'futsal tactics'
+    imageHint: exerciseImages[5]?.imageHint || 'futsal tactics',
+    "Ejercicio": 'Salida de Presión',
+    "Descripción de la tarea": 'El equipo defensor practica cómo superar una presión alta del rival desde su propia área.',
+    "Categoría": 'Táctica',
+    "Fase": 'Fase Principal',
+    "Edad": ['juvenil', 'senior'],
+    "Imagen": exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
+    "aiHint": 'futsal tactics',
+    "Visible": true,
   },
 ];
 
@@ -166,3 +224,5 @@ export const matches: Match[] = [
         }
     }
 ]
+
+    
