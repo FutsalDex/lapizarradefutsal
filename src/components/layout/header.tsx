@@ -12,11 +12,9 @@ import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
-  { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
-  { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
-  { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
-  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
+  { href: "/ejercicios", label: "Ejercicios", icon: <BookOpen className="h-4 w-4" /> },
+  { href: "/sesiones", label: "Sesiones", icon: <Edit className="h-4 w-4" /> },
+  { href: "/partidos", label: "Partidos", icon: <Users className="h-4 w-4" /> },
   { href: "/tacticas", label: "Tácticas", icon: <Share2 className="h-4 w-4" /> },
   { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb className="h-4 w-4" /> },
 ];
@@ -33,7 +31,7 @@ export function Header() {
               LaPizarra
             </span>
           </Link>
-          <nav className="flex items-center space-x-2 text-sm font-light">
+          <nav className="flex items-center space-x-1 text-xs font-light">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -66,7 +64,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <nav className="grid gap-4 text-lg font-medium mt-8">
+              <nav className="grid gap-4 text-base font-medium mt-8">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
