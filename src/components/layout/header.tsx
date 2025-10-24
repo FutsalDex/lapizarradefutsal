@@ -12,9 +12,11 @@ import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ejercicios", icon: <BookOpen className="h-4 w-4" /> },
-  { href: "/sesiones", label: "Sesiones", icon: <Edit className="h-4 w-4" /> },
-  { href: "/partidos", label: "Partidos", icon: <Users className="h-4 w-4" /> },
+  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
+  { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
+  { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
+  { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
+  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
   { href: "/tacticas", label: "Tácticas", icon: <Share2 className="h-4 w-4" /> },
   { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb className="h-4 w-4" /> },
 ];
@@ -39,7 +41,7 @@ export function Header() {
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-primary-foreground/10",
                   pathname === link.href
-                    ? "bg-primary-foreground/20"
+                    ? "bg-primary-foreground/20 font-semibold"
                     : "text-primary-foreground/80"
                 )}
               >
@@ -72,7 +74,7 @@ export function Header() {
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
                        pathname === link.href
-                        ? "text-primary"
+                        ? "text-primary bg-muted"
                         : "text-muted-foreground"
                     )}
                   >
@@ -85,7 +87,13 @@ export function Header() {
           </Sheet>
         </div>
 
-        <div className="hidden md:flex flex-1 justify-end">
+        <div className="hidden md:flex flex-1 justify-end items-center gap-2">
+           <Button variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
+              <Heart className="h-4 w-4 mr-2"/> Favoritos
+          </Button>
+           <Button variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
+              <Shield className="h-4 w-4 mr-2"/> Panel Admin
+          </Button>
            <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
             <UserCircle className="h-6 w-6" />
             <span className="sr-only">Perfil de usuario</span>
