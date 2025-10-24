@@ -9,17 +9,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, UserCircle, BookOpen, Edit, Users, Heart, LayoutDashboard, Share2, Lightbulb } from "lucide-react";
-import { Logo } from "./logo";
+import { Menu, UserCircle, BookOpen, Edit, Users, LayoutDashboard, Share2, Lightbulb, Star } from "lucide-react";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen /> },
-  { href: "/sesiones", label: "Crear Sesión", icon: <Edit /> },
-  { href: "/partidos", label: "Mi Equipo", icon: <Users /> },
-  { href: "#", label: "Favoritos", icon: <Heart /> },
-  { href: "#", label: "Panel Admin", icon: <LayoutDashboard /> },
+  { href: "/ejercicios", label: "Ejercicios", icon: <BookOpen /> },
+  { href: "/sesiones", label: "Sesiones", icon: <Edit /> },
+  { href: "/partidos", label: "Partidos", icon: <Users /> },
   { href: "/tacticas", label: "Tácticas", icon: <Share2 /> },
   { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb /> },
+  { href: "/premium", label: "Premium", icon: <Star /> },
 ];
 
 export function Header() {
