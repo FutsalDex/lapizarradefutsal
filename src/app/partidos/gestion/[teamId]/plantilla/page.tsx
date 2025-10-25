@@ -19,7 +19,7 @@ interface Team {
 }
 
 interface TeamMember {
-  id: string; // This is the userId
+  id: string; // This is the userId (document ID)
   role?: string;
 }
 
@@ -41,8 +41,10 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
 
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 elements.
+        // For larger teams, pagination would be needed.
         if (memberIds.length > 30) {
-            console.warn("Team has more than 30 members, this query will be truncated. Implement pagination.");
+            console.warn("Team has more than 30 members, this query will be truncated. Implement pagination for larger teams.");
         }
         return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
     }, [firestore, memberIds]);
@@ -116,6 +118,7 @@ export default function TeamRosterPage() {
 
   const memberIds = useMemo(() => {
     if (!teamMembersDocs) return [];
+    // The user ID is the ID of the document in the 'members' subcollection
     return teamMembersDocs.map(memberDoc => memberDoc.id);
   }, [teamMembersDocs]);
 
@@ -146,8 +149,22 @@ export default function TeamRosterPage() {
                 <UserPlus className="mr-2 h-4 w-4" /> Invitar Jugador
             </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-            {isLoading && <Skeleton className="h-20 w-full" />}
+        <CardContent>
+            {isLoading && (
+                <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-center justify-between py-3">
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="h-10 w-10 rounded-full" />
+                                <div>
+                                    <Skeleton className="h-5 w-28 mb-1" />
+                                    <Skeleton className="h-4 w-36" />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
             {!isLoading && memberIds.length > 0 && <TeamRoster memberIds={memberIds} />}
             {!isLoading && memberIds.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">Aún no hay miembros en este equipo. ¡Invita a tu primer jugador!</p>
