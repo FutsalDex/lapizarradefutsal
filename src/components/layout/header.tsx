@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
-import { useUser, useAuth } from "@/firebase";
+import { useUser } from "@/firebase/use-auth-user";
+import { useAuth } from "@/firebase/provider";
 import { signOut } from "firebase/auth";
 import {
   DropdownMenu,
