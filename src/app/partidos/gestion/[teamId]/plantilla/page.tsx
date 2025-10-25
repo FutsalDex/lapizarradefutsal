@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, documentId } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -73,15 +72,16 @@ export default function TeamRosterPage() {
     if (!usersRef || memberIds.length === 0) return null;
     // Firestore 'in' queries are limited to 30 items per query.
     // For larger teams, this needs pagination or multiple queries.
-    if (memberIds.length > 10) {
-      console.warn("Team has more than 10 members, this query might be truncated. Consider pagination for larger teams.");
+    if (memberIds.length > 30) {
+      console.warn("Team has more than 30 members, this query might be truncated. Consider pagination for larger teams.");
     }
-    return query(usersRef, where('id', 'in', memberIds.slice(0, 10)));
+    return query(usersRef, where(documentId(), 'in', memberIds.slice(0, 30)));
   }, [usersRef, memberIds]);
   
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
   
-  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
+  const isLoading = isLoadingTeam || isLoadingInvitations || (memberIds.length > 0 && isLoadingMembers);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -109,7 +109,7 @@ export default function TeamRosterPage() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            {isLoading && !teamMembers ? (
+            {isLoading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
