@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, Clock, Target, ClipboardList, Recycle, Brain, Info } from 'lucide-react';
+import { Users, Clock, Target, ClipboardList, Recycle, Brain, Info } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -104,7 +104,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{exercise['Descripción de la tarea']}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise['Descripción de la tarea']}</p>
                     </CardContent>
                 </Card>
 
@@ -113,7 +113,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{exercise.Objetivos}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise.Objetivos}</p>
                     </CardContent>
                 </Card>
 
@@ -133,7 +133,7 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <p className="text-muted-foreground text-sm">{exercise['Consejos para el entrenador']}</p>
+                             <p className="text-sm text-muted-foreground text-justify">{exercise['Consejos para el entrenador']}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -143,7 +143,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{exercise.Variantes}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise.Variantes}</p>
                     </CardContent>
                 </Card>
             </div>
