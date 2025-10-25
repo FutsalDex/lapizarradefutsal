@@ -109,7 +109,9 @@ export function Header() {
             </span>
           </Link>
           <div className="flex items-center gap-2">
-            {!isUserLoading && user && (
+            {isUserLoading ? (
+              <div className="h-10 w-10 animate-pulse rounded-full bg-primary-foreground/10" />
+            ) : user ? (
                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
@@ -123,7 +125,7 @@ export function Header() {
                     <DropdownMenuItem onClick={handleSignOut}>Cerrar Sesión</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-            )}
+            ) : null }
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
