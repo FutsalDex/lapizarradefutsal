@@ -54,14 +54,19 @@ export default function TeamRosterPage() {
       if(!firestore || typeof teamId !== 'string') return null;
       return collection(firestore, 'teamInvitations');
   }, [firestore, teamId]);
+
   const acceptedInvitationsQuery = useMemoFirebase(() => {
-      if(!invitationsRef || !teamId) return null;
+      if(!invitationsRef) return null;
       return query(invitationsRef, where('teamId', '==', teamId), where('status', '==', 'accepted'));
   }, [invitationsRef, teamId]);
+
   const { data: acceptedInvitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
 
   // 3. Get user profiles for the members
-  const memberIds = useMemo(() => acceptedInvitations?.map(inv => inv.userId) || [], [acceptedInvitations]);
+  const memberIds = useMemo(() => {
+    if (!acceptedInvitations) return [];
+    return acceptedInvitations.map(inv => inv.userId).filter(id => id); // filter out falsy ids
+  }, [acceptedInvitations]);
   
   const usersRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -109,7 +114,7 @@ export default function TeamRosterPage() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            {isLoading ? (
+            {isLoading && (!teamMembers || teamMembers.length === 0) ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
