@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, Search, Filter, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -163,7 +164,7 @@ export default function EjerciciosPage() {
                     alt={exercise.Ejercicio}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain"
+                    className="object-contain p-2"
                     data-ai-hint={exercise.aiHint}
                   />
                 </div>
@@ -197,5 +198,3 @@ export default function EjerciciosPage() {
     </div>
   );
 }
-
-    
