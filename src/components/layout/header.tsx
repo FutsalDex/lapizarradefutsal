@@ -125,8 +125,9 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex flex-1 justify-end items-center gap-2">
-          {!isUserLoading && (
-            user ? (
+          {isUserLoading ? (
+             <div className="h-8 w-24 animate-pulse rounded-md bg-primary-foreground/10" />
+          ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
@@ -148,7 +149,7 @@ export function Header() {
                 </Link>
               </Button>
             )
-          )}
+          }
         </div>
       </div>
     </header>
