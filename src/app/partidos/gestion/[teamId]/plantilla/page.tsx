@@ -18,9 +18,9 @@ interface Team {
   name: string;
 }
 
-interface TeamInvitation {
-  userId: string;
-  status: 'pending' | 'accepted' | 'rejected';
+interface TeamMember {
+  // Assuming the member document in subcollection just exists, maybe with a role
+  role?: string;
 }
 
 interface UserProfile {
@@ -49,25 +49,21 @@ export default function TeamRosterPage() {
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  // 2. Get accepted invitations to find member IDs
-  const invitationsRef = useMemoFirebase(() => {
+  // 2. Get member IDs from the 'members' subcollection
+  const membersSubcollectionRef = useMemoFirebase(() => {
       if(!firestore || typeof teamId !== 'string') return null;
-      return collection(firestore, 'teamInvitations');
+      return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
 
-  const acceptedInvitationsQuery = useMemoFirebase(() => {
-      if(!invitationsRef) return null;
-      return query(invitationsRef, where('teamId', '==', teamId), where('status', '==', 'accepted'));
-  }, [invitationsRef, teamId]);
-
-  const { data: acceptedInvitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
+  const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMember>(membersSubcollectionRef);
+  
+  const memberIds = useMemo(() => {
+    if (!teamMembersDocs) return [];
+    // The document ID in the 'members' subcollection is the user ID
+    return teamMembersDocs.map(memberDoc => memberDoc.id);
+  }, [teamMembersDocs]);
 
   // 3. Get user profiles for the members
-  const memberIds = useMemo(() => {
-    if (!acceptedInvitations) return [];
-    return acceptedInvitations.map(inv => inv.userId).filter(id => id); // filter out falsy ids
-  }, [acceptedInvitations]);
-  
   const usersRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'users');
@@ -75,9 +71,7 @@ export default function TeamRosterPage() {
 
   const membersQuery = useMemoFirebase(() => {
     if (!usersRef || memberIds.length === 0) return null;
-    // Firestore 'in' queries are limited to 30 items per query.
-    // For larger teams, this needs pagination or multiple queries.
-    if (memberIds.length > 30) {
+     if (memberIds.length > 30) {
       console.warn("Team has more than 30 members, this query might be truncated. Consider pagination for larger teams.");
     }
     return query(usersRef, where(documentId(), 'in', memberIds.slice(0, 30)));
@@ -85,8 +79,7 @@ export default function TeamRosterPage() {
   
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
   
-  const isLoading = isLoadingTeam || isLoadingInvitations || (memberIds.length > 0 && isLoadingMembers);
-
+  const isLoading = isLoadingTeam || isLoadingMembersSubcollection || (memberIds.length > 0 && isLoadingMembers);
 
   return (
     <div className="container mx-auto px-4 py-8">

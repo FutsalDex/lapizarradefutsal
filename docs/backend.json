@@ -180,9 +180,7 @@
       },
       "required": [
         "id",
-        "email",
-        "firstName",
-        "lastName"
+        "email"
       ]
     },
     "TeamInvitation": {
@@ -233,6 +231,15 @@
         "$ref": "#/entities/Team"
       },
       "description": "Stores all team documents."
+    },
+    "/teams/{teamId}/members/{memberId}": {
+        "schema": {
+            "type": "object",
+            "properties": {
+                "role": {"type": "string", "enum": ["player", "coach"]}
+            }
+        },
+        "description": "Stores team members. The document ID is the user ID."
     },
     "/users/{userId}": {
       "schema": {
