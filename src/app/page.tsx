@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Lock } from 'lucide-react';
+import { ArrowRight, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
@@ -38,19 +38,27 @@ export default function Home() {
         <Card className="bg-card flex flex-col">
           <CardHeader>
             <div className='flex items-center gap-3'>
-              <Lock className="w-5 h-5 text-muted-foreground" />
-              <CardTitle className="font-headline text-2xl font-semibold">Acceso de Invitado</CardTitle>
+              <User className="w-5 h-5 text-muted-foreground" />
+              <CardTitle className="font-headline text-2xl font-semibold">Acceso de Usuario</CardTitle>
             </div>
-            <CardDescription className="text-base">¿Quieres probar antes de suscribirte?</CardDescription>
+            <CardDescription className="text-base">Regístrate para una prueba de 30 días</CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
-             <h3 className="font-semibold mb-3">Como invitado, puedes:</h3>
+             <h3 className="font-semibold mb-3">Con tu cuenta gratuita, podrás:</h3>
              <ul className="space-y-2 text-muted-foreground list-disc pl-5">
-              <li>Explorar una selección de <strong>15 ejercicios</strong> de nuestra biblioteca.</li>
-              <li>Navegar y visualizar todas las herramientas que te ofrecemos</li>
-              <li>Y si te registras disfrutarás de 30 días de todos los ejercicios y herramientas, antes de decidir tu suscripción.</li>
+              <li>Explorar el catálogo completo de ejercicios.</li>
+              <li>Guardar tus ejercicios favoritos.</li>
+              <li>Crear y gestionar sesiones de entrenamiento.</li>
+              <li>Analizar las estadísticas de los partidos de tu equipo.</li>
              </ul>
           </CardContent>
+           <CardFooter>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/acceso">
+                Regístrate o Inicia Sesión <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
         
       </div>

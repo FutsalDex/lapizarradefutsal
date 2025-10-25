@@ -12,6 +12,16 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
+import { useUser, useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
@@ -25,6 +35,12 @@ const navLinks = [
 
 export function Header() {
   const pathname = usePathname();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  const handleSignOut = () => {
+    signOut(auth);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
@@ -92,16 +108,38 @@ export function Header() {
         </div>
 
         <div className="hidden md:flex flex-1 justify-end items-center gap-2">
-           <Button variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
-              <Heart className="h-4 w-4 mr-2"/> Favoritos
+           <Button asChild variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
+              <Link href="/favoritos">
+                <Heart className="h-4 w-4 mr-2"/> Favoritos
+              </Link>
           </Button>
            <Button variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
               <Shield className="h-4 w-4 mr-2"/> Panel Admin
           </Button>
-           <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
-            <UserCircle className="h-6 w-6" />
-            <span className="sr-only">Perfil de usuario</span>
-          </Button>
+          {!isUserLoading && (
+            user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
+                    <UserCircle className="h-6 w-6" />
+                    <span className="sr-only">Perfil de usuario</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{user.email || 'Mi Cuenta'}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>Cerrar Sesión</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+               <Button asChild variant="outline" className="bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20 text-primary-foreground">
+                <Link href="/acceso">
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  Acceder
+                </Link>
+              </Button>
+            )
+          )}
         </div>
       </div>
     </header>
