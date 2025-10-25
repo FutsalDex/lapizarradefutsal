@@ -31,7 +31,7 @@ interface Team {
   name: string;
   club?: string;
   season?: string;
-  createdBy: string;
+  ownerId: string;
 }
 
 interface TeamInvitation {
@@ -63,7 +63,7 @@ export default function GestionEquiposPage() {
 
   const userTeamsQuery = useMemoFirebase(() => {
     if (!teamsCollectionRef || !user) return null;
-    return query(teamsCollectionRef, where('createdBy', '==', user.uid));
+    return query(teamsCollectionRef, where('ownerId', '==', user.uid));
   }, [teamsCollectionRef, user]);
 
   const { data: userTeams, isLoading: isLoadingTeams } = useCollection<Team>(userTeamsQuery);
@@ -95,7 +95,7 @@ export default function GestionEquiposPage() {
     try {
       await addDoc(teamsCollectionRef, {
         ...data,
-        createdBy: user.uid,
+        ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
       toast({
