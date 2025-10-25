@@ -2,92 +2,118 @@
  * @fileoverview Firestore Security Rules for LaPizarra application.
  *
  * Core Philosophy:
- * This ruleset implements a hybrid security model:
- * - Exercises: Publicly readable, but only administrators can create, update, or delete them.
- * - Sessions & Matches: Strictly user-owned. Each user can only access their own sessions and match data.
+ * This ruleset enforces a strict user-ownership model for personal data (sessions, matches, favorites)
+ * while allowing public read access to shared data (exercises). Authorization decisions are based on
+ * the authenticated user's ID and path-based ownership, without relying on complex queries or `get()` calls.
  *
  * Data Structure:
- * - /exercises/{exerciseId}: A top-level collection of publicly accessible exercises.
- * - /users/{userId}/sessions/{sessionId}: Sessions owned by a specific user.
- * - /users/{userId}/matches/{matchId}: Matches owned by a specific user.
+ * - /exercises/{exerciseId}: Public collection of exercises.
+ * - /users/{userId}/sessions/{sessionId}: User-owned training sessions.
+ * - /users/{userId}/matches/{matchId}: User-owned match data.
+ * - /users/{userId}/favorites/{exerciseId}: User-owned favorite exercises.
  *
  * Key Security Decisions:
- * - Public Read Access for Exercises: Allows all users to view exercises.
- * - Owner-Only Access for Sessions and Matches: Restricts access to a user's own data.
- * - No User Listing: Prevents unauthorized discovery of user IDs.
+ * - Exercises are publicly readable but only modifiable through backend processes (currently not implemented).
+ * - Users can only access their own sessions, matches, and favorites.
+ * - Listing of user-owned subcollections is allowed only for the owner.
+ * - Data validation is relaxed in this prototyping phase, focusing on authorization and relational integrity.
  *
  * Denormalization for Authorization:
- *  - Exercises are publicly readable, eliminating the need for authorization checks on read.
- *  - Sessions and Matches are nested under /users/{userId}, enabling simple isOwner(userId) checks for authorization.
+ *  N/A - The path-based ownership model eliminates the need for denormalization.
  *
  * Structural Segregation:
- *  - Public exercises are stored in a top-level collection separate from user-specific data, simplifying read access.
+ *  The separation of public exercises from private user data ensures secure and efficient access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read exercises, but only allows administrators to create, update, or delete them.
-     * @path /exercises/{exerciseId}
-     * @allow (get, list): if true
-     * @allow (create): if false // TODO: Add admin role check.
-     * @allow (update): if false // TODO: Add admin role check.
-     * @allow (delete): if false // TODO: Add admin role check.
-     * @principle Allows public read access to exercises, but restricts write access to administrators.
+     * @description Checks if the request is authenticated.
      */
-    match /exercises/{exerciseId} {
-      allow get, list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Allows a user to manage their own sessions.
-     * @path /users/{userId}/sessions/{sessionId}
-     * @allow (create): if request.auth.uid == userId
-     * @allow (get, list): if request.auth.uid == userId
-     * @allow (update, delete): if request.auth.uid == userId && resource != null
-     * @deny (create): if request.auth.uid != userId
-     * @deny (update, delete): if request.auth.uid != userId
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/sessions/{sessionId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Allows a user to manage their own matches.
-     * @path /users/{userId}/matches/{matchId}
-     * @allow (create): if request.auth.uid == userId
-     * @allow (get, list): if request.auth.uid == userId
-     * @allow (update, delete): if request.auth.uid == userId && resource != null
-     * @deny (create): if request.auth.uid != userId
-     * @deny (update, delete): if request.auth.uid != userId
-     * @principle Enforces document ownership for writes.
-     */
-    match /users/{userId}/matches/{matchId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     * @details Combines the ownership check with a document existence check for safer updates and deletes.
+     */
     function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Exercises are publicly accessible.
+     * @path /exercises/{exerciseId}
+     * @allow (get, list): Anyone can read exercises.
+     * @deny (create, update, delete): Only backend processes can modify exercises (not implemented).
+     * @principle Public read access with restricted writes.
+     */
+    match /exercises/{exerciseId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Implement backend modification
+    }
+
+    /**
+     * @description Manages user-owned training sessions.
+     * @path /users/{userId}/sessions/{sessionId}
+     * @allow (create): User 'user_abc' can create a session under their own user ID.
+     * @allow (get, list): User 'user_abc' can read their own sessions.
+     * @allow (update, delete): User 'user_abc' can update/delete their own existing sessions.
+     * @deny (create): User 'user_xyz' cannot create a session under user 'user_abc'.
+     * @deny (get, list, update, delete): User 'user_xyz' cannot access user 'user_abc' sessions.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/sessions/{sessionId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages user-owned match data.
+     * @path /users/{userId}/matches/{matchId}
+     * @allow (create): User 'user_abc' can create a match under their own user ID.
+     * @allow (get, list): User 'user_abc' can read their own match data.
+     * @allow (update, delete): User 'user_abc' can update/delete their own existing match data.
+     * @deny (create): User 'user_xyz' cannot create a match under user 'user_abc'.
+     * @deny (get, list, update, delete): User 'user_xyz' cannot access user 'user_abc' match data.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/matches/{matchId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages user-owned favorite exercises.
+     * @path /users/{userId}/favorites/{exerciseId}
+     * @allow (create): User 'user_abc' can create a favorite under their own user ID.
+     * @allow (get, list): User 'user_abc' can read their own favorites.
+     * @allow (update, delete): User 'user_abc' can update/delete their own existing favorites.
+     * @deny (create): User 'user_xyz' cannot create a favorite under user 'user_abc'.
+     * @deny (get, list, update, delete): User 'user_xyz' cannot access user 'user_abc' favorites.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/favorites/{exerciseId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
