@@ -78,12 +78,12 @@ export default function ExerciseDetailPage() {
         <div className="lg:col-span-1">
             <Card>
                 <CardContent className="p-0">
-                    <div className="relative aspect-[4/3] w-full">
+                    <div className="relative aspect-[4/3] w-full bg-black/5 rounded-t-lg">
                         <Image
                             src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/800/600'}
                             alt={`Imagen de ${exercise.Ejercicio}`}
                             fill
-                            className="object-cover rounded-t-lg"
+                            className="object-contain p-2"
                         />
                     </div>
                 </CardContent>

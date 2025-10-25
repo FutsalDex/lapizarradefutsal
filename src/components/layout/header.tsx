@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetTrigger,
   SheetTitle,
@@ -70,19 +71,20 @@ export function Header() {
               <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
               <nav className="grid gap-4 text-base font-medium mt-8">
                 {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                  <SheetClose asChild key={link.href}>
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
                        pathname === link.href
                         ? "text-primary bg-muted"
                         : "text-muted-foreground"
-                    )}
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
+                      )}
+                    >
+                      {link.icon}
+                      {link.label}
+                    </Link>
+                  </SheetClose>
                 ))}
               </nav>
             </SheetContent>
