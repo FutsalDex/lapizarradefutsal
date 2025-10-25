@@ -91,7 +91,7 @@ export default function ExerciseDetailPage() {
         </div>
 
         <div className="lg:col-span-2">
-            <h1 className="font-headline text-4xl font-bold text-primary mb-2">{exercise.Ejercicio}</h1>
+            <h1 className="font-headline text-3xl font-bold text-primary mb-2">{exercise.Ejercicio}</h1>
              <div className="flex flex-wrap gap-2 mb-6">
                 <Badge variant="secondary">{exercise['Fase']}</Badge>
                 <Badge variant="secondary">{exercise['Categoría']}</Badge>
