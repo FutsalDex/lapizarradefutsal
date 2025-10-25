@@ -70,13 +70,13 @@ export default function TeamRosterPage() {
   }, [firestore]);
 
   const membersQuery = useMemoFirebase(() => {
-      if(!usersRef || memberIds.length === 0) return null;
-      // Firestore 'in' queries are limited to 30 items per query.
-      // For larger teams, this needs pagination or multiple queries.
-      if (memberIds.length > 30) {
-        console.warn("Team has more than 30 members, the query might be truncated by Firestore limits depending on the SDK version.");
-      }
-      return query(usersRef, where('__name__', 'in', memberIds));
+    if (!usersRef || memberIds.length === 0) return null;
+    // Firestore 'in' queries are limited to 30 items per query.
+    // For larger teams, this needs pagination or multiple queries.
+    if (memberIds.length > 10) {
+      console.warn("Team has more than 10 members, this query might be truncated. Consider pagination for larger teams.");
+    }
+    return query(usersRef, where('id', 'in', memberIds.slice(0, 10)));
   }, [usersRef, memberIds]);
   
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
@@ -109,7 +109,7 @@ export default function TeamRosterPage() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            {isLoading ? (
+            {isLoading && !teamMembers ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
