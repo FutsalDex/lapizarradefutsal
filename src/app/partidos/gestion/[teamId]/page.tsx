@@ -15,13 +15,6 @@ import { BarChart2, CalendarCheck, Shield, UserPlus, Users, ArrowLeft } from 'lu
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const navItems = [
-    { title: 'Mi Plantilla', href: '#', icon: <Users className="w-8 h-8 text-primary" /> },
-    { title: 'Mis Partidos', href: '#', icon: <Shield className="w-8 h-8 text-primary" /> },
-    { title: 'Control de Asistencia', href: '#', icon: <CalendarCheck className="w-8 h-8 text-primary" /> },
-    { title: 'Mis Estadísticas', href: '#', icon: <BarChart2 className="w-8 h-8 text-primary" /> },
-];
-
 interface Team {
   id: string;
   name: string;
@@ -70,39 +63,37 @@ export default function TeamDashboardPage() {
 
   // 3. Get user profiles for the members
   const memberIds = useMemo(() => acceptedInvitations?.map(inv => inv.userId) || [], [acceptedInvitations]);
+  
   const usersRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || memberIds.length === 0) return null;
     return collection(firestore, 'users');
-  }, [firestore]);
+  }, [firestore, memberIds.length]);
+
   const membersQuery = useMemoFirebase(() => {
       if(!usersRef || memberIds.length === 0) return null;
-      return query(usersRef, where('id', 'in', memberIds));
+      return query(usersRef, where('__name__', 'in', memberIds));
   }, [usersRef, memberIds]);
+  
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
   
   const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
 
-  if (isLoading) {
+  if (isLoading && !team) {
     return (
         <div className="container mx-auto px-4 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-80 mb-8" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28" />)}
-                    </div>
-                    <Skeleton className="h-96" />
-                </div>
-                <div className="lg:col-span-1">
-                    <Skeleton className="h-64" />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Skeleton className="h-96" />
+                <Skeleton className="h-96" />
+                <Skeleton className="h-96" />
+                <Skeleton className="h-96" />
             </div>
         </div>
     );
   }
 
-  if (!team) {
+  if (!team && !isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
@@ -116,102 +107,96 @@ export default function TeamDashboardPage() {
       </div>
     );
   }
-
+  
   return (
     <div className="container mx-auto px-4 py-8">
-       <Button asChild variant="outline" className="mb-8">
+       <div className="mb-8">
+         <Button asChild variant="outline" className="mb-4">
           <Link href="/partidos/gestion">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver
           </Link>
         </Button>
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold font-headline text-primary">{team.name}</h1>
+        <h1 className="text-4xl font-bold font-headline text-primary">{team?.name}</h1>
         <p className="text-lg text-muted-foreground mt-2">Panel de control del equipo.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {navItems.map(item => (
-                    <Card key={item.title} className="hover:shadow-lg hover:border-primary/50 transition-all">
-                        <Link href="#">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-lg font-medium font-headline">{item.title}</CardTitle>
-                                {item.icon}
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-xs text-muted-foreground">Accede a la sección de {item.title.toLowerCase()}</p>
-                            </CardContent>
-                        </Link>
-                    </Card>
-                ))}
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center"><Users className="mr-2"/>Mi Plantilla</CardTitle>
-                    <CardDescription>Visualiza y gestiona los miembros de tu equipo.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {teamMembers && teamMembers.length > 0 ? (
-                            teamMembers.map((member) => (
-                                <div key={member.id} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                    <Avatar>
-                                        <AvatarFallback>{getInitials(member.firstName)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-medium">{member.firstName} {member.lastName}</p>
-                                        <p className="text-sm text-muted-foreground">{member.email}</p>
-                                    </div>
-                                    </div>
-                                    <Button variant="ghost" size="sm">Gestionar</Button>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-muted-foreground text-center py-4">Aún no hay miembros en este equipo.</p>
-                        )}
-                    </div>
-                     <Separator className="my-6" />
-                    <div className="flex flex-col sm:flex-row items-center justify-between rounded-lg border p-4">
-                        <div className='mb-4 sm:mb-0'>
-                            <h4 className="font-semibold">Invitar nuevo miembro</h4>
-                            <p className="text-sm text-muted-foreground">
-                            Envía una invitación para que se unan a tu equipo.
-                            </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Card Mi Plantilla */}
+        <Card className="flex flex-col">
+            <CardHeader>
+                <CardTitle className="flex items-center"><Users className="mr-2"/>Mi Plantilla</CardTitle>
+                <CardDescription>Visualiza y gestiona los miembros de tu equipo.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+                {isLoadingMembers ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                  </div>
+                ) : teamMembers && teamMembers.length > 0 ? (
+                    teamMembers.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                            <Avatar>
+                                <AvatarFallback>{getInitials(member.firstName) || getInitials(member.email)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium">{member.firstName} {member.lastName}</p>
+                                <p className="text-sm text-muted-foreground">{member.email}</p>
+                            </div>
+                            </div>
+                            <Button variant="ghost" size="sm">Gestionar</Button>
                         </div>
-                        <Button>
-                            <UserPlus className="mr-2" /> Invitar Jugador
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                    ))
+                ) : (
+                    <p className="text-muted-foreground text-center py-4">Aún no hay miembros en este equipo.</p>
+                )}
+            </CardContent>
+             <div className="p-6 pt-0">
+                <Separator className="my-4" />
+                <Button className="w-full">
+                    <UserPlus className="mr-2" /> Invitar Jugador
+                </Button>
+             </div>
+        </Card>
 
-        </div>
-        <div className="lg:col-span-1 space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Información General</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Nombre del Equipo</h4>
-                        <p className="text-muted-foreground">{team.name}</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Club</h4>
-                        <p className="text-muted-foreground">{team.club || 'No especificado'}</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Temporada</h4>
-                        <p className="text-muted-foreground">{team.season || 'No especificada'}</p>
-                    </div>
-                     <Button variant="outline" className="w-full mt-4">Editar Información</Button>
-                </CardContent>
-            </Card>
-        </div>
+        {/* Card Mis Partidos */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><Shield className="mr-2"/>Mis Partidos</CardTitle>
+                <CardDescription>Registra y revisa los resultados de los partidos.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground text-center py-4">Aún no se han registrado partidos.</p>
+                 <Button className="w-full mt-4">Registrar Nuevo Partido</Button>
+            </CardContent>
+        </Card>
+
+        {/* Card Control de Asistencia */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><CalendarCheck className="mr-2"/>Control de Asistencia</CardTitle>
+                <CardDescription>Lleva un registro de la asistencia a los entrenamientos y partidos.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <p className="text-muted-foreground text-center py-4">No hay datos de asistencia disponibles.</p>
+                 <Button className="w-full mt-4">Pasar Lista</Button>
+            </CardContent>
+        </Card>
+
+        {/* Card Mis Estadísticas */}
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center"><BarChart2 className="mr-2"/>Mis Estadísticas</CardTitle>
+                <CardDescription>Analiza el rendimiento general de tu equipo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <p className="text-muted-foreground text-center py-4">No hay estadísticas para mostrar.</p>
+                  <Button variant="outline" className="w-full mt-4">Ver Gráficos Detallados</Button>
+            </CardContent>
+        </Card>
       </div>
     </div>
   );
