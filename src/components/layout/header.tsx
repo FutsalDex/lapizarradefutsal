@@ -103,7 +103,7 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 ))}
-                {!isUserLoading && !user && (
+                {!user && (
                   <SheetClose asChild>
                     <Link
                       href="/acceso"
