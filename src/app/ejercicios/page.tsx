@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Heart, Search, Filter, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,9 +148,11 @@ export default function EjerciciosPage() {
                   <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.Ejercicio}</h3>
                 </CardContent>
                  <CardFooter className="p-4 bg-muted/30 flex justify-between items-center">
-                  <Button variant="outline" size="sm">
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Ficha
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/ejercicios/${exercise.id}`}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Ver Ficha
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="icon">
                     <Heart className="h-5 w-5 text-muted-foreground group-hover:text-red-500 group-hover:fill-current" />
