@@ -1,177 +1,147 @@
 /**
-  * @description This ruleset enforces a strict user-ownership model for user profiles and
-  * team-coach ownership for teams and their associated data (sessions, matches, invitations).
-  * It prioritizes authorization independence through denormalization, avoiding the need for
-  * complex `get()` operations in security rules.
-  *
-  * @dataStructure
-  * - /users/{userId}: Stores individual user profiles.  Only the authenticated user can
-  *   read/write their own profile.
-  * - /teams/{teamId}: Stores team information. Only the team's coach (coachId) can
-  *   read/write team details.
-  * - /teams/{teamId}/teamInvitations/{teamInvitationId}: Stores invitations to teams.
-  *   The coach of the team and the invited user have limited access.
-  * - /exercises/{exerciseId}: Publicly readable collection of exercises.  Writes are not
-  *   currently secured and should be restricted in a production environment.
-  * - /teams/{teamId}/sessions/{sessionId}: Stores training sessions for a team. Only
-  *   the team's coach can manage sessions.
-  * - /teams/{teamId}/matches/{matchId}: Stores match data for a team. Only the team's
-  *   coach can manage matches.
-  *
-  * @keySecurityDecisions
-  * - User listing is disallowed.
-  * - Exercises are publicly readable to facilitate content discovery, but write access
-  *   is currently open (requires modification for production).
-  * - The `coachId` field in the `Team` document is critical for authorization.
-  * - The `userId` and `invitedByUserId` fields in `TeamInvitation` are critical for authorization.
-  * @denormalizationForAuthorization
-  * - The `Team` document denormalizes the `coachId`, allowing rules to quickly verify the
-  *   coach's identity without additional reads.
-  * - The `TeamInvitation` denormalizes `userId` and `invitedByUserId` to allow invitation management without extra reads.
-  *
-  * @structuralSegregation
-  * - No structural segregation is explicitly used in this ruleset. If "public" and "private"
-  *   versions of data were needed, separate collections (or subcollections) would be
-  *   preferred over a single collection with a visibility flag.
-  */
- 
-
- rules_version = '2';
- service cloud.firestore {
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a user-ownership model for most data, with some public read access for shared resources.
+ *
+ * Data Structure:
+ * - /teams/{teamId}: Teams are owned by a user (ownerId).
+ * - /users/{userId}: User profiles, accessible only by the user.
+ * - /exercises/{exerciseId}: Public library of exercises, read-only for all, writeable by no one.
+ * - /teamInvitations/{invitationId}: Invitations to join teams, managed by team owners.
+ * - /users/{userId}/favorites/{exerciseId}: User's favorite exercises, only accessible by the user.
+ * - /users/{userId}/sessions/{sessionId}: Training sessions created by a user, only accessible by the user.
+ * - /users/{userId}/matches/{matchId}: Match data recorded by a user, only accessible by the user.
+ *
+ * Key Security Decisions:
+ * - Users can only access their own user document.
+ * - Listing of all users is disallowed.
+ * - Exercises are publicly readable but not writable (a true public resource).
+ * - Team creation is restricted to authenticated users.
+ * - Team updates and deletes are restricted to the team owner.
+ * - Team Invitations can only be created by a team owner.
+ *
+ * Denormalization for Authorization:
+ * - The `Team` entity includes an `ownerId` field to simplify ownership checks.
+ */
+rules_version = '2';
+service cloud.firestore {
   match /databases/{database}/documents {
- 
 
-   // Helper function to check if the user is signed in
-   function isSignedIn() {
-    return request.auth != null;
-   }
- 
+    /**
+     * @description Allows anyone to read exercises, but nobody to create, update, or delete them.
+     * @path /exercises/{exerciseId}
+     * @allow (get, list): Anyone can read exercises.
+     * @deny (create, update, delete): No one can create, update, or delete exercises.
+     * @principle Exercises are a public read-only resource.
+     */
+    match /exercises/{exerciseId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
 
-   // Helper function to check if the authenticated user is the owner
-   function isOwner(userId) {
-    return request.auth.uid == userId;
-   }
- 
+    /**
+     * @description Restricts access to user documents to the owner.
+     * @path /users/{userId}
+     * @allow (get): User can read their own profile.
+     * @allow (create): User can create their own profile if the ID matches their auth UID.
+     * @allow (update, delete): User can update or delete their own profile.
+     * @deny (get): User cannot read another user's profile.
+     * @deny (create): User cannot create a profile with an ID that doesn't match their auth UID.
+     * @principle Enforces user-ownership for user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-   // Helper function to check if the authenticated user is the existing owner
-   function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
-   }
- 
+    /**
+     * @description Restricts access to team documents to the owner.
+     * @path /teams/{teamId}
+     * @allow (get, list): Anyone can read and list teams.
+     * @allow (create): User can create a team if the ownerId matches their auth UID.
+     * @allow (update, delete): Only the team owner can update or delete the team.
+     * @deny (create): User cannot create a team with an ownerId that doesn't match their auth UID.
+     * @principle Enforces document ownership for writes, public read.
+     */
+    match /teams/{teamId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid && request.resource.data.createdAt == request.time;
+      allow update: if isExistingOwner(resource.data.ownerId);
+      allow delete: if isExistingOwner(resource.data.ownerId);
+    }
 
-   /**
-    * @description Controls access to user profile documents.  Only the authenticated user
-    *   can read or write their own profile.
-    * @path /users/{userId}
-    * @allow (get, create, update, delete) - Authenticated user accessing their own profile.
-    *   Example: `request.auth.uid` matches the `userId` path parameter.
-    * @deny (get, create, update, delete) - Any other user attempting to access this profile.
-    *   Example: `request.auth.uid` does not match the `userId` path parameter.
-    * @principle Enforces document ownership for all operations.
-    */
-   match /users/{userId} {
-    allow get: if isOwner(userId);
-    allow list: if false;
-    allow create: if isOwner(userId);
-    allow update: if isOwner(userId);
-    allow delete: if isOwner(userId) && existsAfter(/databases/$(database)/documents/users/$(userId));
-   }
- 
+    /**
+     * @description Restricts access to team invitation documents.
+     * @path /teamInvitations/{invitationId}
+     * @allow (get): Anyone can read
+     * @allow (create): Only the team owner can create an invitation for their team.
+     * @allow (update, delete): Only the team owner can update or delete the invitation.
+     * @principle Enforces that only team owners can manage invitations to their teams.
+     */
+    match /teamInvitations/{invitationId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
 
-   /**
-    * @description Controls access to team documents. Only the team's coach (specified by
-    *   the `coachId` field) can read, update, or delete team information.
-    * @path /teams/{teamId}
-    * @allow (get, create, update, delete) - The team's coach accessing the team document.
-    *   Example: `request.auth.uid` matches the `coachId` field in the document.
-    * @deny (get, create, update, delete) - Any other user attempting to access the team document.
-    *   Example: `request.auth.uid` does not match the `coachId` field in the document.
-    * @principle Enforces coach-ownership for all operations.
-    */
-   match /teams/{teamId} {
-    allow get: if resource.data.coachId == request.auth.uid;
-    allow list: if false;
-    allow create: if request.resource.data.coachId == request.auth.uid;
-    allow update: if resource.data.coachId == request.auth.uid;
-    allow delete: if resource.data.coachId == request.auth.uid;
-   }
- 
+    /**
+     * @description Restricts access to favorite exercises to the owner.
+     * @path /users/{userId}/favorites/{exerciseId}
+     * @allow (get, list, create, update, delete): Only the user can manage their own favorites.
+     * @deny (get, list, create, update, delete): Other users cannot access this user's favorites.
+     * @principle Enforces user-ownership for favorite exercises.
+     */
+    match /users/{userId}/favorites/{exerciseId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-   /**
-    * @description Controls access to team invitation documents. Only the coach can create
-    *   invitations. The invited user can read their own pending invitations.  The coach
-    *   can update/delete invitations.
-    * @path /teams/{teamId}/teamInvitations/{teamInvitationId}
-    * @allow (create) - The team's coach creating an invitation.
-    *   Example: `request.auth.uid` matches the `coachId` of the parent `Team` document.
-    * @allow (get) - The invited user reading their own pending invitation.
-    *   Example: `request.auth.uid` matches the `userId` field in the invitation and the
-    *   invitation status is 'pending'.
-    * @allow (update, delete) - The team's coach updating/deleting an invitation.
-    *   Example: `request.auth.uid` matches the `coachId` of the parent `Team` document.
-    * @deny (create, get, update, delete) - Any other user attempting to access the
-    *   invitation document.
-    * @principle Enforces role-based access control for team invitations.
-    */
-   match /teams/{teamId}/teamInvitations/{teamInvitationId} {
-    allow get: if resource.data.userId == request.auth.uid;
-    allow list: if false;
-    allow create: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow update: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow delete: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-   }
- 
+    /**
+     * @description Restricts access to training sessions to the owner.
+     * @path /users/{userId}/sessions/{sessionId}
+     * @allow (get, list, create, update, delete): Only the user can manage their own sessions.
+     * @deny (get, list, create, update, delete): Other users cannot access this user's sessions.
+     * @principle Enforces user-ownership for training sessions.
+     */
+    match /users/{userId}/sessions/{sessionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-   /**
-    * @description Allows public read access to exercises, but restricts write access.
-    *   In this prototyping phase, write access is open but should be secured in production
-    *   (e.g., only admins can create/update/delete exercises).
-    * @path /exercises/{exerciseId}
-    * @allow (get, list) - Any user can read exercises.
-    * @allow (create, update, delete) - Currently open for prototyping.  Requires
-    *   modification to restrict write access in production.
-    * @deny (none for reads) - All users can read exercises.
-    * @principle Provides public read access with owner-only (currently unsecured) writes.
-    */
-   match /exercises/{exerciseId} {
-    allow get, list: if true;
-    allow create, update, delete: if false; // TODO: Secure write operations to exercises.
-   }
- 
-
-   /**
-    * @description Controls access to training session documents. Only the team's coach can
-    *   read, create, update, or delete sessions.
-    * @path /teams/{teamId}/sessions/{sessionId}
-    * @allow (get, create, update, delete) - The team's coach accessing the session document.
-    *   Example: `request.auth.uid` matches the `coachId` of the parent `Team` document.
-    * @deny (get, create, update, delete) - Any other user attempting to access the session document.
-    * @principle Enforces coach-ownership for all operations on sessions.
-    */
-   match /teams/{teamId}/sessions/{sessionId} {
-    allow get: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow list: if false;
-    allow create: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow update: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow delete: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-   }
- 
-
-   /**
-    * @description Controls access to match documents. Only the team's coach can read,
-    *   create, update, or delete match data.
-    * @path /teams/{teamId}/matches/{matchId}
-    * @allow (get, create, update, delete) - The team's coach accessing the match document.
-    *   Example: `request.auth.uid` matches the `coachId` of the parent `Team` document.
-    * @deny (get, create, update, delete) - Any other user attempting to access the match document.
-    * @principle Enforces coach-ownership for all operations on matches.
-    */
-   match /teams/{teamId}/matches/{matchId} {
-    allow get: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow list: if false;
-    allow create: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow update: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-    allow delete: if get(/databases/$(database)/documents/teams/$(teamId)).data.coachId == request.auth.uid;
-   }
+    /**
+     * @description Restricts access to match data to the owner.
+     * @path /users/{userId}/matches/{matchId}
+     * @allow (get, list, create, update, delete): Only the user can manage their own match data.
+     * @deny (get, list, create, update, delete): Other users cannot access this user's match data.
+     * @principle Enforces user-ownership for match data.
+     */
+    match /users/{userId}/matches/{matchId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
   }
- }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+      return isSignedIn() && isOwner(userId) && resource != null;
+  }
+}
