@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, doc, documentId, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,11 +24,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 interface Team {
   id: string;
   name: string;
+  ownerId: string;
 }
 
 interface TeamMemberDoc {
   id: string; // This is the userId (document ID)
-  role?: string;
+  role: 'player' | 'coach';
+  dorsal?: number;
+  posicion?: string;
 }
 
 interface UserProfile {
@@ -35,6 +39,10 @@ interface UserProfile {
     displayName?: string;
     email: string;
 }
+
+// Combined type for easy rendering
+type RosterPlayer = UserProfile & Omit<TeamMemberDoc, 'id' | 'role'>;
+
 
 const getInitials = (displayName?: string, email?: string) => {
     if (displayName) {
@@ -47,13 +55,14 @@ const getInitials = (displayName?: string, email?: string) => {
     return (email?.charAt(0) || '').toUpperCase();
 }
 
-const invitationSchema = z.object({
+const addPlayerSchema = z.object({
   email: z.string().email('Introduce un correo electrónico válido.'),
+  dorsal: z.coerce.number().min(0, 'El dorsal no puede ser negativo.').optional(),
+  posicion: z.string().optional(),
 });
 
-// Child component to handle the form and invitation logic
-function InvitePlayerDialog({ team }: { team: Team | null }) {
-    const { user } = useUser();
+
+function AddPlayerDialog({ team }: { team: Team | null }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [open, setOpen] = useState(false);
@@ -62,58 +71,50 @@ function InvitePlayerDialog({ team }: { team: Team | null }) {
     const { teamId } = params;
 
 
-    const form = useForm<z.infer<typeof invitationSchema>>({
-        resolver: zodResolver(invitationSchema),
+    const form = useForm<z.infer<typeof addPlayerSchema>>({
+        resolver: zodResolver(addPlayerSchema),
         defaultValues: { email: '' },
     });
 
-    const onSubmit = async (values: z.infer<typeof invitationSchema>) => {
-        if (!user || !firestore || !team || typeof teamId !== 'string') {
-            toast({ title: 'Error', description: 'No se ha podido enviar la invitación. Inténtalo de nuevo.', variant: 'destructive' });
+    const onSubmit = async (values: z.infer<typeof addPlayerSchema>) => {
+        if (!firestore || !team || typeof teamId !== 'string') {
+            toast({ title: 'Error', description: 'No se ha podido añadir al jugador. Inténtalo de nuevo.', variant: 'destructive' });
             return;
         }
 
         setIsSubmitting(true);
         try {
-            // 1. Check if user with this email exists
+            // 1. Check if user with this email exists in the 'users' collection
             const usersRef = collection(firestore, 'users');
             const userQuery = query(usersRef, where('email', '==', values.email));
             const userSnapshot = await getDocs(userQuery);
 
             if (userSnapshot.empty) {
-                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico.', variant: 'destructive' });
+                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico en la plataforma.', variant: 'destructive' });
                 return;
             }
-            const invitedUser = userSnapshot.docs[0];
-            const invitedUserId = invitedUser.id;
+            const invitedUserDoc = userSnapshot.docs[0];
+            const invitedUserId = invitedUserDoc.id;
 
-            // 2. Check if an invitation already exists
-            const invitationsRef = collection(firestore, 'teamInvitations');
-            const invitationQuery = query(invitationsRef, where('teamId', '==', teamId), where('userId', '==', invitedUserId));
-            const invitationSnapshot = await getDocs(invitationQuery);
-
-            if (!invitationSnapshot.empty) {
-                toast({ title: 'Invitación ya enviada', description: 'Este usuario ya ha sido invitado a este equipo.', variant: 'destructive' });
-                return;
-            }
-
-            // 3. Create the invitation
-            await addDoc(invitationsRef, {
-                teamId: teamId,
-                teamName: team.name,
-                userId: invitedUserId,
-                status: 'pending',
-                invitedByUserId: user.uid,
-                createdAt: serverTimestamp(),
+            // 2. Check if the player is already in the team
+            const memberRef = doc(firestore, 'teams', teamId, 'members', invitedUserId);
+            // In Firestore, we can't directly check for existence in a subcollection query,
+            // but we can just overwrite/set the data. If they exist, they are updated.
+            
+            // 3. Add the user to the team's 'members' subcollection
+            await setDoc(memberRef, {
+                role: 'player',
+                dorsal: values.dorsal ?? null,
+                posicion: values.posicion ?? null,
             });
 
-            toast({ title: '¡Invitación enviada!', description: `Se ha enviado una invitación a ${values.email}.` });
+            toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName || values.email} ha sido añadido a la plantilla.` });
             form.reset();
             setOpen(false);
 
         } catch (error) {
-            console.error("Error sending invitation:", error);
-            toast({ title: 'Error', description: 'Ha ocurrido un problema al enviar la invitación.', variant: 'destructive' });
+            console.error("Error adding player:", error);
+            toast({ title: 'Error', description: 'Ha ocurrido un problema al añadir al jugador.', variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
@@ -128,29 +129,57 @@ function InvitePlayerDialog({ team }: { team: Team | null }) {
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Invitar a un nuevo jugador</DialogTitle>
+                    <DialogTitle>Dar de alta a un nuevo jugador</DialogTitle>
                     <DialogDescription>
-                        Introduce el correo electrónico del usuario para invitarlo a tu equipo '{team?.name}'. El usuario ya debe tener una cuenta en la aplicación.
+                        Introduce los datos del jugador para añadirlo a tu equipo '{team?.name}'. El usuario ya debe tener una cuenta en la aplicación.
                     </DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Correo electrónico del jugador</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="jugador@ejemplo.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Correo electrónico del jugador</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="jugador@ejemplo.com" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
                         />
+                        <div className="grid grid-cols-2 gap-4">
+                           <FormField
+                                control={form.control}
+                                name="dorsal"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Dorsal</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" placeholder="Ej: 10" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <FormField
+                                control={form.control}
+                                name="posicion"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Posición</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Ej: Cierre" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <Button type="submit" className="w-full" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isSubmitting ? 'Enviando...' : 'Enviar Invitación'}
+                            {isSubmitting ? 'Añadiendo...' : 'Añadir Jugador a la Plantilla'}
                         </Button>
                     </form>
                 </Form>
@@ -159,59 +188,45 @@ function InvitePlayerDialog({ team }: { team: Team | null }) {
     );
 }
 
-
-// Child component to fetch and render member profiles once IDs are available
-function TeamRoster({ memberIds }: { memberIds: string[] }) {
-    const firestore = useFirestore();
-
-    const membersQuery = useMemoFirebase(() => {
-        if (!firestore || memberIds.length === 0) return null;
-        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0,30)));
-    }, [firestore, memberIds]);
-
-    const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
-    
-    if (isLoadingMembers) {
-        return (
-            <div className="space-y-4">
-                {[...Array(memberIds.length || 3)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between py-3">
-                        <div className="flex items-center gap-4">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div>
-                                <Skeleton className="h-5 w-28 mb-1" />
-                                <Skeleton className="h-4 w-36" />
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    
-    if (teamMembers && teamMembers.length > 0) {
-        return (
-             <div className="divide-y">
-                {teamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center justify-between py-3">
-                        <div className="flex items-center gap-4">
-                        <Avatar>
-                            <AvatarFallback>{getInitials(member.displayName, member.email)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-medium">{member.displayName || member.email || 'Usuario sin nombre'}</p>
-                            <p className="text-sm text-muted-foreground">{member.email}</p>
-                        </div>
-                        </div>
-                        <Button variant="ghost" size="sm">Gestionar</Button>
-                    </div>
-                ))}
-            </div>
-        );
-    }
+function TeamRoster({ members, memberDetails }: { members: TeamMemberDoc[], memberDetails: UserProfile[] }) {
+    const roster = useMemo(() => {
+        return members.map(member => {
+            const profile = memberDetails.find(p => p.id === member.id);
+            return {
+                ...profile,
+                ...member,
+            } as RosterPlayer;
+        }).filter(p => p.email); // Filter out any players where the profile wasn't found
+    }, [members, memberDetails]);
 
     return (
-        <p className="text-muted-foreground text-center py-8">No se encontraron perfiles para los miembros del equipo.</p>
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead className="w-[80px]">Dorsal</TableHead>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Posición</TableHead>
+                    <TableHead className="text-right">Email</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {roster.map((player) => (
+                    <TableRow key={player.id}>
+                        <TableCell className="font-medium text-center">{player.dorsal ?? '-'}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{getInitials(player.displayName, player.email)}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">{player.displayName || 'Usuario sin nombre'}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell>{player.posicion ?? '-'}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">{player.email}</TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
     );
 }
 
@@ -228,21 +243,25 @@ export default function TeamRosterPage() {
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  // 2. Get member document IDs from the 'members' subcollection
+  // 2. Get member documents from the 'members' subcollection
   const membersSubcollectionRef = useMemoFirebase(() => {
       if(!firestore || typeof teamId !== 'string') return null;
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
   const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
-  
-  // 3. Extract the IDs from the documents
-  const memberIds = useMemo(() => {
-    if (!teamMembersDocs) return [];
-    // The user ID is the ID of the document in the 'members' subcollection
-    return teamMembersDocs.map(memberDoc => memberDoc.id);
-  }, [teamMembersDocs]);
 
-  const isLoading = isLoadingTeam || isLoadingMembersSubcollection;
+  // 3. Extract the IDs from the documents
+  const memberIds = useMemo(() => teamMembersDocs?.map(member => member.id) || [], [teamMembersDocs]);
+  
+  // 4. Get the profiles for the extracted IDs
+  const membersQuery = useMemoFirebase(() => {
+      if (!firestore || memberIds.length === 0) return null;
+      // Firestore 'in' queries are limited to 30 elements
+      return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
+  }, [firestore, memberIds]);
+  const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
+
+  const isLoading = isLoadingTeam || isLoadingMembersSubcollection || (memberIds.length > 0 && isLoadingProfiles);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -265,32 +284,31 @@ export default function TeamRosterPage() {
                     {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${memberIds.length} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
-            <InvitePlayerDialog team={team} />
+            <AddPlayerDialog team={team} />
         </CardHeader>
         <CardContent>
             {isLoading && (
-                <div className="space-y-4">
+                <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex items-center justify-between py-3">
-                            <div className="flex items-center gap-4">
-                                <Skeleton className="h-10 w-10 rounded-full" />
-                                <div>
-                                    <Skeleton className="h-5 w-28 mb-1" />
-                                    <Skeleton className="h-4 w-36" />
-                                </div>
-                            </div>
+                        <div key={i} className="flex items-center space-x-4 p-4">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <Skeleton className="h-4 flex-grow" />
+                            <Skeleton className="h-4 flex-grow" />
                         </div>
                     ))}
                 </div>
             )}
-            {!isLoading && memberIds.length > 0 && <TeamRoster memberIds={memberIds} />}
+            {!isLoading && teamMembersDocs && teamMembersProfiles && (
+                <TeamRoster members={teamMembersDocs} memberDetails={teamMembersProfiles} />
+            )}
             {!isLoading && memberIds.length === 0 && (
-                <p className="text-muted-foreground text-center py-8">Aún no hay miembros en este equipo. ¡Invita a tu primer jugador!</p>
+                <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                    <p className="font-semibold">Aún no hay miembros en este equipo.</p>
+                    <p className="text-sm mt-1">Usa el botón "Dar de alta jugador" para añadir a tu primer miembro.</p>
+                </div>
             )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

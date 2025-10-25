@@ -236,7 +236,9 @@
         "schema": {
             "type": "object",
             "properties": {
-                "role": {"type": "string", "enum": ["player", "coach"]}
+                "role": {"type": "string", "enum": ["player", "coach"]},
+                "dorsal": {"type": "number"},
+                "posicion": {"type": "string"}
             }
         },
         "description": "Stores team members. The document ID is the user ID."
