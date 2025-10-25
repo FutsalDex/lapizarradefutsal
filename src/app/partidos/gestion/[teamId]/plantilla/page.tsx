@@ -31,8 +31,11 @@ interface UserProfile {
     email: string;
 }
 
-const getInitials = (name?: string) => {
-    return name?.charAt(0).toUpperCase() || '';
+const getInitials = (firstName?: string, lastName?: string, email?: string) => {
+    const first = firstName?.charAt(0) || '';
+    const last = lastName?.charAt(0) || '';
+    if (first && last) return `${first}${last}`.toUpperCase();
+    return (email?.charAt(0) || '').toUpperCase();
 }
 
 export default function TeamRosterPage() {
@@ -62,17 +65,18 @@ export default function TeamRosterPage() {
   const memberIds = useMemo(() => acceptedInvitations?.map(inv => inv.userId) || [], [acceptedInvitations]);
   
   const usersRef = useMemoFirebase(() => {
-    if (!firestore || memberIds.length === 0) return null;
-    // Firestore 'in' queries are limited to 30 items. For larger teams, this needs pagination or a different approach.
-    if (memberIds.length > 30) {
-        console.warn("Team has more than 30 members, query will be truncated.");
-    }
+    if (!firestore) return null;
     return collection(firestore, 'users');
-  }, [firestore, memberIds.length]);
+  }, [firestore]);
 
   const membersQuery = useMemoFirebase(() => {
       if(!usersRef || memberIds.length === 0) return null;
-      return query(usersRef, where('__name__', 'in', memberIds.slice(0, 30)));
+      // Firestore 'in' queries are limited to 30 items per query.
+      // For larger teams, this needs pagination or multiple queries.
+      if (memberIds.length > 30) {
+        console.warn("Team has more than 30 members, the query might be truncated by Firestore limits depending on the SDK version.");
+      }
+      return query(usersRef, where('__name__', 'in', memberIds));
   }, [usersRef, memberIds]);
   
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
@@ -97,19 +101,28 @@ export default function TeamRosterPage() {
             <div>
                 <CardTitle>Miembros del Equipo</CardTitle>
                 <CardDescription>
-                    {isLoadingMembers ? 'Cargando...' : `${teamMembers?.length || 0} jugadores en la plantilla.`}
+                    {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamMembers?.length || 0} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
             <Button>
-                <UserPlus className="mr-2" /> Invitar Jugador
+                <UserPlus className="mr-2 h-4 w-4" /> Invitar Jugador
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
             {isLoading ? (
               <div className="space-y-4">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div>
+                                <Skeleton className="h-5 w-28 mb-1" />
+                                <Skeleton className="h-4 w-36" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                    </div>
+                ))}
               </div>
             ) : teamMembers && teamMembers.length > 0 ? (
                 <div className="divide-y">
@@ -117,7 +130,7 @@ export default function TeamRosterPage() {
                         <div key={member.id} className="flex items-center justify-between py-3">
                             <div className="flex items-center gap-4">
                             <Avatar>
-                                <AvatarFallback>{getInitials(member.firstName) || getInitials(member.email)}</AvatarFallback>
+                                <AvatarFallback>{getInitials(member.firstName, member.lastName, member.email)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <p className="font-medium">{member.firstName || 'Usuario'} {member.lastName || ''}</p>
