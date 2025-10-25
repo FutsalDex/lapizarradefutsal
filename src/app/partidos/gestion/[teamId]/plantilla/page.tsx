@@ -1,15 +1,22 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, doc, documentId } from 'firebase/firestore';
+import { collection, query, where, doc, documentId, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from '@/hooks/use-toast';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, UserPlus } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -26,8 +33,6 @@ interface TeamMemberDoc {
 interface UserProfile {
     id: string;
     displayName?: string;
-    firstName?: string;
-    lastName?: string;
     email: string;
 }
 
@@ -42,16 +47,126 @@ const getInitials = (displayName?: string, email?: string) => {
     return (email?.charAt(0) || '').toUpperCase();
 }
 
+const invitationSchema = z.object({
+  email: z.string().email('Introduce un correo electrónico válido.'),
+});
+
+// Child component to handle the form and invitation logic
+function InvitePlayerDialog({ team }: { team: Team | null }) {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const params = useParams();
+    const { teamId } = params;
+
+
+    const form = useForm<z.infer<typeof invitationSchema>>({
+        resolver: zodResolver(invitationSchema),
+        defaultValues: { email: '' },
+    });
+
+    const onSubmit = async (values: z.infer<typeof invitationSchema>) => {
+        if (!user || !firestore || !team || typeof teamId !== 'string') {
+            toast({ title: 'Error', description: 'No se ha podido enviar la invitación. Inténtalo de nuevo.', variant: 'destructive' });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            // 1. Check if user with this email exists
+            const usersRef = collection(firestore, 'users');
+            const userQuery = query(usersRef, where('email', '==', values.email));
+            const userSnapshot = await getDocs(userQuery);
+
+            if (userSnapshot.empty) {
+                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico.', variant: 'destructive' });
+                return;
+            }
+            const invitedUser = userSnapshot.docs[0];
+            const invitedUserId = invitedUser.id;
+
+            // 2. Check if an invitation already exists
+            const invitationsRef = collection(firestore, 'teamInvitations');
+            const invitationQuery = query(invitationsRef, where('teamId', '==', teamId), where('userId', '==', invitedUserId));
+            const invitationSnapshot = await getDocs(invitationQuery);
+
+            if (!invitationSnapshot.empty) {
+                toast({ title: 'Invitación ya enviada', description: 'Este usuario ya ha sido invitado a este equipo.', variant: 'destructive' });
+                return;
+            }
+
+            // 3. Create the invitation
+            await addDoc(invitationsRef, {
+                teamId: teamId,
+                teamName: team.name,
+                userId: invitedUserId,
+                status: 'pending',
+                invitedByUserId: user.uid,
+                createdAt: serverTimestamp(),
+            });
+
+            toast({ title: '¡Invitación enviada!', description: `Se ha enviado una invitación a ${values.email}.` });
+            form.reset();
+            setOpen(false);
+
+        } catch (error) {
+            console.error("Error sending invitation:", error);
+            toast({ title: 'Error', description: 'Ha ocurrido un problema al enviar la invitación.', variant: 'destructive' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <UserPlus className="mr-2 h-4 w-4" /> Dar de alta jugador
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Invitar a un nuevo jugador</DialogTitle>
+                    <DialogDescription>
+                        Introduce el correo electrónico del usuario para invitarlo a tu equipo '{team?.name}'. El usuario ya debe tener una cuenta en la aplicación.
+                    </DialogDescription>
+                </DialogHeader>
+                 <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Correo electrónico del jugador</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="jugador@ejemplo.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isSubmitting ? 'Enviando...' : 'Enviar Invitación'}
+                        </Button>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+
 // Child component to fetch and render member profiles once IDs are available
 function TeamRoster({ memberIds }: { memberIds: string[] }) {
     const firestore = useFirestore();
 
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
-        if (memberIds.length > 30) {
-            console.warn("Team has more than 30 members, this query will be truncated. Implement pagination for larger teams.");
-        }
-        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
+        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0,30)));
     }, [firestore, memberIds]);
 
     const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
@@ -150,9 +265,7 @@ export default function TeamRosterPage() {
                     {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${memberIds.length} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
-            <Button>
-                <UserPlus className="mr-2 h-4 w-4" /> Invitar Jugador
-            </Button>
+            <InvitePlayerDialog team={team} />
         </CardHeader>
         <CardContent>
             {isLoading && (
@@ -179,3 +292,5 @@ export default function TeamRosterPage() {
     </div>
   );
 }
+
+    
