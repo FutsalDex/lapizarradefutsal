@@ -16,13 +16,14 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { useToast } from "@/hooks/use-toast";
-import { AtSign, Lock, User as UserIcon } from 'lucide-react';
+import { AtSign, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
 export default function AccesoPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -115,7 +116,10 @@ export default function AccesoPage() {
               </div>
               <div className="relative">
                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="login-password" type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9" />
+                <Input id="login-password" type={showPassword ? 'text' : 'password'} placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </button>
               </div>
               <Button onClick={() => handleAuthAction('login')} disabled={loading} className="w-full">
                 {loading ? 'Accediendo...' : 'Iniciar Sesión'}
@@ -144,7 +148,10 @@ export default function AccesoPage() {
               </div>
               <div className="relative">
                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="register-password" type="password" placeholder="Contraseña (mínimo 6 caracteres)" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9" />
+                <Input id="register-password" type={showPassword ? 'text' : 'password'} placeholder="Contraseña (mínimo 6 caracteres)" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-9 pr-10" />
+                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3">
+                  {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                </button>
               </div>
               <Button onClick={() => handleAuthAction('register')} disabled={loading} className="w-full">
                 {loading ? 'Creando cuenta...' : 'Registrarse'}
