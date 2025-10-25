@@ -74,33 +74,6 @@ export function Header() {
     );
   };
 
-  const renderUserAuthMobile = () => {
-    if (isUserLoading) {
-      // Don't show anything while loading to prevent flashes
-      return null;
-    }
-    if (!user) {
-      return (
-        <SheetClose asChild>
-          <Link
-            href="/acceso"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-              pathname === "/acceso"
-                ? "text-primary bg-muted"
-                : "text-muted-foreground"
-            )}
-          >
-            <UserCircle className="h-4 w-4" />
-            Acceder
-          </Link>
-        </SheetClose>
-      );
-    }
-    // If user is logged in, the profile button is in the main header, not inside the sheet.
-    return null;
-  }
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
       <div className="container flex h-16 items-center">
@@ -177,7 +150,22 @@ export function Header() {
                       </Link>
                     </SheetClose>
                   ))}
-                  {renderUserAuthMobile()}
+                  {!isUserLoading && !user && (
+                    <SheetClose asChild>
+                      <Link
+                        href="/acceso"
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                          pathname === "/acceso"
+                            ? "text-primary bg-muted"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        <UserCircle className="h-4 w-4" />
+                        Acceder
+                      </Link>
+                    </SheetClose>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>
