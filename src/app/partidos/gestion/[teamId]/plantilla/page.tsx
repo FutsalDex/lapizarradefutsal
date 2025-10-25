@@ -19,7 +19,7 @@ interface Team {
 }
 
 interface TeamMember {
-  // Assuming the member document in subcollection just exists, maybe with a role
+  id: string; // This is the userId
   role?: string;
 }
 
@@ -54,29 +54,26 @@ export default function TeamRosterPage() {
       if(!firestore || typeof teamId !== 'string') return null;
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
-
   const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMember>(membersSubcollectionRef);
   
+  // 3. Extract memberIds from the documents fetched in step 2
   const memberIds = useMemo(() => {
     if (!teamMembersDocs) return [];
-    // The document ID in the 'members' subcollection is the user ID
     return teamMembersDocs.map(memberDoc => memberDoc.id);
   }, [teamMembersDocs]);
 
-  // 3. Get user profiles for the members
-  const usersRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore]);
-
+  // 4. Build the query to get user profiles for the members
   const membersQuery = useMemoFirebase(() => {
-    if (!usersRef || memberIds.length === 0) return null;
-     if (memberIds.length > 30) {
-      console.warn("Team has more than 30 members, this query might be truncated. Consider pagination for larger teams.");
+    if (!firestore || memberIds.length === 0) return null;
+    // Firestore 'in' queries are limited to 30 elements.
+    // For larger teams, pagination or a different data model would be needed.
+    if (memberIds.length > 30) {
+      console.warn("Team has more than 30 members, this query might be truncated by Firestore limitations. Consider pagination for larger teams.");
     }
-    return query(usersRef, where(documentId(), 'in', memberIds.slice(0, 30)));
-  }, [usersRef, memberIds]);
+    return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
+  }, [firestore, memberIds]);
   
+  // 5. Fetch the user profiles
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
   
   const isLoading = isLoadingTeam || isLoadingMembersSubcollection || (memberIds.length > 0 && isLoadingMembers);
@@ -107,7 +104,7 @@ export default function TeamRosterPage() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            {isLoading && (!teamMembers || teamMembers.length === 0) ? (
+            {isLoading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
