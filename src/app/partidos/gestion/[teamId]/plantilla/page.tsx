@@ -18,7 +18,7 @@ interface Team {
   name: string;
 }
 
-interface TeamMember {
+interface TeamMemberDoc {
   id: string; // This is the userId (document ID)
   role?: string;
 }
@@ -36,13 +36,14 @@ const getInitials = (firstName?: string, lastName?: string, email?: string) => {
     return (email?.charAt(0) || '').toUpperCase();
 }
 
+// Child component to fetch and render member profiles once IDs are available
 function TeamRoster({ memberIds }: { memberIds: string[] }) {
     const firestore = useFirestore();
 
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 elements.
-        // For larger teams, pagination would be needed.
+        // Firestore 'in' queries are limited to 30 elements per query.
+        // For larger teams, multiple queries and pagination would be needed.
         if (memberIds.length > 30) {
             console.warn("Team has more than 30 members, this query will be truncated. Implement pagination for larger teams.");
         }
@@ -54,7 +55,7 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
     if (isLoadingMembers) {
         return (
             <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(memberIds.length)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-4">
                             <Skeleton className="h-10 w-10 rounded-full" />
@@ -92,7 +93,7 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
     }
 
     return (
-        <p className="text-muted-foreground text-center py-8">Aún no hay miembros en este equipo. ¡Invita a tu primer jugador!</p>
+        <p className="text-muted-foreground text-center py-8">No se pudieron cargar los perfiles de los miembros.</p>
     );
 }
 
@@ -109,13 +110,14 @@ export default function TeamRosterPage() {
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  // 2. Get member IDs from the 'members' subcollection
+  // 2. Get member document IDs from the 'members' subcollection
   const membersSubcollectionRef = useMemoFirebase(() => {
       if(!firestore || typeof teamId !== 'string') return null;
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
-  const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMember>(membersSubcollectionRef);
+  const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
 
+  // 3. Extract the IDs from the documents
   const memberIds = useMemo(() => {
     if (!teamMembersDocs) return [];
     // The user ID is the ID of the document in the 'members' subcollection
