@@ -31,11 +31,69 @@ interface UserProfile {
 }
 
 const getInitials = (firstName?: string, lastName?: string, email?: string) => {
-    const first = firstName?.charAt(0) || '';
-    const last = lastName?.charAt(0) || '';
-    if (first && last) return `${first}${last}`.toUpperCase();
+    if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    if (firstName) return firstName.charAt(0).toUpperCase();
     return (email?.charAt(0) || '').toUpperCase();
 }
+
+function TeamRoster({ memberIds }: { memberIds: string[] }) {
+    const firestore = useFirestore();
+
+    const membersQuery = useMemoFirebase(() => {
+        if (!firestore || memberIds.length === 0) return null;
+        if (memberIds.length > 30) {
+            console.warn("Team has more than 30 members, this query will be truncated. Implement pagination.");
+        }
+        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
+    }, [firestore, memberIds]);
+
+    const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
+
+    if (isLoadingMembers) {
+        return (
+            <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-4">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div>
+                                <Skeleton className="h-5 w-28 mb-1" />
+                                <Skeleton className="h-4 w-36" />
+                            </div>
+                        </div>
+                        <Skeleton className="h-9 w-24 rounded-md" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    
+    if (teamMembers && teamMembers.length > 0) {
+        return (
+             <div className="divide-y">
+                {teamMembers.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-4">
+                        <Avatar>
+                            <AvatarFallback>{getInitials(member.firstName, member.lastName, member.email)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <p className="font-medium">{member.firstName || 'Usuario'} {member.lastName || ''}</p>
+                            <p className="text-sm text-muted-foreground">{member.email}</p>
+                        </div>
+                        </div>
+                        <Button variant="ghost" size="sm">Gestionar</Button>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <p className="text-muted-foreground text-center py-8">Aún no hay miembros en este equipo. ¡Invita a tu primer jugador!</p>
+    );
+}
+
 
 export default function TeamRosterPage() {
   const params = useParams();
@@ -55,28 +113,13 @@ export default function TeamRosterPage() {
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
   const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMember>(membersSubcollectionRef);
-  
-  // 3. Extract memberIds from the documents fetched in step 2
+
   const memberIds = useMemo(() => {
     if (!teamMembersDocs) return [];
     return teamMembersDocs.map(memberDoc => memberDoc.id);
   }, [teamMembersDocs]);
 
-  // 4. Build the query to get user profiles for the members
-  const membersQuery = useMemoFirebase(() => {
-    if (!firestore || memberIds.length === 0) return null;
-    // Firestore 'in' queries are limited to 30 elements.
-    // For larger teams, pagination or a different data model would be needed.
-    if (memberIds.length > 30) {
-      console.warn("Team has more than 30 members, this query might be truncated by Firestore limitations. Consider pagination for larger teams.");
-    }
-    return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
-  }, [firestore, memberIds]);
-  
-  // 5. Fetch the user profiles
-  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
-  
-  const isLoading = isLoadingTeam || isLoadingMembersSubcollection || (memberIds.length > 0 && isLoadingMembers);
+  const isLoading = isLoadingTeam || isLoadingMembersSubcollection;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -96,7 +139,7 @@ export default function TeamRosterPage() {
             <div>
                 <CardTitle>Miembros del Equipo</CardTitle>
                 <CardDescription>
-                    {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamMembers?.length || 0} jugadores en la plantilla.`}
+                    {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${memberIds.length} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
             <Button>
@@ -104,39 +147,9 @@ export default function TeamRosterPage() {
             </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between py-3">
-                        <div className="flex items-center gap-4">
-                            <Skeleton className="h-10 w-10 rounded-full" />
-                            <div>
-                                <Skeleton className="h-5 w-28 mb-1" />
-                                <Skeleton className="h-4 w-36" />
-                            </div>
-                        </div>
-                        <Skeleton className="h-9 w-24 rounded-md" />
-                    </div>
-                ))}
-              </div>
-            ) : teamMembers && teamMembers.length > 0 ? (
-                <div className="divide-y">
-                    {teamMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between py-3">
-                            <div className="flex items-center gap-4">
-                            <Avatar>
-                                <AvatarFallback>{getInitials(member.firstName, member.lastName, member.email)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{member.firstName || 'Usuario'} {member.lastName || ''}</p>
-                                <p className="text-sm text-muted-foreground">{member.email}</p>
-                            </div>
-                            </div>
-                            <Button variant="ghost" size="sm">Gestionar</Button>
-                        </div>
-                    ))}
-                </div>
-            ) : (
+            {isLoading && <Skeleton className="h-20 w-full" />}
+            {!isLoading && memberIds.length > 0 && <TeamRoster memberIds={memberIds} />}
+            {!isLoading && memberIds.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">Aún no hay miembros en este equipo. ¡Invita a tu primer jugador!</p>
             )}
         </CardContent>
