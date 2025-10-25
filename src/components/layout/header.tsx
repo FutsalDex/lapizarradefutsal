@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -102,20 +103,28 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 ))}
+                 {!isUserLoading && !user && (
+                    <SheetClose asChild>
+                       <Link
+                          href="/acceso"
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                          pathname === "/acceso"
+                            ? "text-primary bg-muted"
+                            : "text-muted-foreground"
+                          )}
+                        >
+                          <UserCircle className="h-4 w-4" />
+                          Acceder
+                        </Link>
+                    </SheetClose>
+                  )}
               </nav>
             </SheetContent>
           </Sheet>
         </div>
 
         <div className="hidden md:flex flex-1 justify-end items-center gap-2">
-           <Button asChild variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
-              <Link href="/favoritos">
-                <Heart className="h-4 w-4 mr-2"/> Favoritos
-              </Link>
-          </Button>
-           <Button variant="ghost" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10 text-xs">
-              <Shield className="h-4 w-4 mr-2"/> Panel Admin
-          </Button>
           {!isUserLoading && (
             user ? (
               <DropdownMenu>
@@ -126,7 +135,7 @@ export function Header() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{user.email || 'Mi Cuenta'}</DropdownMenuLabel>
+                  <DropdownMenuLabel>{user.displayName || user.email || 'Mi Cuenta'}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>Cerrar Sesión</DropdownMenuItem>
                 </DropdownMenuContent>

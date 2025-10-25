@@ -47,8 +47,6 @@ export default function EjerciciosPage() {
     if (favoriteIds.has(exercise.id)) {
       await deleteDoc(favoriteRef);
     } else {
-      // We only need to store a reference, not the whole object.
-      // Storing a simple object with a boolean flag is enough.
       await setDoc(favoriteRef, { favorited: true });
     }
   };
@@ -180,8 +178,10 @@ export default function EjerciciosPage() {
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
                     <Heart className={cn(
-                        "h-5 w-5 text-muted-foreground group-hover:text-red-500",
-                        favoriteIds.has(exercise.id) && "text-red-500 fill-current"
+                        "h-5 w-5 transition-colors",
+                        favoriteIds.has(exercise.id) 
+                          ? "text-red-500 fill-red-500" 
+                          : "text-muted-foreground group-hover:text-red-500"
                     )} />
                   </Button>
                 </CardFooter>

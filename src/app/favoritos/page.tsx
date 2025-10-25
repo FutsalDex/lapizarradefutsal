@@ -69,7 +69,21 @@ export default function FavoritosPage() {
           </div>
       )}
 
-      {!isLoading && favoriteExercises.length === 0 ? (
+      {!isLoading && !user && (
+         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+          <Heart className="mx-auto h-12 w-12 mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Inicia sesión para ver tus favoritos</h2>
+          <p className="mb-6">Crea una cuenta o inicia sesión para guardar tus ejercicios preferidos.</p>
+          <Button asChild>
+            <Link href="/acceso">
+              <Eye className="mr-2 h-4 w-4" />
+              Acceder
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {!isLoading && user && favoriteExercises.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
           <Heart className="mx-auto h-12 w-12 mb-4" />
           <h2 className="text-xl font-semibold mb-2">Aún no tienes favoritos</h2>
@@ -81,9 +95,11 @@ export default function FavoritosPage() {
             </Link>
           </Button>
         </div>
-      ) : (
+      ) : null}
+
+      {!isLoading && user && favoriteExercises.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-           {!isLoading && favoriteExercises.map((exercise) => (
+           {favoriteExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-56 w-full">
                   <Image
@@ -91,7 +107,7 @@ export default function FavoritosPage() {
                     alt={exercise.Ejercicio}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain"
+                    className="object-contain p-2"
                     data-ai-hint={exercise.aiHint}
                   />
                 </div>
@@ -105,16 +121,14 @@ export default function FavoritosPage() {
                       Ver Ficha
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleRemoveFavorite(exercise.id)} disabled={!user}>
+                  <Button variant="ghost" size="icon" onClick={() => handleRemoveFavorite(exercise.id)}>
                     <Heart className="h-5 w-5 text-red-500 fill-current" />
                   </Button>
                 </CardFooter>
               </Card>
             ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-
-    
