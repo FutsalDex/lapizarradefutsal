@@ -126,27 +126,32 @@
       "type": "object",
       "description": "Represents a futsal team.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Team entity."
-        },
         "name": {
           "type": "string",
           "description": "Name of the team."
         },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the team."
+        "club": {
+            "type": "string",
+            "description": "The club the team belongs to."
         },
-        "coachId": {
+        "season": {
+            "type": "string",
+            "description": "The season the team is playing in."
+        },
+        "createdBy": {
           "type": "string",
-          "description": "Reference to User representing the team's coach. (Relationship: User 1:N Team)"
+          "description": "User ID of the person who created the team."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the team was created."
         }
       },
       "required": [
-        "id",
         "name",
-        "coachId"
+        "createdBy",
+        "createdAt"
       ]
     },
     "User": {
@@ -186,13 +191,13 @@
       "type": "object",
       "description": "Represents an invitation for a user to join a team.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the TeamInvitation entity."
-        },
         "teamId": {
           "type": "string",
           "description": "Reference to the Team to which the user is being invited."
+        },
+        "teamName": {
+            "type": "string",
+            "description": "Denormalized name of the team for easy display."
         },
         "userId": {
           "type": "string",
@@ -208,8 +213,8 @@
         }
       },
       "required": [
-        "id",
         "teamId",
+        "teamName",
         "userId",
         "status",
         "invitedByUserId"
@@ -223,116 +228,50 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+    "/teams/{teamId}": {
+      "schema": {
+        "$ref": "#/entities/Team"
       },
-      {
-        "path": "/teams/{teamId}",
-        "definition": {
-          "entityName": "Team",
-          "schema": {
-            "$ref": "#/backend/entities/Team"
-          },
-          "description": "Stores team information. Includes the coachId for authorization.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier for the team."
-            }
-          ]
-        }
+      "description": "Stores all team documents."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
       },
-      {
-        "path": "/teams/{teamId}/teamInvitations/{teamInvitationId}",
-        "definition": {
-          "entityName": "TeamInvitation",
-          "schema": {
-            "$ref": "#/backend/entities/TeamInvitation"
-          },
-          "description": "Stores invitations to teams, including the invited user, inviter user and the invitation status. Enables authorization independence during invitation creation.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier for the team."
-            },
-            {
-              "name": "teamInvitationId",
-              "description": "The unique identifier for the team invitation."
-            }
-          ]
-        }
+      "description": "Stores user profile information."
+    },
+    "/exercises/{exerciseId}": {
+      "schema": {
+        "$ref": "#/entities/Exercise"
       },
-      {
-        "path": "/exercises/{exerciseId}",
-        "definition": {
-          "entityName": "Exercise",
-          "schema": {
-            "$ref": "#/backend/entities/Exercise"
-          },
-          "description": "Stores futsal exercises and drills.",
-          "params": [
-            {
-              "name": "exerciseId",
-              "description": "The unique identifier for the exercise."
-            }
-          ]
-        }
+      "description": "Stores the public library of futsal exercises."
+    },
+    "/teamInvitations/{invitationId}": {
+      "schema": {
+        "$ref": "#/entities/TeamInvitation"
       },
-      {
-        "path": "/teams/{teamId}/sessions/{sessionId}",
-        "definition": {
-          "entityName": "Session",
-          "schema": {
-            "$ref": "#/backend/entities/Session"
-          },
-          "description": "Stores training sessions for a team. Team ID in path enables filtering by team.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier for the team."
-            },
-            {
-              "name": "sessionId",
-              "description": "The unique identifier for the session."
+      "description": "Stores all team invitations."
+    },
+    "/users/{userId}/favorites/{exerciseId}": {
+        "schema": {
+            "type": "object",
+            "properties": {
+                "favorited": {"type": "boolean"}
             }
-          ]
-        }
-      },
-      {
-        "path": "/teams/{teamId}/matches/{matchId}",
-        "definition": {
-          "entityName": "Match",
-          "schema": {
-            "$ref": "#/backend/entities/Match"
-          },
-          "description": "Stores match data for a team. Team ID in path enables filtering by team.",
-          "params": [
-            {
-              "name": "teamId",
-              "description": "The unique identifier for the team."
-            },
-            {
-              "name": "matchId",
-              "description": "The unique identifier for the match."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "This Firestore structure prioritizes authorization independence and efficient data retrieval for the LaPizarra futsal application.  The core principle is to facilitate team management and content access based on user roles within those teams.  \n\n**Authorization Independence:** Authorization independence is achieved primarily through denormalization of team membership data.  Specifically, the `TeamInvitation` collection stores explicit references to both the team and the user, along with the status of the invitation and the user who sent the invitation. This avoids the need for security rules to perform `get()` operations to check team membership when creating an invitation. The `Team` collection itself only stores the `coachId`. When a new team member is approved the coach should write that user's ID to the team document. The client should retrieve the `coachId` from the `Team` Document.\n\n**QAPs (Query Authorization Patterns):** The design supports secure `list` operations through structural segregation. The path-based ownership structure of `/users/{userId}/teams/{teamId}` for a user's managed teams and `/teams/{teamId}/teamInvitations/{teamInvitationId}` for team invites limits listing to authorized users, preventing unauthorized data access.\n\n**Data Integrity:**  The explicit `coachId` in the `Team` document and `userId` and `invitedByUserId` in the `TeamInvitation` collection, along with security rules, ensures clear ownership and accountability."
+        },
+        "description": "Stores a user's favorite exercises. The document ID is the exercise ID."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+        "schema": {
+            "$ref": "#/entities/Session"
+        },
+        "description": "Stores training sessions created by a user."
+    },
+    "/users/{userId}/matches/{matchId}": {
+        "schema": {
+            "$ref": "#/entities/Match"
+        },
+        "description": "Stores match data recorded by a user."
+    }
   }
 }

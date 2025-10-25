@@ -1,114 +1,272 @@
-
 'use client';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuth, useCollection, useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp, where, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { BarChart2, CalendarCheck, ClipboardList, Shield, UserPlus, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, PlusCircle, Users, Check, X, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-const teamMembers = [
-  { name: 'Álex García', initials: 'AG', role: 'Jugador' },
-  { name: 'Sofía Martínez', initials: 'SM', role: 'Jugador' },
-  { name: 'Carlos Rodríguez', initials: 'CR', role: 'Jugador' },
-  { name: 'Lucía Fernández', initials: 'LF', role: 'Jugador' },
-  { name: 'Javier López', initials: 'JL', role: 'Jugador' },
-];
+// Esquema de validación para el formulario de creación de equipo
+const teamSchema = z.object({
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
+  club: z.string().optional(),
+  season: z.string().optional(),
+});
 
-const navItems = [
-    { title: 'Mi Plantilla', href: '#', icon: <Users className="w-8 h-8 text-primary" /> },
-    { title: 'Mis Partidos', href: '#', icon: <Shield className="w-8 h-8 text-primary" /> },
-    { title: 'Control de Asistencia', href: '#', icon: <CalendarCheck className="w-8 h-8 text-primary" /> },
-    { title: 'Mis Estadísticas', href: '#', icon: <BarChart2 className="w-8 h-8 text-primary" /> },
-]
+type TeamFormInputs = z.infer<typeof teamSchema>;
 
-export default function GestionEquipoPage() {
+interface Team {
+  id: string;
+  name: string;
+  club?: string;
+  season?: string;
+  createdBy: string;
+}
+
+interface TeamInvitation {
+    id: string;
+    teamId: string;
+    teamName: string;
+    userId: string;
+    invitedByUserId: string;
+    status: 'pending' | 'accepted' | 'rejected';
+}
+
+
+export default function GestionEquiposPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<TeamFormInputs>({
+    resolver: zodResolver(teamSchema),
+    defaultValues: { name: '', club: '', season: '' },
+  });
+
+  // Query para obtener los equipos creados por el usuario
+  const teamsCollectionRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'teams');
+  }, [firestore]);
+
+  const userTeamsQuery = useMemoFirebase(() => {
+    if (!teamsCollectionRef || !user) return null;
+    return query(teamsCollectionRef, where('createdBy', '==', user.uid));
+  }, [teamsCollectionRef, user]);
+
+  const { data: userTeams, isLoading: isLoadingTeams } = useCollection<Team>(userTeamsQuery);
+  
+  // Query para obtener las invitaciones pendientes del usuario
+  const invitationsCollectionRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'teamInvitations');
+  }, [firestore]);
+
+  const userInvitationsQuery = useMemoFirebase(() => {
+    if (!invitationsCollectionRef || !user) return null;
+    return query(invitationsCollectionRef, where('userId', '==', user.uid), where('status', '==', 'pending'));
+  }, [invitationsCollectionRef, user]);
+
+  const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(userInvitationsQuery);
+
+
+  const handleCreateTeam: SubmitHandler<TeamFormInputs> = async (data) => {
+    if (!user || !teamsCollectionRef) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debes iniciar sesión para crear un equipo.',
+      });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await addDoc(teamsCollectionRef, {
+        ...data,
+        createdBy: user.uid,
+        createdAt: serverTimestamp(),
+      });
+      toast({
+        title: '¡Equipo creado!',
+        description: `El equipo "${data.name}" ha sido creado correctamente.`,
+      });
+      form.reset();
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al crear el equipo',
+        description: 'Ha ocurrido un problema. Por favor, inténtalo de nuevo.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInvitation = async (invitationId: string, accept: boolean) => {
+    if (!firestore) return;
+    const invitationRef = doc(firestore, 'teamInvitations', invitationId);
+    try {
+        if (accept) {
+            await updateDoc(invitationRef, { status: 'accepted' });
+            // Aquí podríamos añadir al usuario a una subcolección 'members' del equipo si quisiéramos
+            toast({ title: '¡Invitación aceptada!' });
+        } else {
+            await updateDoc(invitationRef, { status: 'rejected' });
+            toast({ title: 'Invitación rechazada', variant: 'destructive' });
+        }
+    } catch (error) {
+        console.error("Error handling invitation", error);
+        toast({ title: 'Error al procesar la invitación', variant: 'destructive'});
+    }
+  }
+
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold font-headline text-primary">Gestión del Equipo</h1>
-        <p className="text-lg text-muted-foreground mt-2">Administra la información, plantilla y estadísticas de tu equipo.</p>
-      </div>
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Formulario para Crear Equipo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <PlusCircle className="mr-2" /> Crear Nuevo Equipo
+            </CardTitle>
+            <CardDescription>Añade un nuevo equipo para empezar a gestionarlo.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateTeam)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Equipo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Furia Roja FS" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <FormField
+                    control={form.control}
+                    name="club"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Club (Opcional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: Club Deportivo Local" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="season"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Temporada (Opcional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: 2024-2025" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                  {isSubmitting ? <Loader2 className="animate-spin" /> : 'Crear Equipo'}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {navItems.map(item => (
-                    <Card key={item.title} className="hover:shadow-lg hover:border-primary/50 transition-all">
-                        <Link href={item.href}>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-lg font-medium font-headline">{item.title}</CardTitle>
-                                {item.icon}
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-xs text-muted-foreground">Accede a la sección de {item.title.toLowerCase()}</p>
-                            </CardContent>
-                        </Link>
-                    </Card>
+        {/* Listado de "Mis Equipos" */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2" /> Mis Equipos
+            </CardTitle>
+            <CardDescription>Equipos que has creado y administras.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingTeams ? (
+              <p className="text-muted-foreground">Cargando equipos...</p>
+            ) : userTeams && userTeams.length > 0 ? (
+              <div className="space-y-3">
+                {userTeams.map((team) => (
+                  <Link key={team.id} href={`/partidos/gestion/${team.id}`} passHref>
+                    <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer">
+                      <div>
+                        <p className="font-semibold">{team.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {team.club} {team.season && `(${team.season})`}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </Link>
                 ))}
-            </div>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                Aún no has creado ningún equipo.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center"><Users className="mr-2"/>Mi Plantilla</CardTitle>
-                    <CardDescription>Visualiza y gestiona los miembros de tu equipo.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {teamMembers.map((member) => (
-                        <div key={member.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                            <Avatar>
-                                <AvatarFallback>{member.initials}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{member.name}</p>
-                                <p className="text-sm text-muted-foreground">{member.role}</p>
-                            </div>
-                            </div>
-                            <Button variant="ghost" size="sm">Gestionar</Button>
+        {/* Listado de "Invitaciones" */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Invitaciones Pendientes</CardTitle>
+            <CardDescription>Equipos a los que has sido invitado a unirte.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             {isLoadingInvitations ? (
+              <p className="text-muted-foreground">Cargando invitaciones...</p>
+            ) : invitations && invitations.length > 0 ? (
+              <div className="space-y-3">
+                {invitations.map((inv) => (
+                    <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
+                         <div>
+                            <p className="font-semibold">{inv.teamName}</p>
+                            <p className="text-sm text-muted-foreground">Has sido invitado a unirte a este equipo.</p>
                         </div>
-                        ))}
-                    </div>
-                     <Separator className="my-6" />
-                    <div className="flex flex-col sm:flex-row items-center justify-between rounded-lg border p-4">
-                        <div className='mb-4 sm:mb-0'>
-                            <h4 className="font-semibold">Invitar nuevo miembro</h4>
-                            <p className="text-sm text-muted-foreground">
-                            Envía una invitación para que se unan a tu equipo.
-                            </p>
+                        <div className="flex gap-2">
+                            <Button size="icon" variant="outline" onClick={() => handleInvitation(inv.id, true)}>
+                                <Check className="h-4 w-4 text-green-500" />
+                            </Button>
+                             <Button size="icon" variant="outline" onClick={() => handleInvitation(inv.id, false)}>
+                                <X className="h-4 w-4 text-red-500" />
+                            </Button>
                         </div>
-                        <Button>
-                            <UserPlus className="mr-2" /> Invitar Jugador
-                        </Button>
                     </div>
-                </CardContent>
-            </Card>
-
-        </div>
-        <div className="lg:col-span-1 space-y-8">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Información General</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Nombre del Equipo</h4>
-                        <p className="text-muted-foreground">Furia Roja FS</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Club</h4>
-                        <p className="text-muted-foreground">Club Deportivo Local</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-sm mb-1">Temporada</h4>
-                        <p className="text-muted-foreground">2024-2025</p>
-                    </div>
-                     <Button variant="outline" className="w-full mt-4">Editar Información</Button>
-                </CardContent>
-            </Card>
-        </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                No tienes invitaciones pendientes.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
