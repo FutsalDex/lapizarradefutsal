@@ -7,6 +7,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
 import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
@@ -66,6 +67,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
+              <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
               <nav className="grid gap-4 text-base font-medium mt-8">
                 {navLinks.map((link) => (
                   <Link
