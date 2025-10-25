@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
@@ -41,7 +41,7 @@ interface UserProfile {
 }
 
 // Combined type for easy rendering
-type RosterPlayer = UserProfile & Omit<TeamMemberDoc, 'id' | 'role'>;
+type RosterPlayer = UserProfile & Omit<TeamMemberDoc, 'id'>;
 
 
 const getInitials = (displayName?: string, email?: string) => {
@@ -91,6 +91,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
             if (userSnapshot.empty) {
                 toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico en la plataforma.', variant: 'destructive' });
+                setIsSubmitting(false);
                 return;
             }
             const invitedUserDoc = userSnapshot.docs[0];
@@ -188,16 +189,62 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
     );
 }
 
-function TeamRoster({ members, memberDetails }: { members: TeamMemberDoc[], memberDetails: UserProfile[] }) {
-    const roster = useMemo(() => {
-        return members.map(member => {
-            const profile = memberDetails.find(p => p.id === member.id);
+function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: string, teamMembersDocs: TeamMemberDoc[] | null, isLoadingMembers: boolean }) {
+    const firestore = useFirestore();
+    
+    const memberIds = useMemo(() => {
+        if (!teamMembersDocs) return [];
+        return teamMembersDocs.map(member => member.id);
+    }, [teamMembersDocs]);
+    
+    const membersQuery = useMemoFirebase(() => {
+        if (!firestore || memberIds.length === 0) return null;
+        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
+    }, [firestore, memberIds]);
+
+    const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
+
+    const roster: RosterPlayer[] = useMemo(() => {
+        if (!teamMembersDocs || !teamMembersProfiles) return [];
+
+        const profilesMap = new Map(teamMembersProfiles.map(p => [p.id, p]));
+
+        return teamMembersDocs.map(memberDoc => {
+            const profile = profilesMap.get(memberDoc.id);
+            if (!profile) return null;
+
             return {
                 ...profile,
-                ...member,
-            } as RosterPlayer;
-        }).filter(p => p.email); // Filter out any players where the profile wasn't found
-    }, [members, memberDetails]);
+                ...memberDoc,
+            };
+        }).filter((p): p is RosterPlayer => p !== null);
+
+    }, [teamMembersDocs, teamMembersProfiles]);
+
+    const isLoading = isLoadingMembers || (memberIds.length > 0 && isLoadingProfiles);
+
+    if (isLoading) {
+         return (
+            <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 p-4">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 flex-grow" />
+                        <Skeleton className="h-4 flex-grow" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    
+    if (roster.length === 0) {
+        return (
+            <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
+                <p className="font-semibold">Aún no hay miembros en este equipo.</p>
+                <p className="text-sm mt-1">Usa el botón "Dar de alta jugador" para añadir a tu primer miembro.</p>
+            </div>
+        );
+    }
 
     return (
         <Table>
@@ -230,38 +277,22 @@ function TeamRoster({ members, memberDetails }: { members: TeamMemberDoc[], memb
     );
 }
 
-
 export default function TeamRosterPage() {
   const params = useParams();
-  const { teamId } = params;
+  const teamId = params.teamId as string;
   const firestore = useFirestore();
 
-  // 1. Get Team Info
   const teamRef = useMemoFirebase(() => {
-    if (!firestore || typeof teamId !== 'string') return null;
+    if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  // 2. Get member documents from the 'members' subcollection
   const membersSubcollectionRef = useMemoFirebase(() => {
-      if(!firestore || typeof teamId !== 'string') return null;
+      if(!firestore || !teamId) return null;
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
-  const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
-
-  // 3. Extract the IDs from the documents
-  const memberIds = useMemo(() => teamMembersDocs?.map(member => member.id) || [], [teamMembersDocs]);
-  
-  // 4. Get the profiles for the extracted IDs
-  const membersQuery = useMemoFirebase(() => {
-      if (!firestore || memberIds.length === 0) return null;
-      // Firestore 'in' queries are limited to 30 elements
-      return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
-  }, [firestore, memberIds]);
-  const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
-
-  const isLoading = isLoadingTeam || isLoadingMembersSubcollection || (memberIds.length > 0 && isLoadingProfiles);
+  const { data: teamMembersDocs, isLoading: isLoadingMembers } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -281,32 +312,13 @@ export default function TeamRosterPage() {
             <div>
                 <CardTitle>Miembros del Equipo</CardTitle>
                 <CardDescription>
-                    {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${memberIds.length} jugadores en la plantilla.`}
+                    {isLoadingMembers ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamMembersDocs?.length ?? 0} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
             <AddPlayerDialog team={team} />
         </CardHeader>
         <CardContent>
-            {isLoading && (
-                <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                        <div key={i} className="flex items-center space-x-4 p-4">
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                            <Skeleton className="h-4 flex-grow" />
-                            <Skeleton className="h-4 flex-grow" />
-                        </div>
-                    ))}
-                </div>
-            )}
-            {!isLoading && teamMembersDocs && teamMembersProfiles && (
-                <TeamRoster members={teamMembersDocs} memberDetails={teamMembersProfiles} />
-            )}
-            {!isLoading && memberIds.length === 0 && (
-                <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                    <p className="font-semibold">Aún no hay miembros en este equipo.</p>
-                    <p className="text-sm mt-1">Usa el botón "Dar de alta jugador" para añadir a tu primer miembro.</p>
-                </div>
-            )}
+           <TeamRoster teamId={teamId} teamMembersDocs={teamMembersDocs} isLoadingMembers={isLoadingMembers} />
         </CardContent>
       </Card>
     </div>
