@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Exercise": {
@@ -119,6 +120,21 @@
         "shotsOnTarget",
         "possession"
       ]
+    },
+    "Favorite": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Favorite",
+      "type": "object",
+      "description": "Represents a user's favorite exercise.",
+      "properties": {
+        "favorited": {
+          "type": "boolean",
+          "description": "Indicates if the exercise is favorited."
+        }
+      },
+      "required": [
+        "favorited"
+      ]
     }
   },
   "auth": {
@@ -184,8 +200,29 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/favorites/{exerciseId}",
+        "definition": {
+          "entityName": "Favorite",
+          "schema": {
+            "$ref": "#/backend/entities/Favorite"
+          },
+          "description": "Collection of favorite exercises, owned by individual users.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            },
+            {
+              "name": "exerciseId",
+              "description": "Unique identifier for the favorited exercise."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the \"LaPizarra\" application, focusing on exercises, sessions, and match tracking for futsal coaches. The design emphasizes authorization independence, clarity, and scalability.  Authorization Independence is achieved through path-based ownership for user-specific data and the membership map model for shared data. This eliminates the need for `get()` calls in security rules. Structural Segregation ensures that collections contain documents with similar security needs.  The Exercises collection is public and globally accessible, while Sessions and Match data are stored under user-specific collections, thus enabling path-based ownership. This means that only the user who created the session or match can access it, simplifying security rules and preventing unauthorized access. This design supports the required QAPs (Rules are not Filters). Exercises are accessible globally in their collection. Sessions and Matches are accessible based on user ownership, enabling secure `list` operations within a user's data. By segregating data into user-owned and globally accessible collections, the structure enables simple and secure list operations."
+    "reasoning": "The Firestore structure is designed to support the \"LaPizarra\" application, focusing on exercises, sessions, and match tracking for futsal coaches. The design emphasizes authorization independence, clarity, and scalability.  Authorization Independence is achieved through path-based ownership for user-specific data and the membership map model for shared data. This eliminates the need for `get()` calls in security rules. Structural Segregation ensures that collections contain documents with similar security needs.  The Exercises collection is public and globally accessible, while Sessions, Match data, and Favorites are stored under user-specific collections, thus enabling path-based ownership. This means that only the user who created the session or match can access it, simplifying security rules and preventing unauthorized access. This design supports the required QAPs (Rules are not Filters). Exercises are accessible globally in their collection. Sessions and Matches are accessible based on user ownership, enabling secure `list` operations within a user's data. By segregating data into user-owned and globally accessible collections, the structure enables simple and secure list operations."
   }
 }
+    

@@ -3,8 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { collection } from 'firebase/firestore';
-import { useCollection, useFirestore } from '@/firebase';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Exercise } from '@/lib/data';
 import Image from 'next/image';
@@ -22,13 +22,35 @@ export default function EjerciciosPage() {
   const [ageFilter, setAgeFilter] = useState('Todas');
   
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const exercisesCollection = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'exercises');
   }, [firestore]);
 
-  const { data: exercises, isLoading } = useCollection<Exercise>(exercisesCollection);
+  const favoritesCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, `users/${user.uid}/favorites`);
+  }, [firestore, user]);
+
+  const { data: exercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollection);
+  const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
+
+  const favoriteIds = useMemo(() => new Set(favorites?.map(fav => fav.id)), [favorites]);
+
+  const handleFavoriteToggle = async (exercise: Exercise) => {
+    if (!user || !firestore) return;
+    const favoriteRef = doc(firestore, `users/${user.uid}/favorites`, exercise.id);
+
+    if (favoriteIds.has(exercise.id)) {
+      await deleteDoc(favoriteRef);
+    } else {
+      // We only need to store a reference, not the whole object.
+      // Storing a simple object with a boolean flag is enough.
+      await setDoc(favoriteRef, { favorited: true });
+    }
+  };
 
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
@@ -44,6 +66,7 @@ export default function EjerciciosPage() {
     });
   }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
   
+  const isLoading = isLoadingExercises || isLoadingFavorites;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -134,7 +157,7 @@ export default function EjerciciosPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="relative h-56 w-full bg-black/5">
+                <div className="relative h-56 w-full">
                   <Image
                     src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/600/400'}
                     alt={exercise.Ejercicio}
@@ -154,8 +177,11 @@ export default function EjerciciosPage() {
                       Ver Ficha
                     </Link>
                   </Button>
-                  <Button variant="ghost" size="icon">
-                    <Heart className="h-5 w-5 text-muted-foreground group-hover:text-red-500 group-hover:fill-current" />
+                  <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
+                    <Heart className={cn(
+                        "h-5 w-5 text-muted-foreground group-hover:text-red-500",
+                        favoriteIds.has(exercise.id) && "text-red-500 fill-current"
+                    )} />
                   </Button>
                 </CardFooter>
               </Card>
@@ -171,3 +197,5 @@ export default function EjerciciosPage() {
     </div>
   );
 }
+
+    
