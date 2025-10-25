@@ -3,15 +3,13 @@
 
 import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, doc, query, where } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { useDoc, useFirestore } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { BarChart2, CalendarCheck, Shield, UserPlus, Users, ArrowLeft } from 'lucide-react';
+import { BarChart2, CalendarCheck, Shield, Users, ArrowLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -22,78 +20,61 @@ interface Team {
   season?: string;
 }
 
-interface TeamInvitation {
-  userId: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
+const dashboardItems = [
+    {
+        title: 'Mi Plantilla',
+        description: 'Visualiza y gestiona los miembros de tu equipo.',
+        icon: <Users className="w-6 h-6 text-primary" />,
+        href: 'plantilla',
+    },
+    {
+        title: 'Mis Partidos',
+        description: 'Registra y revisa los resultados de los partidos.',
+        icon: <Shield className="w-6 h-6 text-primary" />,
+        href: 'partidos',
+    },
+    {
+        title: 'Control de Asistencia',
+        description: 'Lleva un registro de la asistencia a los entrenamientos.',
+        icon: <CalendarCheck className="w-6 h-6 text-primary" />,
+        href: 'asistencia',
+    },
+    {
+        title: 'Mis Estadísticas',
+        description: 'Analiza el rendimiento general de tu equipo.',
+        icon: <BarChart2 className="w-6 h-6 text-primary" />,
+        href: 'estadisticas',
+    }
+];
 
-interface UserProfile {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email: string;
-}
-
-const getInitials = (name?: string) => {
-    return name?.charAt(0).toUpperCase() || '';
-}
 
 export default function TeamDashboardPage() {
   const params = useParams();
   const { teamId } = params;
   const firestore = useFirestore();
 
-  // 1. Get Team Info
   const teamRef = useMemoFirebase(() => {
     if (!firestore || typeof teamId !== 'string') return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
-
-  // 2. Get accepted invitations to find member IDs
-  const invitationsRef = useMemoFirebase(() => {
-      if(!firestore || typeof teamId !== 'string') return null;
-      return collection(firestore, 'teamInvitations');
-  }, [firestore, teamId]);
-  const acceptedInvitationsQuery = useMemoFirebase(() => {
-      if(!invitationsRef || !teamId) return null;
-      return query(invitationsRef, where('teamId', '==', teamId), where('status', '==', 'accepted'));
-  }, [invitationsRef, teamId]);
-  const { data: acceptedInvitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
-
-  // 3. Get user profiles for the members
-  const memberIds = useMemo(() => acceptedInvitations?.map(inv => inv.userId) || [], [acceptedInvitations]);
   
-  const usersRef = useMemoFirebase(() => {
-    if (!firestore || memberIds.length === 0) return null;
-    return collection(firestore, 'users');
-  }, [firestore, memberIds.length]);
-
-  const membersQuery = useMemoFirebase(() => {
-      if(!usersRef || memberIds.length === 0) return null;
-      return query(usersRef, where('__name__', 'in', memberIds));
-  }, [usersRef, memberIds]);
-  
-  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
-  
-  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
-
-  if (isLoading && !team) {
+  if (isLoadingTeam && !team) {
     return (
         <div className="container mx-auto px-4 py-8">
             <Skeleton className="h-10 w-64 mb-2" />
             <Skeleton className="h-6 w-80 mb-8" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Skeleton className="h-96" />
-                <Skeleton className="h-96" />
-                <Skeleton className="h-96" />
-                <Skeleton className="h-96" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Skeleton className="h-48" />
+                <Skeleton className="h-48" />
+                <Skeleton className="h-48" />
+                <Skeleton className="h-48" />
             </div>
         </div>
     );
   }
 
-  if (!team && !isLoading) {
+  if (!team && !isLoadingTeam) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
@@ -121,82 +102,26 @@ export default function TeamDashboardPage() {
         <p className="text-lg text-muted-foreground mt-2">Panel de control del equipo.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Card Mi Plantilla */}
-        <Card className="flex flex-col">
-            <CardHeader>
-                <CardTitle className="flex items-center"><Users className="mr-2"/>Mi Plantilla</CardTitle>
-                <CardDescription>Visualiza y gestiona los miembros de tu equipo.</CardDescription>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        {dashboardItems.map((item) => (
+          <Card key={item.title} className="flex flex-col hover:shadow-lg transition-shadow">
+            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
+              <div className="bg-primary/10 p-3 rounded-full">{item.icon}</div>
+              <CardTitle className="font-headline text-xl">{item.title}</CardTitle>
             </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                {isLoadingMembers ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : teamMembers && teamMembers.length > 0 ? (
-                    teamMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                            <Avatar>
-                                <AvatarFallback>{getInitials(member.firstName) || getInitials(member.email)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{member.firstName} {member.lastName}</p>
-                                <p className="text-sm text-muted-foreground">{member.email}</p>
-                            </div>
-                            </div>
-                            <Button variant="ghost" size="sm">Gestionar</Button>
-                        </div>
-                    ))
-                ) : (
-                    <p className="text-muted-foreground text-center py-4">Aún no hay miembros en este equipo.</p>
-                )}
+            <CardContent className="flex-grow">
+              <CardDescription>{item.description}</CardDescription>
             </CardContent>
-             <div className="p-6 pt-0">
-                <Separator className="my-4" />
-                <Button className="w-full">
-                    <UserPlus className="mr-2" /> Invitar Jugador
-                </Button>
-             </div>
-        </Card>
-
-        {/* Card Mis Partidos */}
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center"><Shield className="mr-2"/>Mis Partidos</CardTitle>
-                <CardDescription>Registra y revisa los resultados de los partidos.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground text-center py-4">Aún no se han registrado partidos.</p>
-                 <Button className="w-full mt-4">Registrar Nuevo Partido</Button>
-            </CardContent>
-        </Card>
-
-        {/* Card Control de Asistencia */}
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center"><CalendarCheck className="mr-2"/>Control de Asistencia</CardTitle>
-                <CardDescription>Lleva un registro de la asistencia a los entrenamientos y partidos.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <p className="text-muted-foreground text-center py-4">No hay datos de asistencia disponibles.</p>
-                 <Button className="w-full mt-4">Pasar Lista</Button>
-            </CardContent>
-        </Card>
-
-        {/* Card Mis Estadísticas */}
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center"><BarChart2 className="mr-2"/>Mis Estadísticas</CardTitle>
-                <CardDescription>Analiza el rendimiento general de tu equipo.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <p className="text-muted-foreground text-center py-4">No hay estadísticas para mostrar.</p>
-                  <Button variant="outline" className="w-full mt-4">Ver Gráficos Detallados</Button>
-            </CardContent>
-        </Card>
+            <div className="p-6 pt-0">
+               <Button asChild className="w-full">
+                <Link href={`/partidos/gestion/${teamId}/${item.href}`}>
+                  Ir a {item.title}
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
