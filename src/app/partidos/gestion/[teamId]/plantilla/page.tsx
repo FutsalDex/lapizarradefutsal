@@ -43,7 +43,7 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
         // Firestore 'in' queries are limited to 30 elements per query.
-        // For larger teams, multiple queries and pagination would be needed.
+        // For larger teams, this check remains useful.
         if (memberIds.length > 30) {
             console.warn("Team has more than 30 members, this query will be truncated. Implement pagination for larger teams.");
         }
@@ -51,11 +51,11 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
     }, [firestore, memberIds]);
 
     const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
-
+    
     if (isLoadingMembers) {
         return (
             <div className="space-y-4">
-                {[...Array(memberIds.length)].map((_, i) => (
+                {[...Array(memberIds.length || 3)].map((_, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-4">
                             <Skeleton className="h-10 w-10 rounded-full" />
@@ -64,7 +64,6 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
                                 <Skeleton className="h-4 w-36" />
                             </div>
                         </div>
-                        <Skeleton className="h-9 w-24 rounded-md" />
                     </div>
                 ))}
             </div>
@@ -116,7 +115,7 @@ export default function TeamRosterPage() {
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
   const { data: teamMembersDocs, isLoading: isLoadingMembersSubcollection } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
-
+  
   // 3. Extract the IDs from the documents
   const memberIds = useMemo(() => {
     if (!teamMembersDocs) return [];
