@@ -103,22 +103,22 @@ export function Header() {
                     </Link>
                   </SheetClose>
                 ))}
-                 {!isUserLoading && !user && (
-                    <SheetClose asChild>
-                       <Link
-                          href="/acceso"
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-                          pathname === "/acceso"
-                            ? "text-primary bg-muted"
-                            : "text-muted-foreground"
-                          )}
-                        >
-                          <UserCircle className="h-4 w-4" />
-                          Acceder
-                        </Link>
-                    </SheetClose>
-                  )}
+                {!isUserLoading && !user && (
+                  <SheetClose asChild>
+                    <Link
+                      href="/acceso"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                        pathname === "/acceso"
+                          ? "text-primary bg-muted"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <UserCircle className="h-4 w-4" />
+                      Acceder
+                    </Link>
+                  </SheetClose>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
