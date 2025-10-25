@@ -19,7 +19,7 @@ const dashboardItems = [
     title: 'Gestión de Equipos',
     description: 'Crea nuevos equipos, gestiona sus miembros y accede a sus paneles de control.',
     icon: <Users className="w-6 h-6 text-primary" />,
-    href: '#',
+    href: '/partidos/gestion',
   },
   {
     title: 'Mis Sesiones',
