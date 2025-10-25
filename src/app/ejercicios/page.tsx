@@ -133,13 +133,13 @@ export default function EjerciciosPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="relative h-56 w-full">
+                <div className="relative h-56 w-full bg-black/5">
                   <Image
                     src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/600/400'}
                     alt={exercise.Ejercicio}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover"
+                    className="object-contain"
                     data-ai-hint={exercise.aiHint}
                   />
                 </div>
