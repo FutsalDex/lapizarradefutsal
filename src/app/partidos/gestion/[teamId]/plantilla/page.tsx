@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, doc, documentId } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection } from '@/firebase';
+import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -25,14 +25,20 @@ interface TeamMemberDoc {
 
 interface UserProfile {
     id: string;
+    displayName?: string;
     firstName?: string;
     lastName?: string;
     email: string;
 }
 
-const getInitials = (firstName?: string, lastName?: string, email?: string) => {
-    if (firstName && lastName) return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-    if (firstName) return firstName.charAt(0).toUpperCase();
+const getInitials = (displayName?: string, email?: string) => {
+    if (displayName) {
+        const names = displayName.split(' ');
+        if (names.length > 1) {
+            return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
+        }
+        return displayName.substring(0, 2).toUpperCase();
+    }
     return (email?.charAt(0) || '').toUpperCase();
 }
 
@@ -42,8 +48,6 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
 
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 elements per query.
-        // For larger teams, this check remains useful.
         if (memberIds.length > 30) {
             console.warn("Team has more than 30 members, this query will be truncated. Implement pagination for larger teams.");
         }
@@ -77,10 +81,10 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
                     <div key={member.id} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-4">
                         <Avatar>
-                            <AvatarFallback>{getInitials(member.firstName, member.lastName, member.email)}</AvatarFallback>
+                            <AvatarFallback>{getInitials(member.displayName, member.email)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="font-medium">{member.firstName || 'Usuario'} {member.lastName || ''}</p>
+                            <p className="font-medium">{member.displayName || member.email || 'Usuario sin nombre'}</p>
                             <p className="text-sm text-muted-foreground">{member.email}</p>
                         </div>
                         </div>
@@ -92,7 +96,7 @@ function TeamRoster({ memberIds }: { memberIds: string[] }) {
     }
 
     return (
-        <p className="text-muted-foreground text-center py-8">No se pudieron cargar los perfiles de los miembros.</p>
+        <p className="text-muted-foreground text-center py-8">No se encontraron perfiles para los miembros del equipo.</p>
     );
 }
 
