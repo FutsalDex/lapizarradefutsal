@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
-import { doc } from 'firebase/firestore';
-import { useDoc, useFirestore } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
+import { useDoc, useFirestore, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -27,23 +28,58 @@ interface Team {
   season?: string;
 }
 
-// Mock data, to be replaced with Firestore data
-const teamMembers = [
-  { name: 'Álex García', initials: 'AG', role: 'Jugador' },
-  { name: 'Sofía Martínez', initials: 'SM', role: 'Jugador' },
-];
+interface TeamInvitation {
+  userId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+}
+
+interface UserProfile {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    email: string;
+}
+
+const getInitials = (name?: string) => {
+    return name?.charAt(0).toUpperCase() || '';
+}
 
 export default function TeamDashboardPage() {
   const params = useParams();
   const { teamId } = params;
   const firestore = useFirestore();
 
+  // 1. Get Team Info
   const teamRef = useMemoFirebase(() => {
     if (!firestore || typeof teamId !== 'string') return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
+  const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  const { data: team, isLoading } = useDoc<Team>(teamRef);
+  // 2. Get accepted invitations to find member IDs
+  const invitationsRef = useMemoFirebase(() => {
+      if(!firestore || typeof teamId !== 'string') return null;
+      return collection(firestore, 'teamInvitations');
+  }, [firestore, teamId]);
+  const acceptedInvitationsQuery = useMemoFirebase(() => {
+      if(!invitationsRef || !teamId) return null;
+      return query(invitationsRef, where('teamId', '==', teamId), where('status', '==', 'accepted'));
+  }, [invitationsRef, teamId]);
+  const { data: acceptedInvitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
+
+  // 3. Get user profiles for the members
+  const memberIds = useMemo(() => acceptedInvitations?.map(inv => inv.userId) || [], [acceptedInvitations]);
+  const usersRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+  const membersQuery = useMemoFirebase(() => {
+      if(!usersRef || memberIds.length === 0) return null;
+      return query(usersRef, where('id', 'in', memberIds));
+  }, [usersRef, memberIds]);
+  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<UserProfile>(membersQuery);
+  
+  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
 
   if (isLoading) {
     return (
@@ -118,20 +154,24 @@ export default function TeamDashboardPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {teamMembers.map((member) => (
-                        <div key={member.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                            <Avatar>
-                                <AvatarFallback>{member.initials}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{member.name}</p>
-                                <p className="text-sm text-muted-foreground">{member.role}</p>
-                            </div>
-                            </div>
-                            <Button variant="ghost" size="sm">Gestionar</Button>
-                        </div>
-                        ))}
+                        {teamMembers && teamMembers.length > 0 ? (
+                            teamMembers.map((member) => (
+                                <div key={member.id} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                    <Avatar>
+                                        <AvatarFallback>{getInitials(member.firstName)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-medium">{member.firstName} {member.lastName}</p>
+                                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                                    </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm">Gestionar</Button>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground text-center py-4">Aún no hay miembros en este equipo.</p>
+                        )}
                     </div>
                      <Separator className="my-6" />
                     <div className="flex flex-col sm:flex-row items-center justify-between rounded-lg border p-4">
@@ -175,3 +215,4 @@ export default function TeamDashboardPage() {
     </div>
   );
 }
+
