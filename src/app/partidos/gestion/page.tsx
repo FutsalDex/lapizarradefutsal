@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth, useCollection, useFirestore, useUser } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp, where, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -62,9 +62,9 @@ export default function GestionEquiposPage() {
   }, [firestore]);
 
   const userTeamsQuery = useMemoFirebase(() => {
-    if (!teamsCollectionRef || !user) return null;
+    if (!teamsCollectionRef || !user?.uid) return null;
     return query(teamsCollectionRef, where('ownerId', '==', user.uid));
-  }, [teamsCollectionRef, user]);
+  }, [teamsCollectionRef, user?.uid]);
 
   const { data: userTeams, isLoading: isLoadingTeams } = useCollection<Team>(userTeamsQuery);
   
@@ -75,9 +75,9 @@ export default function GestionEquiposPage() {
   }, [firestore]);
 
   const userInvitationsQuery = useMemoFirebase(() => {
-    if (!invitationsCollectionRef || !user) return null;
+    if (!invitationsCollectionRef || !user?.uid) return null;
     return query(invitationsCollectionRef, where('userId', '==', user.uid), where('status', '==', 'pending'));
-  }, [invitationsCollectionRef, user]);
+  }, [invitationsCollectionRef, user?.uid]);
 
   const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(userInvitationsQuery);
 
