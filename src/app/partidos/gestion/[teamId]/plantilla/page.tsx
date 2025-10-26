@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs } from 'firebase/firestore';
+import { collection, query, where, doc, documentId, setDoc, getDocs } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
