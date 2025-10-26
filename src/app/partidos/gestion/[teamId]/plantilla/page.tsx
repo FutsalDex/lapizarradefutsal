@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -73,7 +74,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
     const form = useForm<z.infer<typeof addPlayerSchema>>({
         resolver: zodResolver(addPlayerSchema),
-        defaultValues: { email: '' },
+        defaultValues: { email: '', dorsal: undefined, posicion: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof addPlayerSchema>) => {
@@ -158,7 +159,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                                     <FormItem>
                                         <FormLabel>Dorsal</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="Ej: 10" {...field} />
+                                            <Input type="number" placeholder="Ej: 10" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -171,7 +172,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                                     <FormItem>
                                         <FormLabel>Posición</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ej: Cierre" {...field} />
+                                            <Input placeholder="Ej: Cierre" {...field} value={field.value ?? ''} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -199,6 +200,7 @@ function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: str
     
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 elements
         return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
     }, [firestore, memberIds]);
 
@@ -324,3 +326,5 @@ export default function TeamRosterPage() {
     </div>
   );
 }
+
+    
