@@ -30,7 +30,7 @@ interface Team {
   ownerId: string;
 }
 
-interface TeamMemberDoc {
+interface TeamPlayerDoc {
   id: string; // This is the userId (document ID)
   role: 'player' | 'coach';
   dorsal?: number;
@@ -44,7 +44,7 @@ interface UserProfile {
 }
 
 // Combined type for easy rendering
-type RosterPlayer = UserProfile & Omit<TeamMemberDoc, 'id'>;
+type RosterPlayer = UserProfile & Omit<TeamPlayerDoc, 'id'>;
 
 
 const getInitials = (displayName?: string, email?: string) => {
@@ -107,15 +107,15 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
             const invitedUserDoc = userSnapshot.docs[0];
             const invitedUserId = invitedUserDoc.id;
 
-            // 2. Add the user to the team's 'members' subcollection
-            const memberRef = doc(firestore, 'teams', teamId, 'members', invitedUserId);
-            const memberData = {
+            // 2. Add the user to the team's 'players' subcollection
+            const playerRef = doc(firestore, 'teams', teamId, 'players', invitedUserId);
+            const playerData = {
                 role: 'player',
                 dorsal: values.dorsal ?? null,
                 posicion: values.posicion ?? null,
             };
             
-            setDoc(memberRef, memberData)
+            setDoc(playerRef, playerData)
               .then(() => {
                   toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName} ha sido añadido a la plantilla.` });
                   form.reset({ name: '', dorsal: undefined, posicion: ''});
@@ -123,9 +123,9 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
               })
               .catch((error) => {
                   const permissionError = new FirestorePermissionError({
-                      path: memberRef.path,
+                      path: playerRef.path,
                       operation: 'create', // or 'update' if overwriting is intended
-                      requestResourceData: memberData,
+                      requestResourceData: playerData,
                   });
                   errorEmitter.emit('permission-error', permissionError);
               })
@@ -211,45 +211,45 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
     );
 }
 
-function Roster({ memberIds }: { memberIds: string[] }) {
+function Roster({ playerIds }: { playerIds: string[] }) {
     const firestore = useFirestore();
     const params = useParams();
     const teamId = params.teamId as string;
     
-    const membersQuery = useMemoFirebase(() => {
-        if (!firestore || memberIds.length === 0) return null;
+    const playersQuery = useMemoFirebase(() => {
+        if (!firestore || playerIds.length === 0) return null;
         // Firestore 'in' queries are limited to 30 items.
-        return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
-    }, [firestore, memberIds]);
+        return query(collection(firestore, 'users'), where(documentId(), 'in', playerIds.slice(0, 30)));
+    }, [firestore, playerIds]);
 
-    const teamMembersSubcollectionRef = useMemoFirebase(() => {
+    const teamPlayersSubcollectionRef = useMemoFirebase(() => {
         if (!firestore || !teamId) return null;
-        return collection(firestore, 'teams', teamId, 'members');
+        return collection(firestore, 'teams', teamId, 'players');
     }, [firestore, teamId]);
 
 
-    const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
-    const { data: teamMembersDocs, isLoading: isLoadingDocs } = useCollection<TeamMemberDoc>(teamMembersSubcollectionRef);
+    const { data: teamPlayersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(playersQuery);
+    const { data: teamPlayersDocs, isLoading: isLoadingDocs } = useCollection<TeamPlayerDoc>(teamPlayersSubcollectionRef);
 
 
     const roster: RosterPlayer[] = useMemo(() => {
-        if (!teamMembersDocs || !teamMembersProfiles) return [];
+        if (!teamPlayersDocs || !teamPlayersProfiles) return [];
 
-        const profilesMap = new Map(teamMembersProfiles.map(p => [p.id, p]));
+        const profilesMap = new Map(teamPlayersProfiles.map(p => [p.id, p]));
 
-        return teamMembersDocs.map(memberDoc => {
-            const profile = profilesMap.get(memberDoc.id);
+        return teamPlayersDocs.map(playerDoc => {
+            const profile = profilesMap.get(playerDoc.id);
             if (!profile) return null;
 
             return {
                 ...profile,
-                ...memberDoc,
+                ...playerDoc,
             };
         }).filter((p): p is RosterPlayer => p !== null);
 
-    }, [teamMembersDocs, teamMembersProfiles]);
+    }, [teamPlayersDocs, teamPlayersProfiles]);
 
-    const isLoading = isLoadingDocs || (memberIds.length > 0 && isLoadingProfiles);
+    const isLoading = isLoadingDocs || (playerIds.length > 0 && isLoadingProfiles);
 
     if (isLoading) {
          return (
@@ -319,13 +319,13 @@ export default function TeamRosterPage() {
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  const membersSubcollectionRef = useMemoFirebase(() => {
+  const playersSubcollectionRef = useMemoFirebase(() => {
       if(!firestore || !teamId) return null;
-      return collection(firestore, 'teams', teamId, 'members');
+      return collection(firestore, 'teams', teamId, 'players');
   }, [firestore, teamId]);
-  const { data: teamMembersDocs, isLoading: isLoadingMembers } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
+  const { data: teamPlayersDocs, isLoading: isLoadingPlayers } = useCollection<TeamPlayerDoc>(playersSubcollectionRef);
 
-  const memberIds = useMemo(() => teamMembersDocs?.map(member => member.id) || [], [teamMembersDocs]);
+  const playerIds = useMemo(() => teamPlayersDocs?.map(player => player.id) || [], [teamPlayersDocs]);
   
   const isOwner = user?.uid === team?.ownerId;
 
@@ -347,13 +347,13 @@ export default function TeamRosterPage() {
             <div>
                 <CardTitle>Miembros del Equipo</CardTitle>
                 <CardDescription>
-                    {isLoadingMembers ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamMembersDocs?.length ?? 0} jugadores en la plantilla.`}
+                    {isLoadingPlayers ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamPlayersDocs?.length ?? 0} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
             {isOwner && <AddPlayerDialog team={team} />}
         </CardHeader>
         <CardContent>
-           {isLoadingMembers 
+           {isLoadingPlayers 
                 ? <div className="space-y-2">
                     {[...Array(3)].map((_, i) => (
                         <div key={i} className="flex items-center space-x-4 p-4">
@@ -362,7 +362,7 @@ export default function TeamRosterPage() {
                         </div>
                     ))}
                   </div>
-                : <Roster memberIds={memberIds} />
+                : <Roster playerIds={playerIds} />
            }
         </CardContent>
       </Card>

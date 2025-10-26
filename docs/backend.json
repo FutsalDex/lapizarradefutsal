@@ -232,7 +232,7 @@
       },
       "description": "Stores all team documents."
     },
-    "/teams/{teamId}/members/{memberId}": {
+    "/teams/{teamId}/players/{playerId}": {
         "schema": {
             "type": "object",
             "properties": {
@@ -241,7 +241,7 @@
                 "posicion": {"type": "string"}
             }
         },
-        "description": "Stores team members. The document ID is the user ID."
+        "description": "Stores team players. The document ID is the user ID."
     },
     "/users/{userId}": {
       "schema": {
