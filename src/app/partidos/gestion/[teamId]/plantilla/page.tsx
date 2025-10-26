@@ -213,6 +213,8 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
 function Roster({ memberIds }: { memberIds: string[] }) {
     const firestore = useFirestore();
+    const params = useParams();
+    const teamId = params.teamId as string;
     
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
@@ -220,8 +222,14 @@ function Roster({ memberIds }: { memberIds: string[] }) {
         return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
     }, [firestore, memberIds]);
 
+    const teamMembersSubcollectionRef = useMemoFirebase(() => {
+        if (!firestore || !teamId) return null;
+        return collection(firestore, 'teams', teamId, 'members');
+    }, [firestore, teamId]);
+
+
     const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
-    const { data: teamMembersDocs, isLoading: isLoadingDocs } = useCollection<TeamMemberDoc>(collection(useFirestore()!, 'teams', useParams().teamId as string, 'members'));
+    const { data: teamMembersDocs, isLoading: isLoadingDocs } = useCollection<TeamMemberDoc>(teamMembersSubcollectionRef);
 
 
     const roster: RosterPlayer[] = useMemo(() => {
