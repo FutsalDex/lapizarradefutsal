@@ -4,7 +4,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
+import { useDoc, useFirestore, useCollection, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -84,12 +84,12 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
         }
 
         setIsSubmitting(true);
-        try {
-            // 1. Check if user with this email exists in the 'users' collection
-            const usersRef = collection(firestore, 'users');
-            const userQuery = query(usersRef, where('email', '==', values.email));
-            const userSnapshot = await getDocs(userQuery);
-
+        
+        // 1. Check if user with this email exists in the 'users' collection
+        const usersRef = collection(firestore, 'users');
+        const userQuery = query(usersRef, where('email', '==', values.email));
+        
+        getDocs(userQuery).then(async (userSnapshot) => {
             if (userSnapshot.empty) {
                 toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico en la plataforma.', variant: 'destructive' });
                 setIsSubmitting(false);
@@ -98,28 +98,40 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
             const invitedUserDoc = userSnapshot.docs[0];
             const invitedUserId = invitedUserDoc.id;
 
-            // 2. Check if the player is already in the team
+            // 2. Add the user to the team's 'members' subcollection
             const memberRef = doc(firestore, 'teams', teamId, 'members', invitedUserId);
-            // In Firestore, we can't directly check for existence in a subcollection query,
-            // but we can just overwrite/set the data. If they exist, they are updated.
-            
-            // 3. Add the user to the team's 'members' subcollection
-            await setDoc(memberRef, {
+            const memberData = {
                 role: 'player',
                 dorsal: values.dorsal ?? null,
                 posicion: values.posicion ?? null,
+            };
+            
+            setDoc(memberRef, memberData)
+              .then(() => {
+                  toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName || values.email} ha sido añadido a la plantilla.` });
+                  form.reset({ email: '', dorsal: undefined, posicion: ''});
+                  setOpen(false);
+              })
+              .catch((error) => {
+                  const permissionError = new FirestorePermissionError({
+                      path: memberRef.path,
+                      operation: 'create', // or 'update' if overwriting is intended
+                      requestResourceData: memberData,
+                  });
+                  errorEmitter.emit('permission-error', permissionError);
+              })
+              .finally(() => {
+                  setIsSubmitting(false);
+              });
+
+        }).catch((error) => {
+            const permissionError = new FirestorePermissionError({
+                path: usersRef.path,
+                operation: 'list', // getDocs is a 'list' operation on the collection
             });
-
-            toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName || values.email} ha sido añadido a la plantilla.` });
-            form.reset();
-            setOpen(false);
-
-        } catch (error) {
-            console.error("Error adding player:", error);
-            toast({ title: 'Error', description: 'Ha ocurrido un problema al añadir al jugador.', variant: 'destructive' });
-        } finally {
+            errorEmitter.emit('permission-error', permissionError);
             setIsSubmitting(false);
-        }
+        });
     }
 
     return (
@@ -200,7 +212,6 @@ function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: str
     
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 elements
         return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
     }, [firestore, memberIds]);
 
@@ -283,6 +294,7 @@ export default function TeamRosterPage() {
   const params = useParams();
   const teamId = params.teamId as string;
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -295,6 +307,8 @@ export default function TeamRosterPage() {
       return collection(firestore, 'teams', teamId, 'members');
   }, [firestore, teamId]);
   const { data: teamMembersDocs, isLoading: isLoadingMembers } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
+
+  const isOwner = user?.uid === team?.ownerId;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -317,7 +331,7 @@ export default function TeamRosterPage() {
                     {isLoadingMembers ? <Skeleton className="h-4 w-32 mt-1" /> : `${teamMembersDocs?.length ?? 0} jugadores en la plantilla.`}
                 </CardDescription>
             </div>
-            <AddPlayerDialog team={team} />
+            {isOwner && <AddPlayerDialog team={team} />}
         </CardHeader>
         <CardContent>
            <TeamRoster teamId={teamId} teamMembersDocs={teamMembersDocs} isLoadingMembers={isLoadingMembers} />
@@ -326,5 +340,3 @@ export default function TeamRosterPage() {
     </div>
   );
 }
-
-    
