@@ -59,7 +59,7 @@ const getInitials = (displayName?: string, email?: string) => {
 }
 
 const addPlayerSchema = z.object({
-  name: z.string().min(3, 'Introduce un nombre válido.'),
+  email: z.string().email('Introduce un correo electrónico válido.'),
   dorsal: z.coerce.number().min(0, 'El dorsal no puede ser negativo.').optional(),
   posicion: z.string().optional(),
 });
@@ -76,7 +76,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
     const form = useForm<z.infer<typeof addPlayerSchema>>({
         resolver: zodResolver(addPlayerSchema),
-        defaultValues: { name: '', dorsal: undefined, posicion: '' },
+        defaultValues: { email: '', dorsal: undefined, posicion: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof addPlayerSchema>) => {
@@ -87,19 +87,12 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
         setIsSubmitting(true);
         
-        // 1. Check if user with this name exists in the 'users' collection
         const usersRef = collection(firestore, 'users');
-        const userQuery = query(usersRef, where('displayName', '==', values.name));
+        const userQuery = query(usersRef, where('email', '==', values.email));
         
         getDocs(userQuery).then(async (userSnapshot) => {
             if (userSnapshot.empty) {
-                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese nombre en la plataforma.', variant: 'destructive' });
-                setIsSubmitting(false);
-                return;
-            }
-
-            if (userSnapshot.size > 1) {
-                toast({ title: 'Múltiples usuarios encontrados', description: 'Existen varios usuarios con ese nombre. Por favor, sé más específico o contacta al administrador.', variant: 'destructive' });
+                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico en la plataforma.', variant: 'destructive' });
                 setIsSubmitting(false);
                 return;
             }
@@ -107,7 +100,6 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
             const invitedUserDoc = userSnapshot.docs[0];
             const invitedUserId = invitedUserDoc.id;
 
-            // 2. Add the user to the team's 'players' subcollection
             const playerRef = doc(firestore, 'teams', teamId, 'players', invitedUserId);
             const playerData = {
                 role: 'player',
@@ -117,14 +109,14 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
             
             setDoc(playerRef, playerData)
               .then(() => {
-                  toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName} ha sido añadido a la plantilla.` });
-                  form.reset({ name: '', dorsal: undefined, posicion: ''});
+                  toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName || values.email} ha sido añadido a la plantilla.` });
+                  form.reset({ email: '', dorsal: undefined, posicion: ''});
                   setOpen(false);
               })
               .catch((error) => {
                   const permissionError = new FirestorePermissionError({
                       path: playerRef.path,
-                      operation: 'create', // or 'update' if overwriting is intended
+                      operation: 'create',
                       requestResourceData: playerData,
                   });
                   errorEmitter.emit('permission-error', permissionError);
@@ -134,9 +126,10 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
               });
 
         }).catch((error) => {
+            console.error("Error searching for user by email:", error);
             const permissionError = new FirestorePermissionError({
                 path: usersRef.path,
-                operation: 'list', // getDocs is a 'list' operation on the collection
+                operation: 'list', 
             });
             errorEmitter.emit('permission-error', permissionError);
             setIsSubmitting(false);
@@ -154,19 +147,19 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                 <DialogHeader>
                     <DialogTitle>Dar de alta a un nuevo jugador</DialogTitle>
                     <DialogDescription>
-                        Introduce los datos del jugador para añadirlo a tu equipo '{team?.name}'. El usuario ya debe tener una cuenta en la aplicación.
+                        Introduce el correo electrónico del jugador para añadirlo a tu equipo '{team?.name}'. El usuario ya debe tener una cuenta en la aplicación.
                     </DialogDescription>
                 </DialogHeader>
                  <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="name"
+                            name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Nombre del jugador</FormLabel>
+                                    <FormLabel>Email del jugador</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Nombre Apellido" {...field} />
+                                        <Input type="email" placeholder="jugador@email.com" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -178,9 +171,9 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                                 name="dorsal"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Dorsal</FormLabel>
+                                        <FormLabel>Dorsal (Opcional)</FormLabel>
                                         <FormControl>
-                                            <Input type="number" placeholder="Ej: 10" {...field} value={field.value ?? ''} />
+                                            <Input type="number" placeholder="Ej: 10" {...field} value={field.value ?? ''} onChange={field.onChange} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -191,7 +184,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                                 name="posicion"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Posición</FormLabel>
+                                        <FormLabel>Posición (Opcional)</FormLabel>
                                         <FormControl>
                                             <Input placeholder="Ej: Cierre" {...field} value={field.value ?? ''} />
                                         </FormControl>
@@ -218,7 +211,6 @@ function Roster({ playerIds }: { playerIds: string[] }) {
     
     const playersQuery = useMemoFirebase(() => {
         if (!firestore || playerIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 items.
         return query(collection(firestore, 'users'), where(documentId(), 'in', playerIds.slice(0, 30)));
     }, [firestore, playerIds]);
 
@@ -369,3 +361,5 @@ export default function TeamRosterPage() {
     </div>
   );
 }
+
+    
