@@ -4,12 +4,14 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, doc, documentId, addDoc, setDoc, getDocs } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -57,7 +59,7 @@ const getInitials = (displayName?: string, email?: string) => {
 }
 
 const addPlayerSchema = z.object({
-  email: z.string().email('Introduce un correo electrónico válido.'),
+  name: z.string().min(3, 'Introduce un nombre válido.'),
   dorsal: z.coerce.number().min(0, 'El dorsal no puede ser negativo.').optional(),
   posicion: z.string().optional(),
 });
@@ -74,7 +76,7 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
     const form = useForm<z.infer<typeof addPlayerSchema>>({
         resolver: zodResolver(addPlayerSchema),
-        defaultValues: { email: '', dorsal: undefined, posicion: '' },
+        defaultValues: { name: '', dorsal: undefined, posicion: '' },
     });
 
     const onSubmit = async (values: z.infer<typeof addPlayerSchema>) => {
@@ -85,16 +87,23 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
 
         setIsSubmitting(true);
         
-        // 1. Check if user with this email exists in the 'users' collection
+        // 1. Check if user with this name exists in the 'users' collection
         const usersRef = collection(firestore, 'users');
-        const userQuery = query(usersRef, where('email', '==', values.email));
+        const userQuery = query(usersRef, where('displayName', '==', values.name));
         
         getDocs(userQuery).then(async (userSnapshot) => {
             if (userSnapshot.empty) {
-                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese correo electrónico en la plataforma.', variant: 'destructive' });
+                toast({ title: 'Usuario no encontrado', description: 'No existe ningún usuario con ese nombre en la plataforma.', variant: 'destructive' });
                 setIsSubmitting(false);
                 return;
             }
+
+            if (userSnapshot.size > 1) {
+                toast({ title: 'Múltiples usuarios encontrados', description: 'Existen varios usuarios con ese nombre. Por favor, sé más específico o contacta al administrador.', variant: 'destructive' });
+                setIsSubmitting(false);
+                return;
+            }
+
             const invitedUserDoc = userSnapshot.docs[0];
             const invitedUserId = invitedUserDoc.id;
 
@@ -108,8 +117,8 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
             
             setDoc(memberRef, memberData)
               .then(() => {
-                  toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName || values.email} ha sido añadido a la plantilla.` });
-                  form.reset({ email: '', dorsal: undefined, posicion: ''});
+                  toast({ title: '¡Jugador añadido!', description: `${invitedUserDoc.data().displayName} ha sido añadido a la plantilla.` });
+                  form.reset({ name: '', dorsal: undefined, posicion: ''});
                   setOpen(false);
               })
               .catch((error) => {
@@ -152,12 +161,12 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="email"
+                            name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Correo electrónico del jugador</FormLabel>
+                                    <FormLabel>Nombre del jugador</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="jugador@ejemplo.com" {...field} />
+                                        <Input placeholder="Nombre Apellido" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -202,20 +211,18 @@ function AddPlayerDialog({ team }: { team: Team | null }) {
     );
 }
 
-function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: string, teamMembersDocs: TeamMemberDoc[] | null, isLoadingMembers: boolean }) {
+function Roster({ memberIds }: { memberIds: string[] }) {
     const firestore = useFirestore();
-    
-    const memberIds = useMemo(() => {
-        if (!teamMembersDocs) return [];
-        return teamMembersDocs.map(member => member.id);
-    }, [teamMembersDocs]);
     
     const membersQuery = useMemoFirebase(() => {
         if (!firestore || memberIds.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 items.
         return query(collection(firestore, 'users'), where(documentId(), 'in', memberIds.slice(0, 30)));
     }, [firestore, memberIds]);
 
     const { data: teamMembersProfiles, isLoading: isLoadingProfiles } = useCollection<UserProfile>(membersQuery);
+    const { data: teamMembersDocs, isLoading: isLoadingDocs } = useCollection<TeamMemberDoc>(collection(useFirestore()!, 'teams', useParams().teamId as string, 'members'));
+
 
     const roster: RosterPlayer[] = useMemo(() => {
         if (!teamMembersDocs || !teamMembersProfiles) return [];
@@ -234,7 +241,7 @@ function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: str
 
     }, [teamMembersDocs, teamMembersProfiles]);
 
-    const isLoading = isLoadingMembers || (memberIds.length > 0 && isLoadingProfiles);
+    const isLoading = isLoadingDocs || (memberIds.length > 0 && isLoadingProfiles);
 
     if (isLoading) {
          return (
@@ -242,8 +249,10 @@ function TeamRoster({ teamId, teamMembersDocs, isLoadingMembers }: { teamId: str
                 {[...Array(3)].map((_, i) => (
                     <div key={i} className="flex items-center space-x-4 p-4">
                         <Skeleton className="h-8 w-8 rounded-full" />
-                        <Skeleton className="h-4 flex-grow" />
-                        <Skeleton className="h-4 flex-grow" />
+                        <div className='flex-grow space-y-2'>
+                           <Skeleton className="h-4 w-3/4" />
+                           <Skeleton className="h-4 w-1/2" />
+                        </div>
                     </div>
                 ))}
             </div>
@@ -308,6 +317,8 @@ export default function TeamRosterPage() {
   }, [firestore, teamId]);
   const { data: teamMembersDocs, isLoading: isLoadingMembers } = useCollection<TeamMemberDoc>(membersSubcollectionRef);
 
+  const memberIds = useMemo(() => teamMembersDocs?.map(member => member.id) || [], [teamMembersDocs]);
+  
   const isOwner = user?.uid === team?.ownerId;
 
   return (
@@ -334,7 +345,17 @@ export default function TeamRosterPage() {
             {isOwner && <AddPlayerDialog team={team} />}
         </CardHeader>
         <CardContent>
-           <TeamRoster teamId={teamId} teamMembersDocs={teamMembersDocs} isLoadingMembers={isLoadingMembers} />
+           {isLoadingMembers 
+                ? <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-center space-x-4 p-4">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <Skeleton className="h-4 flex-grow" />
+                        </div>
+                    ))}
+                  </div>
+                : <Roster memberIds={memberIds} />
+           }
         </CardContent>
       </Card>
     </div>
