@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -11,11 +12,21 @@ import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, PlusCircle, Users, Check, X, ArrowRight } from 'lucide-react';
+import { Loader2, PlusCircle, Users, Check, X, Settings, Trash2, Pencil } from 'lucide-react';
 import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 // Esquema de validación para el formulario de creación de equipo
 const teamSchema = z.object({
@@ -55,7 +66,6 @@ export default function GestionEquiposPage() {
     defaultValues: { name: '', club: '', season: '' },
   });
 
-  // Query para obtener los equipos creados por el usuario
   const teamsCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'teams');
@@ -68,7 +78,6 @@ export default function GestionEquiposPage() {
 
   const { data: userTeams, isLoading: isLoadingTeams } = useCollection<Team>(userTeamsQuery);
   
-  // Query para obtener las invitaciones pendientes del usuario
   const invitationsCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'teamInvitations');
@@ -115,17 +124,35 @@ export default function GestionEquiposPage() {
     }
   };
 
+  const handleDeleteTeam = async (teamId: string) => {
+    if (!firestore) return;
+    const teamRef = doc(firestore, 'teams', teamId);
+    try {
+        await deleteDoc(teamRef);
+        toast({
+            title: "Equipo eliminado",
+            description: "El equipo ha sido eliminado correctamente."
+        });
+    } catch(error) {
+        console.error("Error deleting team:", error);
+        toast({
+            variant: "destructive",
+            title: "Error al eliminar",
+            description: "No se pudo eliminar el equipo. Es posible que no tengas los permisos necesarios."
+        })
+    }
+  }
+
   const handleInvitation = async (invitationId: string, accept: boolean) => {
     if (!firestore) return;
     const invitationRef = doc(firestore, 'teamInvitations', invitationId);
     try {
         if (accept) {
             await updateDoc(invitationRef, { status: 'accepted' });
-            // Aquí podríamos añadir al usuario a una subcolección 'members' del equipo si quisiéramos
             toast({ title: '¡Invitación aceptada!' });
         } else {
             await updateDoc(invitationRef, { status: 'rejected' });
-            toast({ title: 'Invitación rechazada', variant: 'destructive' });
+            toast({ title: 'Invitación rechazada' });
         }
     } catch (error) {
         console.error("Error handling invitation", error);
@@ -137,7 +164,6 @@ export default function GestionEquiposPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Formulario para Crear Equipo */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -155,7 +181,7 @@ export default function GestionEquiposPage() {
                     <FormItem>
                       <FormLabel>Nombre del Equipo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ej: Furia Roja FS" {...field} />
+                        <Input placeholder="Ej: Cadete B" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -169,7 +195,7 @@ export default function GestionEquiposPage() {
                         <FormItem>
                         <FormLabel>Club (Opcional)</FormLabel>
                         <FormControl>
-                            <Input placeholder="Ej: Club Deportivo Local" {...field} />
+                            <Input placeholder="Ej: CD Don Antonio" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -197,13 +223,12 @@ export default function GestionEquiposPage() {
           </CardContent>
         </Card>
 
-        {/* Listado de "Mis Equipos" */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Users className="mr-2" /> Mis Equipos
             </CardTitle>
-            <CardDescription>Equipos que has creado y administras.</CardDescription>
+            <CardDescription>Lista de equipos que administras como propietario.</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoadingTeams ? (
@@ -211,17 +236,50 @@ export default function GestionEquiposPage() {
             ) : userTeams && userTeams.length > 0 ? (
               <div className="space-y-3">
                 {userTeams.map((team) => (
-                  <Link key={team.id} href={`/partidos/gestion/${team.id}`} passHref>
-                    <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer">
-                      <div>
-                        <p className="font-semibold">{team.name}</p>
+                  <div key={team.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg border">
+                      <div className='mb-4 sm:mb-0'>
+                        <p className="font-semibold text-lg">{team.name}</p>
                         <p className="text-sm text-muted-foreground">
                           {team.club} {team.season && `(${team.season})`}
                         </p>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button asChild>
+                            <Link href={`/partidos/gestion/${team.id}`}>
+                                <Settings className="mr-2 h-4 w-4" /> Gestionar
+                            </Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href={`/partidos/gestion/${team.id}/plantilla`}>
+                                <Users className="mr-2 h-4 w-4" /> Miembros
+                            </Link>
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar</span>
+                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="icon">
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Eliminar</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Se eliminará permanentemente el equipo y todos sus datos asociados.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteTeam(team.id)}>Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                  </Link>
                 ))}
               </div>
             ) : (
@@ -232,7 +290,6 @@ export default function GestionEquiposPage() {
           </CardContent>
         </Card>
 
-        {/* Listado de "Invitaciones" */}
         <Card>
           <CardHeader>
             <CardTitle>Invitaciones Pendientes</CardTitle>
@@ -271,3 +328,5 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
+
+    
