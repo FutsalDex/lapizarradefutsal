@@ -1,23 +1,26 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a user-ownership model with public read access to exercises.
+ * @description This ruleset enforces a user-ownership model for most data, with public read access to the exercises collection.
  *
  * Data Structure:
- * - /teams/{teamId}: Stores team information, accessible to team owners.
- * - /teams/{teamId}/players/{playerId}: Stores team players and their roles, accessible to team owners.
- * - /users/{userId}: Stores user profile data, accessible only to the user themselves.
- * - /exercises/{exerciseId}: Stores public exercises, readable by anyone, but writable only with a valid ownerId.
- * - /teamInvitations/{invitationId}: Stores invitations to teams, accessible to the invited user and the inviter.
- * - /users/{userId}/favorites/{exerciseId}: Stores a user's favorited exercises, accessible only to that user.
- * - /users/{userId}/sessions/{sessionId}: Stores training sessions created by a user, accessible only to that user.
- * - /users/{userId}/matches/{matchId}: Stores match data recorded by a user, accessible only to that user.
+ * - /teams/{teamId}: Teams are owned by a user (ownerId).
+ * - /teams/{teamId}/players/{playerId}: Players are members of teams. The document ID is the user ID.
+ * - /users/{userId}: User profiles, only accessible to the user themselves.
+ * - /exercises/{exerciseId}: Public collection of exercises.
+ * - /teamInvitations/{invitationId}: Invitations to join teams.
+ * - /users/{userId}/favorites/{exerciseId}: User-specific list of favorite exercises.
+ * - /users/{userId}/sessions/{sessionId}: Training sessions created by a user.
+ * - /users/{userId}/matches/{matchId}: Match data recorded by a user.
  *
  * Key Security Decisions:
- * - User listing is explicitly denied to protect user privacy.
- * - Public read access is granted for exercises, but writes are restricted to authenticated users providing a valid ownerId.
+ * - Users can only manage their own profile data.
+ * - Teams are owned by a specific user, who has full control.
+ * - Exercises are publicly readable but cannot be created, updated, or deleted through the client.
+ * - Listing of user documents is denied to prevent information disclosure.
+ * - Users can only manage their own favorite exercises, sessions, and match data.
  *
  * Denormalization for Authorization:
- * - The `Team` entity requires an `ownerId` field to enforce ownership.
+ * - The `Team` entity contains an `ownerId` field to easily check team ownership.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -25,131 +28,106 @@ service cloud.firestore {
 
     /**
      * @description Checks if the user is signed in.
-     * @path N/A (Helper function)
-     * @allow N/A (Helper function)
-     * @deny N/A (Helper function)
-     * @principle Authentication required for certain operations.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
-     * @path N/A (Helper function)
-     * @allow N/A (Helper function)
-     * @deny N/A (Helper function)
-     * @principle Enforces user-specific data access.
+     * @description Checks if the user is the owner of the resource.
      */
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the user is the owner of an existing document.
-     * @path N/A (Helper function)
-     * @allow N/A (Helper function)
-     * @deny N/A (Helper function)
-     * @principle Verifies both ownership and existence before destructive operations.
+     * @description Checks if the user is the owner of the resource and the resource exists.
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+        return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Rules for the /teams collection.
+     * @description Teams are owned by a user, who has full control.
      * @path /teams/{teamId}
-     * @allow (create) An authenticated user can create a team with their user ID as the ownerId.
-     * @allow (get) An authenticated user can get a team if they are the owner.
-     * @deny (create) A user cannot create a team with an ownerId that does not match their user ID.
-     * @deny (update) A user cannot modify the ownerId field.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User with UID 'user_abc' can create a team with ownerId: 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a team with ownerId: 'user_abc'.
+     * @principle Enforces team ownership for writes.
      */
     match /teams/{teamId} {
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.ownerId);
-      allow delete: if isExistingOwner(resource.data.ownerId);
+      allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid && resource != null;
     }
 
     /**
-     * @description Rules for the /teams/{teamId}/players collection.
+     * @description Players are members of teams. The document ID is the user ID.
      * @path /teams/{teamId}/players/{playerId}
-     * @allow (create) An authenticated user can create a player if they are the owner of the parent team.
-     * @allow (get) An authenticated user can get a player if they are the owner of the parent team.
-     * @deny (create) A user cannot create a player if they are not the owner of the parent team.
-     * @deny (update) A user cannot update a player if they are not the owner of the parent team.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User with UID 'user_abc' can create a player document for team 'team_123' if they own the team.
+     * @deny (create) User with UID 'user_xyz' cannot create a player document for team 'team_123' if they don't own the team.
+     * @principle Enforces team ownership for writes.
      */
     match /teams/{teamId}/players/{playerId} {
-      allow get: if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
-      allow list: if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
-      allow create: if isSignedIn() && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
-      allow update: if isExistingOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId);
-      allow delete: if isExistingOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId);
+        allow get: if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+        allow list: if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+        allow create: if isSignedIn() && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+        allow update: if isSignedIn() && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid && resource != null;
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid && resource != null;
     }
 
     /**
-     * @description Rules for the /users collection.
+     * @description User profiles, only accessible to the user themselves.
      * @path /users/{userId}
-     * @allow (create) A user can create their own profile if the userId matches their auth UID.
-     * @allow (get) A user can read their own profile.
-     * @deny (list) User listing is forbidden.
-     * @deny (create) A user cannot create a profile for another user.
-     * @deny (update) A user cannot modify another user's profile.
+     * @allow (create) User with UID 'user_abc' can create their own profile.
+     * @deny (create) User with UID 'user_xyz' cannot create a profile for 'user_abc'.
      * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for the /exercises collection.
+     * @description Stores the public library of futsal exercises.
      * @path /exercises/{exerciseId}
-     * @allow (get) Any user can read any exercise.
-     * @allow (list) Any user can list exercises.
-     * @allow (create) An authenticated user can create an exercise.
-     * @deny (update) Only the owner can update an exercise.
-     * @deny (delete) Only the owner can delete an exercise.
-     * @principle Allows public read access with owner-only writes.
+     * @allow (get) Any user can read exercises.
+     * @deny (create) No user can create exercises (admin only).
+     * @principle Public read access, admin-only writes.
      */
     match /exercises/{exerciseId} {
       allow get: if true;
       allow list: if true;
-      allow create: if isSignedIn();
-      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Rules for the /teamInvitations collection.
+     * @description Stores all team invitations.
      * @path /teamInvitations/{invitationId}
-     * @allow (create) An authenticated user can create a team invitation.
-     * @allow (get) Only the invited user or the inviting user can read the invitation.
-     * @deny (update) Only the invited user or the inviting user can update the invitation.
-     * @deny (delete) Only the invited user or the inviting user can delete the invitation.
-     * @principle Enforces access control based on user roles.
+     * @allow (create) Any authenticated user can create an invitation.
+     * @deny (update) No unauthenticated user can update an invitation.
+     * @principle Allows creation and modification of invites
      */
     match /teamInvitations/{invitationId} {
-      allow get: if request.auth.uid == resource.data.userId || request.auth.uid == resource.data.invitedByUserId;
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isExistingOwner(resource.data.userId) || isExistingOwner(resource.data.invitedByUserId);
-      allow delete: if isExistingOwner(resource.data.userId) || isExistingOwner(resource.data.invitedByUserId);
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Rules for the /users/{userId}/favorites collection.
+     * @description Stores a user's favorite exercises. The document ID is the exercise ID.
      * @path /users/{userId}/favorites/{exerciseId}
-     * @allow (create) A user can create a favorite for themself.
-     * @allow (get) A user can read their own favorites.
-     * @deny (list) A user can not list others favorites.
-     * @deny (update) A user cannot update others favorites.
+     * @allow (create) User with UID 'user_abc' can favorite an exercise.
+     * @deny (create) User with UID 'user_xyz' cannot favorite an exercise for 'user_abc'.
+     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/favorites/{exerciseId} {
       allow get: if isOwner(userId);
@@ -160,12 +138,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for the /users/{userId}/sessions collection.
+     * @description Stores training sessions created by a user.
      * @path /users/{userId}/sessions/{sessionId}
-     * @allow (create) A user can create a session for themself.
-     * @allow (get) A user can read their own sessions.
-     * @deny (list) A user can not list others sessions.
-     * @deny (update) A user cannot update others sessions.
+     * @allow (create) User with UID 'user_abc' can create their own session.
+     * @deny (create) User with UID 'user_xyz' cannot create a session for 'user_abc'.
+     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/sessions/{sessionId} {
       allow get: if isOwner(userId);
@@ -176,12 +153,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for the /users/{userId}/matches collection.
+     * @description Stores match data recorded by a user.
      * @path /users/{userId}/matches/{matchId}
-     * @allow (create) A user can create a match for themself.
-     * @allow (get) A user can read their own matches.
-     * @deny (list) A user can not list others matches.
-     * @deny (update) A user cannot update others matches.
+     * @allow (create) User with UID 'user_abc' can create their own match data.
+     * @deny (create) User with UID 'user_xyz' cannot create match data for 'user_abc'.
+     * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/matches/{matchId} {
       allow get: if isOwner(userId);
