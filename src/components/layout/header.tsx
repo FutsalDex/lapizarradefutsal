@@ -12,7 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield, Share2, Lightbulb } from "lucide-react";
+import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield } from "lucide-react";
 import { useUser } from "@/firebase/use-auth-user";
 import { useAuth } from "@/firebase/provider";
 import { signOut } from "firebase/auth";
@@ -31,8 +31,6 @@ const navLinks = [
   { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
   { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
   { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
-  { href: "/tacticas", label: "Tácticas", icon: <Share2 className="h-4 w-4" /> },
-  { href: "/ia-sugerencias", label: "Sugerencias IA", icon: <Lightbulb className="h-4 w-4" /> },
 ];
 
 export function Header() {
@@ -91,7 +89,7 @@ export function Header() {
                 href={link.href}
                 className={cn(
                   "flex items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-primary-foreground/10",
-                  pathname === link.href
+                  pathname.startsWith(link.href) && link.href !== "/"
                     ? "bg-primary-foreground/20 font-semibold"
                     : "text-primary-foreground/80"
                 )}
@@ -143,7 +141,7 @@ export function Header() {
                         href={link.href}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-                         pathname === link.href
+                         pathname.startsWith(link.href) && link.href !== "/"
                           ? "text-primary bg-muted"
                           : "text-muted-foreground"
                         )}

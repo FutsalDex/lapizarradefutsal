@@ -8,6 +8,8 @@ import {
   ChevronRight,
   Headphones,
   Timer,
+  Share2,
+  Lightbulb
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,6 +22,18 @@ const dashboardItems = [
     description: 'Crea nuevos equipos, gestiona sus miembros y accede a sus paneles de control.',
     icon: <Users className="w-6 h-6 text-primary" />,
     href: '/partidos/gestion',
+  },
+  {
+    title: 'Pizarra Táctica',
+    description: 'Diseña tus jugadas, formaciones y estrategias para preparar los partidos.',
+    icon: <Share2 className="w-6 h-6 text-primary" />,
+    href: '/partidos/tacticas',
+  },
+   {
+    title: 'Asistente Táctico IA',
+    description: 'Recibe sugerencias de ejercicios y análisis de rendimiento basados en IA.',
+    icon: <Lightbulb className="w-6 h-6 text-primary" />,
+    href: '/partidos/ia-sugerencias',
   },
   {
     title: 'Mis Sesiones',
@@ -79,15 +93,6 @@ export default function PartidosPage() {
             </div>
           </Card>
         ))}
-         <Card className="md:col-span-2 lg:col-span-3 flex flex-col md:flex-row items-center justify-between p-6 bg-primary/5 border-primary/20">
-            <div className='mb-4 md:mb-0'>
-                <h3 className='font-bold text-lg'>¿Necesitas inspiración?</h3>
-                <p className='text-muted-foreground text-sm'>Usa nuestro asistente con IA para generar ejercicios personalizados.</p>
-            </div>
-            <Button asChild>
-                <Link href="/ia-sugerencias">Ir al Asistente IA</Link>
-            </Button>
-        </Card>
       </div>
     </div>
   );

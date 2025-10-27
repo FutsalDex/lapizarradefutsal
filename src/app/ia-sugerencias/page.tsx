@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lightbulb, Loader2 } from 'lucide-react';
+import { Lightbulb, Loader2, ArrowLeft } from 'lucide-react';
 import { exercises, Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 export default function IaPage() {
   const [loading, setLoading] = useState(false);
@@ -31,6 +32,13 @@ export default function IaPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Button asChild variant="outline" className="mb-8">
+        <Link href="/partidos">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver al Panel de Equipo
+        </Link>
+      </Button>
+
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold font-headline">Asistente Táctico con IA</h1>
         <p className="text-lg text-muted-foreground mt-2">Introduce los datos de tu último partido para recibir sugerencias.</p>
