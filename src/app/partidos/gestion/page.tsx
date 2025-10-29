@@ -200,9 +200,9 @@ export default function GestionEquiposPage() {
   }, [firestore]);
 
   const userInvitationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.uid) return null;
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'pending'));
-  }, [firestore, user?.uid]);
+  }, [firestore, user]);
 
   const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(userInvitationsQuery);
 
