@@ -160,14 +160,16 @@ function TeamList() {
     return acceptedInvitations ? acceptedInvitations.map(inv => inv.teamId) : [];
   }, [acceptedInvitations]);
 
+  const canFetchMemberTeams = !isLoadingInvites && memberTeamIds.length > 0;
+
   const memberTeamsQuery = useMemoFirebase(() => {
-    if (!firestore || memberTeamIds.length === 0) return null;
+    if (!firestore || !canFetchMemberTeams) return null;
     return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds));
-  }, [firestore, memberTeamIds]);
+  }, [firestore, memberTeamIds, canFetchMemberTeams]);
 
   const { data: memberTeams, isLoading: isLoadingMember } = useCollection<Team>(memberTeamsQuery);
   
-  const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || isLoadingMember;
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMember);
   
   return (
     <Card>
@@ -214,7 +216,7 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
                 </p>
             </div>
             <Button asChild variant="ghost" size="sm">
-                <Link href={`/partidos/gestion/${team.id}/miembros`}>
+                <Link href={`/equipo/gestion/${team.id}/miembros`}>
                     Gestionar <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>

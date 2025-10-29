@@ -245,7 +245,7 @@ export default function MembersPage() {
 
   // Check for authorization
   if (!isLoadingTeam && team && user && user.uid !== team.ownerId) {
-      router.push('/partidos/gestion');
+      router.push('/equipo/gestion');
       return null;
   }
   
@@ -272,7 +272,7 @@ export default function MembersPage() {
         <div className="container mx-auto px-4 py-8 text-center">
             <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
             <Button asChild variant="outline">
-                <Link href="/partidos/gestion">
+                <Link href="/equipo/gestion">
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver a mis equipos
                 </Link>
@@ -285,7 +285,7 @@ export default function MembersPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
          <Button asChild variant="outline" className="mb-4">
-          <Link href="/partidos/gestion">
+          <Link href="/equipo/gestion">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a Mis Equipos
           </Link>
