@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -24,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-
 interface Team {
   id: string;
   name: string;
@@ -39,13 +37,31 @@ const playerSchema = z.object({
   number: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
   position: z.string().optional().nullable(),
   role: z.literal('player'),
+  // Add all other stats fields to be preserved
+  active: z.boolean().optional(),
+  assists: z.number().optional(),
+  faltas: z.number().optional(),
+  gRec: z.number().optional(),
+  goals: z.number().optional(),
+  minutosJugados: z.number().optional(),
+  paradas: z.number().optional(),
+  perdidas: z.number().optional(),
+  pj: z.number().optional(),
+  recuperaciones: z.number().optional(),
+  smvp: z.any().optional(),
+  ta: z.number().optional(),
+  tirosFuera: z.number().optional(),
+  tirosPuerta: z.number().optional(),
+  tr: z.number().optional(),
 });
+
 
 const teamFormSchema = z.object({
   players: z.array(playerSchema),
 });
 
 type TeamFormData = z.infer<typeof teamFormSchema>;
+type PlayerFormData = z.infer<typeof playerSchema>;
 
 export default function TeamRosterPage() {
   const params = useParams();
@@ -66,7 +82,7 @@ export default function TeamRosterPage() {
     return collection(firestore, `teams/${teamId}/players`);
   }, [firestore, teamId]);
 
-  const { data: initialPlayers, isLoading: isLoadingPlayers } = useCollection<z.infer<typeof playerSchema>>(playersCollectionRef);
+  const { data: initialPlayers, isLoading: isLoadingPlayers } = useCollection<PlayerFormData>(playersCollectionRef);
   
   const form = useForm<TeamFormData>({
     resolver: zodResolver(teamFormSchema),
@@ -82,7 +98,14 @@ export default function TeamRosterPage() {
 
   useEffect(() => {
     if (initialPlayers) {
-      form.reset({ players: initialPlayers.map(p => ({...p, role: 'player', number: p.number ?? null, position: p.position ?? null})) });
+      // Ensure all fields have default values to avoid uncontrolled components
+      const formattedPlayers = initialPlayers.map(p => ({
+        ...p,
+        role: 'player' as const,
+        number: p.number ?? null,
+        position: p.position ?? null,
+      }));
+      form.reset({ players: formattedPlayers });
     }
   }, [initialPlayers, form]);
 
@@ -97,11 +120,12 @@ export default function TeamRosterPage() {
       const batch = writeBatch(firestore);
       const playersRef = collection(firestore, `teams/${teamId}/players`);
 
-      const initialPlayerMap = new Map(initialPlayers?.map(p => [p.id, p]));
-      
+      // Set of current player IDs in the form
+      const currentPlayerIds = new Set(data.players.map(p => p.id).filter(Boolean));
+
       // Delete players that are no longer in the form
       initialPlayers?.forEach(initialPlayer => {
-        if (!data.players.find(p => p.id === initialPlayer.id)) {
+        if (!currentPlayerIds.has(initialPlayer.id)) {
           const docRef = doc(playersRef, initialPlayer.id);
           batch.delete(docRef);
         }
@@ -110,12 +134,8 @@ export default function TeamRosterPage() {
       // Add or update players from the form
       data.players.forEach(player => {
         const docRef = player.id ? doc(playersRef, player.id) : doc(playersRef);
-        const playerData = {
-          name: player.name,
-          number: player.number ?? null,
-          position: player.position ?? null,
-          role: 'player'
-        };
+        // Exclude the ID from the data being written
+        const { id, ...playerData } = player; 
         batch.set(docRef, playerData, { merge: true });
       });
 
@@ -123,6 +143,7 @@ export default function TeamRosterPage() {
       toast({ title: '¡Plantilla guardada!', description: 'Los cambios en la plantilla se han guardado correctamente.' });
 
     } catch (error) {
+       console.error("Error saving roster: ", error);
        const permissionError = new FirestorePermissionError({
             path: playersCollectionRef?.path || `teams/${teamId}/players`,
             operation: 'write',
@@ -209,7 +230,9 @@ export default function TeamRosterPage() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {fields.map((field, index) => (
+                                {isLoading ? (
+                                    <TableRow><TableCell colSpan={4} className="text-center">Cargando jugadores...</TableCell></TableRow>
+                                ) : fields.map((field, index) => (
                                   <TableRow key={field.id}>
                                     <TableCell>
                                       <FormField
@@ -288,3 +311,5 @@ export default function TeamRosterPage() {
     </Form>
   );
 }
+
+    
