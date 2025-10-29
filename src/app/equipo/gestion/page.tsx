@@ -169,7 +169,7 @@ function TeamList() {
 
   const { data: memberTeams, isLoading: isLoadingMember } = useCollection<Team>(memberTeamsQuery);
   
-  const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMember);
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (canFetchMemberTeams && isLoadingMember);
   
   return (
     <Card>
