@@ -76,6 +76,7 @@ function TeamList() {
     const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
     
     const memberTeamsQuery = useMemoFirebase(() => {
+        // CRITICAL: Only run query if memberTeamIds has been populated and is not empty.
         if (!firestore || memberTeamIds.length === 0) return null;
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
     }, [firestore, memberTeamIds]);
@@ -89,6 +90,7 @@ function TeamList() {
         return Array.from(teamsMap.values());
     }, [ownedTeams, memberTeams]);
     
+    // isLoading should be true if auth is loading, or if any of the subsequent dependent queries are loading.
     const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
 
     const handleDeleteTeam = async (teamId: string) => {
@@ -180,7 +182,7 @@ function TeamList() {
 }
 
 export default function GestionEquiposPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -315,7 +317,7 @@ export default function GestionEquiposPage() {
                     )}
                     />
                 </div>
-                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                <Button type="submit" disabled={isSubmitting || isUserLoading} className="w-full md:w-auto">
                   {isSubmitting ? <Loader2 className="animate-spin" /> : 'Crear Equipo'}
                 </Button>
               </form>
@@ -331,7 +333,15 @@ export default function GestionEquiposPage() {
             <CardDescription>Equipos que administras o de los que eres miembro.</CardDescription>
           </CardHeader>
           <CardContent>
-            {user ? <TeamList /> : <p className="text-center text-muted-foreground py-4">Inicia sesión para ver tus equipos.</p>}
+            {isUserLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : user ? (
+              <TeamList />
+            ) : (
+              <p className="text-center text-muted-foreground py-4">Inicia sesión para ver tus equipos.</p>
+            )}
           </CardContent>
         </Card>
 
