@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { collection, query, getDocs } from 'firebase/firestore';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,9 @@ function TeamsTable({ teams, users }: { teams: Team[], users: UserProfile[] }) {
 
 export default function AdminTeamsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
+  // Admin sees all teams, regular users see nothing on this page.
   const teamsCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'teams');
@@ -71,6 +73,16 @@ export default function AdminTeamsPage() {
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersCollectionRef);
 
   const isLoading = isLoadingTeams || isLoadingUsers;
+  const isAdmin = user?.email === 'futsaldex@gmail.com';
+
+  if (!isAdmin) {
+    return (
+         <div className="container mx-auto px-4 py-8 text-center">
+            <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
+            <p className="text-muted-foreground">No tienes permisos para acceder a esta sección.</p>
+         </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

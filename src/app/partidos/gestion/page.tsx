@@ -27,6 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 // Esquema de validación para el formulario de creación de equipo
 const teamSchema = z.object({
@@ -101,63 +103,74 @@ export default function GestionEquiposPage() {
       return;
     }
     setIsSubmitting(true);
-    try {
-      await addDoc(teamsCollectionRef, {
+
+    const teamData = {
         ...data,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
-      });
-      toast({
-        title: '¡Equipo creado!',
-        description: `El equipo "${data.name}" ha sido creado correctamente.`,
-      });
-      form.reset();
-    } catch (error) {
-      console.error('Error creating team:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al crear el equipo',
-        description: 'Ha ocurrido un problema. Por favor, inténtalo de nuevo.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    };
+
+    addDoc(teamsCollectionRef, teamData)
+    .then(() => {
+        toast({
+            title: '¡Equipo creado!',
+            description: `El equipo "${data.name}" ha sido creado correctamente.`,
+        });
+        form.reset();
+    })
+    .catch((error) => {
+        console.error('Error creating team:', error);
+        const permissionError = new FirestorePermissionError({
+            path: teamsCollectionRef.path,
+            operation: 'create',
+            requestResourceData: teamData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    })
+    .finally(() => {
+        setIsSubmitting(false);
+    });
   };
 
   const handleDeleteTeam = async (teamId: string) => {
     if (!firestore) return;
     const teamRef = doc(firestore, 'teams', teamId);
-    try {
-        await deleteDoc(teamRef);
+    
+    deleteDoc(teamRef)
+    .then(() => {
         toast({
             title: "Equipo eliminado",
             description: "El equipo ha sido eliminado correctamente."
         });
-    } catch(error) {
+    })
+    .catch((error) => {
         console.error("Error deleting team:", error);
-        toast({
-            variant: "destructive",
-            title: "Error al eliminar",
-            description: "No se pudo eliminar el equipo. Es posible que no tengas los permisos necesarios."
-        })
-    }
+        const permissionError = new FirestorePermissionError({
+            path: teamRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
   const handleInvitation = async (invitationId: string, accept: boolean) => {
     if (!firestore) return;
     const invitationRef = doc(firestore, 'teamInvitations', invitationId);
-    try {
-        if (accept) {
-            await updateDoc(invitationRef, { status: 'accepted' });
-            toast({ title: '¡Invitación aceptada!' });
-        } else {
-            await updateDoc(invitationRef, { status: 'rejected' });
-            toast({ title: 'Invitación rechazada' });
-        }
-    } catch (error) {
+    const newStatus = { status: accept ? 'accepted' : 'rejected' };
+    
+    updateDoc(invitationRef, newStatus)
+    .then(() => {
+        toast({ title: accept ? '¡Invitación aceptada!' : 'Invitación rechazada' });
+    })
+    .catch(error => {
         console.error("Error handling invitation", error);
-        toast({ title: 'Error al procesar la invitación', variant: 'destructive'});
-    }
+        const permissionError = new FirestorePermissionError({
+            path: invitationRef.path,
+            operation: 'update',
+            requestResourceData: newStatus,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }
 
 
@@ -328,5 +341,3 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
-
-    
