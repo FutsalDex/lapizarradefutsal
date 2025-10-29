@@ -49,8 +49,8 @@ interface TeamMember {
 
 interface UserProfile {
     id: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
     email: string;
 }
 
@@ -378,3 +378,5 @@ export default function TeamMembersPage() {
         </div>
     );
 }
+
+    
