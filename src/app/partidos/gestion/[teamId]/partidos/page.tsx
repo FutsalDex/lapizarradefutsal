@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 import { ArrowLeft, Loader2, Users, Check, X, Settings, Trash2, Pencil, Trophy, PlusCircle, ClipboardList, BarChart2, Eye } from 'lucide-react';
 import Link from 'next/link';
@@ -72,22 +74,24 @@ function MatchCard({ match, onEdit, onDelete, onConmoncar }: { match: Match; onE
   const localWon = match.localScore > match.visitorScore;
 
   return (
-    <Card className="flex flex-col text-center">
+    <Card className="flex flex-col text-center border">
         <CardContent className="p-6 flex-grow flex flex-col justify-center items-center">
             <h3 className="font-semibold text-lg">{match.localTeam} vs {match.visitorTeam}</h3>
             <p className="text-sm text-muted-foreground mb-4">{matchDate}</p>
             <p className="text-4xl font-bold text-primary my-2">{match.localScore} - {match.visitorScore}</p>
             <Badge variant="secondary">{match.matchType}</Badge>
         </CardContent>
-        <Separator />
-        <CardFooter className="p-2 flex justify-around items-center">
-            <Button variant="outline" size="sm" onClick={() => onConmoncar(match)}>
-                <ClipboardList className="mr-2 h-4 w-4" />
+        <CardFooter className="p-2 flex justify-around items-center bg-muted/50">
+            <Button variant="ghost" size="sm" onClick={() => onConmoncar(match)}>
                 Convocar
             </Button>
-            <Button variant="ghost" size="icon"><BarChart2 className="h-4 w-4 text-muted-foreground" /></Button>
-            <Button variant="ghost" size="icon"><Eye className="h-4 w-4 text-muted-foreground" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => onEdit(match)}><Pencil className="h-4 w-4 text-muted-foreground" /></Button>
+            <Separator orientation='vertical' className='h-6'/>
+             <Button variant="ghost" size="icon"><BarChart2 className="h-4 w-4" /></Button>
+            <Separator orientation='vertical' className='h-6'/>
+            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+             <Separator orientation='vertical' className='h-6'/>
+            <Button variant="ghost" size="icon" onClick={() => onEdit(match)}><Pencil className="h-4 w-4" /></Button>
+             <Separator orientation='vertical' className='h-6'/>
             <AlertDialog>
                 <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -144,7 +148,7 @@ export default function TeamMatchesPage() {
       collection(firestore, 'matches'),
       where('teamId', '==', teamId),
       where('userId', '==', user.uid),
-      orderBy('date', 'asc') // 'asc' for oldest first, 'desc' for newest first
+      orderBy('date', 'desc')
     );
   }, [firestore, teamId, user]);
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
@@ -165,7 +169,7 @@ export default function TeamMatchesPage() {
     if (editingMatch) {
       form.reset({
         ...editingMatch,
-        date: new Date(editingMatch.date).toISOString().split('T')[0], // Format for input[type=date]
+        date: new Date(editingMatch.date).toISOString().split('T')[0],
       });
     } else {
       form.reset({
@@ -250,7 +254,6 @@ export default function TeamMatchesPage() {
     setIsSubmitting(true);
     const matchRef = doc(firestore, 'matches', editingMatch.id);
     try {
-      // Get the current checked state from the form
       const convocadosIds = players?.filter(p => form.getValues(`convocados` as any)?.includes(p.id)).map(p => p.id) || [];
       await updateDoc(matchRef, { convocados: convocadosIds });
       toast({ title: 'Convocatoria guardada', description: 'La lista de jugadores convocados se ha actualizado.' });
@@ -391,18 +394,13 @@ export default function TeamMatchesPage() {
       </div>
       
       {/* Filters */}
-      <div className="mb-6 p-2 bg-card rounded-lg border inline-flex items-center gap-1">
-        {filterOptions.map(option => (
-            <Button
-                key={option}
-                variant={filter === option ? 'default' : 'ghost'}
-                onClick={() => setFilter(option)}
-                className={cn('transition-all', filter === option && 'text-primary-foreground')}
-            >
-                {option}
-            </Button>
-        ))}
-      </div>
+       <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="mb-6">
+          <TabsList>
+            {filterOptions.map(option => (
+              <TabsTrigger key={option} value={option}>{option}</TabsTrigger>
+            ))}
+          </TabsList>
+       </Tabs>
 
       {/* Content */}
       {isLoading ? (
