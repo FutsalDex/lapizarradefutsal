@@ -1,166 +1,214 @@
-'use client';
+"use client";
 
-import { useState, useMemo, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState, useMemo } from "react";
+import { useParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useUser, useFirestore, useCollection, useDoc } from "@/firebase";
+import { useMemoFirebase } from "@/firebase/use-memo-firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+  addDoc,
+  updateDoc,
+  serverTimestamp,
+  orderBy,
+} from "firebase/firestore";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Trophy,
+  PlusCircle,
+  Trash2,
+  Eye,
+  Edit,
+  Users,
+  Calendar as CalendarIcon,
+  Loader2,
+  ArrowLeft,
+  ClipboardList,
+  BarChart2,
+  Pencil,
+} from "lucide-react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
-import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { doc, collection, addDoc, serverTimestamp, where, query, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-
-import { ArrowLeft, Loader2, Users, Check, X, Settings, Trash2, Pencil, Trophy, PlusCircle, ClipboardList, BarChart2, Eye } from 'lucide-react';
-import Link from 'next/link';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
-
-
-// Zod Schema for Match Form
-const matchSchema = z.object({
-  id: z.string().optional(),
-  isFinished: z.boolean().default(true),
-  matchType: z.string({ required_error: 'Debes seleccionar un tipo de partido.' }),
-  date: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Fecha inválida" }),
-  localTeam: z.string().min(1, "El nombre del equipo local es obligatorio."),
-  visitorTeam: z.string().min(1, "El nombre del equipo visitante es obligatorio."),
-  localScore: z.coerce.number().min(0, "El resultado debe ser positivo."),
-  visitorScore: z.coerce.number().min(0, "El resultado debe ser positivo."),
-  competition: z.string().optional(),
-  matchday: z.string().optional(),
-  convocados: z.array(z.string()).optional(),
-});
-
-type MatchFormData = z.infer<typeof matchSchema>;
 
 interface Team {
-  id: string;
-  name: string;
-}
-
-interface Player {
     id: string;
     name: string;
 }
 
-interface Match extends MatchFormData {
-  id: string;
-  userId: string;
-  teamId: string;
+interface Match {
+    id: string;
+    teamId: string;
+    userId: string;
+    localTeam: string;
+    visitorTeam: string;
+    localScore?: number;
+    visitorScore?: number;
+    date: string; // Stored as ISO string
+    matchType: "Liga" | "Copa" | "Torneo" | "Amistoso";
+    competition?: string;
+    matchday?: string;
+    isFinished: boolean;
 }
 
+const matchSchema = z.object({
+  localTeam: z.string().min(1, "El nombre del equipo local es obligatorio."),
+  visitorTeam: z.string().min(1, "El nombre del equipo visitante es obligatorio."),
+  localScore: z.coerce.number().optional(),
+  visitorScore: z.coerce.number().optional(),
+  date: z.date({ required_error: "La fecha del partido es obligatoria." }),
+  matchType: z.enum(["Liga", "Copa", "Torneo", "Amistoso"]),
+  competition: z.string().optional(),
+  matchday: z.string().optional(),
+});
 
-// MatchCard Component
-function MatchCard({ match, onEdit, onDelete, onConmoncar }: { match: Match; onEdit: (match: Match) => void; onDelete: (matchId: string) => void; onConmoncar: (match:Match) => void; }) {
-  const matchDate = new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const isDraw = match.localScore === match.visitorScore;
-  const localWon = match.localScore > match.visitorScore;
+type MatchFormData = z.infer<typeof matchSchema>;
+
+const tipos = ["Todos", "Liga", "Copa", "Torneo", "Amistoso"] as const;
+type FiltroTipo = (typeof tipos)[number];
+
+
+function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: Match) => void; onDelete: (matchId: string) => void; }) {
+  const resultado =
+    typeof match.localScore !== 'number' || typeof match.visitorScore !== 'number'
+      ? "vs"
+      : `${match.localScore} - ${match.visitorScore}`;
 
   return (
-    <Card className="flex flex-col text-center border">
-        <CardContent className="p-6 flex-grow flex flex-col justify-center items-center">
-            <h3 className="font-semibold text-lg">{match.localTeam} vs {match.visitorTeam}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{matchDate}</p>
-            <p className="text-4xl font-bold text-primary my-2">{match.localScore} - {match.visitorScore}</p>
-            <Badge variant="secondary">{match.matchType}</Badge>
-        </CardContent>
-        <CardFooter className="p-2 flex justify-around items-center bg-muted/50">
-            <Button variant="ghost" size="sm" onClick={() => onConmoncar(match)}>
-                Convocar
-            </Button>
-            <Separator orientation='vertical' className='h-6'/>
-             <Button variant="ghost" size="icon"><BarChart2 className="h-4 w-4" /></Button>
-            <Separator orientation='vertical' className='h-6'/>
-            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-             <Separator orientation='vertical' className='h-6'/>
-            <Button variant="ghost" size="icon" onClick={() => onEdit(match)}><Pencil className="h-4 w-4" /></Button>
-             <Separator orientation='vertical' className='h-6'/>
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro de que quieres eliminar el partido?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Esta acción no se puede deshacer. Se eliminarán permanentemente los datos del partido.
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onDelete(match.id)}>Eliminar</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-        </CardFooter>
+    <Card className="shadow-md border border-gray-200 flex flex-col">
+      <CardContent className="p-6 text-center flex-grow">
+        <h3 className="text-lg font-semibold mb-1 text-gray-800">
+          {match.localTeam} vs {match.visitorTeam}
+        </h3>
+        <p className="text-sm text-gray-500 mb-3">
+          {format(new Date(match.date), "PPP", { locale: es })}
+        </p>
+        <p className="text-4xl font-bold text-primary mb-2">
+            {resultado}
+        </p>
+        <Badge variant="secondary">{match.matchType}</Badge>
+      </CardContent>
+      <CardFooter className="p-2 bg-gray-50 border-t flex justify-center gap-1">
+          <Button size="sm" variant="ghost" className="flex-1">
+             <Users className="mr-2 h-4 w-4" /> Convocar
+          </Button>
+          <Button size="sm" variant="ghost" className="flex-1">
+            <BarChart2 className="mr-2 h-4 w-4" /> Stats
+          </Button>
+          <Button onClick={() => onEdit(match)} size="icon" variant="ghost">
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <AlertDialog>
+              <AlertDialogTrigger asChild>
+                 <Button size="icon" variant="destructive_ghost">
+                    <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará el partido permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(match.id)}>Eliminar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+          </AlertDialog>
+      </CardFooter>
     </Card>
   );
 }
 
-
-// Main Page Component
-export default function TeamMatchesPage() {
+export default function PartidosPage() {
   const params = useParams();
   const teamId = params.teamId as string;
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
 
-  const [filter, setFilter] = useState<'Todos' | 'Liga' | 'Copa' | 'Torneo' | 'Amistoso'>('Todos');
+  const [filtro, setFiltro] = useState<FiltroTipo>("Todos");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false);
-  const [isConvocatoriaDialogOpen, setIsConvocatoriaDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
 
-  // --- Data Fetching ---
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
-    return doc(firestore, 'teams', teamId);
+    return doc(firestore, "teams", teamId);
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  const playersCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !teamId) return null;
-    return collection(firestore, `teams/${teamId}/players`);
-  }, [firestore, teamId]);
-  const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersCollectionRef);
-  
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId || !user) return null;
     return query(
-      collection(firestore, 'matches'),
-      where('teamId', '==', teamId),
-      where('userId', '==', user.uid),
-      orderBy('date', 'desc')
+      collection(firestore, "matches"),
+      where("teamId", "==", teamId),
+      where("userId", "==", user.uid),
+      orderBy("date", "desc")
     );
   }, [firestore, teamId, user]);
+
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
-  const filteredMatches = useMemo(() => {
-    if (!matches) return [];
-    if (filter === 'Todos') return matches;
-    return matches.filter(match => match.matchType === filter);
-  }, [matches, filter]);
-
-
-  // --- Form Handling ---
   const form = useForm<MatchFormData>({
     resolver: zodResolver(matchSchema),
   });
@@ -168,325 +216,228 @@ export default function TeamMatchesPage() {
   useEffect(() => {
     if (editingMatch) {
       form.reset({
-        ...editingMatch,
-        date: new Date(editingMatch.date).toISOString().split('T')[0],
+        localTeam: editingMatch.localTeam,
+        visitorTeam: editingMatch.visitorTeam,
+        localScore: editingMatch.localScore,
+        visitorScore: editingMatch.visitorScore,
+        date: new Date(editingMatch.date),
+        matchType: editingMatch.matchType,
+        competition: editingMatch.competition,
+        matchday: editingMatch.matchday,
       });
     } else {
       form.reset({
-        id: undefined,
-        isFinished: true,
-        matchType: 'Liga',
-        date: new Date().toISOString().split('T')[0],
-        localTeam: team?.name || '',
-        visitorTeam: '',
-        localScore: 0,
-        visitorScore: 0,
-        competition: '',
-        matchday: '',
-        convocados: [],
+        localTeam: team?.name || "",
+        visitorTeam: "",
+        localScore: undefined,
+        visitorScore: undefined,
+        date: new Date(),
+        matchType: "Liga",
+        competition: "",
+        matchday: "",
       });
     }
-  }, [editingMatch, isMatchDialogOpen, team, form]);
+  }, [editingMatch, team, form]);
+  
 
+  const handleEditClick = (match: Match) => {
+    setEditingMatch(match);
+    setIsDialogOpen(true);
+  };
 
-  // --- CRUD Operations ---
-  const handleMatchSubmit = async (data: MatchFormData) => {
-    if (!user || !teamId) return;
+  const handleAddNewClick = () => {
+    setEditingMatch(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (matchId: string) => {
+    if (!firestore) return;
+    const matchRef = doc(firestore, "matches", matchId);
+    
+    deleteDoc(matchRef)
+    .then(() => {
+      toast({ title: "Partido eliminado", description: "El partido ha sido eliminado correctamente." });
+    })
+    .catch(error => {
+      const permissionError = new FirestorePermissionError({
+          path: matchRef.path,
+          operation: 'delete'
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  };
+
+  const onSubmit = async (data: MatchFormData) => {
+    if (!firestore || !user || !teamId) return;
+
     setIsSubmitting(true);
 
     const matchData = {
       ...data,
       teamId: teamId,
       userId: user.uid,
+      date: data.date.toISOString(),
+      isFinished: typeof data.localScore === 'number' && typeof data.visitorScore === 'number',
     };
-
+    
     try {
       if (editingMatch) {
-        // Update
-        const matchRef = doc(firestore, 'matches', editingMatch.id);
+        const matchRef = doc(firestore, "matches", editingMatch.id);
         await updateDoc(matchRef, matchData);
-        toast({ title: 'Partido actualizado', description: 'Los datos del partido se han guardado.' });
+        toast({ title: "Partido actualizado", description: "El partido se ha actualizado correctamente." });
       } else {
-        // Create
-        await addDoc(collection(firestore, 'matches'), { ...matchData, createdAt: serverTimestamp() });
-        toast({ title: 'Partido añadido', description: 'El nuevo partido se ha creado correctamente.' });
+        await addDoc(collection(firestore, "matches"), matchData);
+        toast({ title: "Partido añadido", description: "El nuevo partido se ha añadido correctamente." });
       }
-      setIsMatchDialogOpen(false);
+      setIsDialogOpen(false);
       setEditingMatch(null);
-    } catch (error: any) {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: editingMatch ? `matches/${editingMatch.id}` : 'matches',
-        operation: editingMatch ? 'update' : 'create',
-        requestResourceData: matchData,
-      }));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteMatch = async (matchId: string) => {
-    const matchRef = doc(firestore, 'matches', matchId);
-    try {
-      await deleteDoc(matchRef);
-      toast({ title: 'Partido eliminado', description: 'El partido ha sido eliminado.', variant: 'destructive' });
-    } catch (error) {
-       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: matchRef.path, operation: 'delete'}));
-    }
-  };
-  
-  const handleEditClick = (match: Match) => {
-      setEditingMatch(match);
-      setIsMatchDialogOpen(true);
-  };
-
-  const handleAddNewClick = () => {
-      setEditingMatch(null);
-      setIsMatchDialogOpen(true);
-  }
-  
-  const handleConvocatoriaClick = (match: Match) => {
-    setEditingMatch(match);
-    setIsConvocatoriaDialogOpen(true);
-  };
-
-  const handleConvocatoriaSubmit = async () => {
-    if (!editingMatch) return;
-    setIsSubmitting(true);
-    const matchRef = doc(firestore, 'matches', editingMatch.id);
-    try {
-      const convocadosIds = players?.filter(p => form.getValues(`convocados` as any)?.includes(p.id)).map(p => p.id) || [];
-      await updateDoc(matchRef, { convocados: convocadosIds });
-      toast({ title: 'Convocatoria guardada', description: 'La lista de jugadores convocados se ha actualizado.' });
-      setIsConvocatoriaDialogOpen(false);
-    } catch (error) {
-       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: matchRef.path, operation: 'update', requestResourceData: {convocados: '...'} }));
+    } catch(error) {
+       const permissionError = new FirestorePermissionError({
+            path: editingMatch ? `matches/${editingMatch.id}` : 'matches',
+            operation: editingMatch ? 'update' : 'create',
+            requestResourceData: matchData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
     } finally {
         setIsSubmitting(false);
-        setEditingMatch(null);
     }
-  }
-  
-  const isLoading = isLoadingTeam || isLoadingMatches || isLoadingPlayers;
-  const filterOptions: Array<'Todos' | 'Liga' | 'Copa' | 'Torneo' | 'Amistoso'> = ['Todos', 'Liga', 'Copa', 'Torneo', 'Amistoso'];
+  };
+
+  const filtrados = useMemo(() => {
+    if (!matches) return [];
+    if (filtro === "Todos") return matches;
+    return matches.filter((m) => m.matchType === filtro);
+  }, [matches, filtro]);
+
+  const isLoading = isLoadingTeam || isUserLoading || isLoadingMatches;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
-        <div className="flex items-center gap-4">
+       <Button asChild variant="ghost" className="mb-4 text-muted-foreground">
+         <Link href={`/partidos/gestion/${teamId}`}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Panel del Equipo
+         </Link>
+      </Button>
+
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
           <Trophy className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-3xl font-bold font-headline text-primary">Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}</h1>
-            <p className="text-muted-foreground">Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.</p>
-          </div>
+          <h1 className="text-3xl font-bold text-primary">
+            {isLoadingTeam ? <Skeleton className="h-9 w-48" /> : `Partidos de ${team?.name}`}
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/partidos/gestion/${teamId}`}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Volver al Panel
-              </Link>
-            </Button>
-            <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={handleAddNewClick}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Añadir Partido
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px]">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleMatchSubmit)}>
-                    <DialogHeader>
-                      <DialogTitle>{editingMatch ? 'Editar Partido' : 'Añadir Nuevo Partido'}</DialogTitle>
-                      <DialogDescription>
-                        Rellena los datos del encuentro. Haz clic en guardar cuando hayas terminado.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 grid grid-cols-2 gap-4">
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+           <Button onClick={handleAddNewClick} className="bg-primary hover:bg-primary/90">
+             <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
+           </Button>
+          <DialogContent className="sm:max-w-2xl">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <DialogHeader>
+                  <DialogTitle>{editingMatch ? 'Editar Partido' : 'Añadir Nuevo Partido'}</DialogTitle>
+                  <DialogDescription>
+                    Rellena los detalles del encuentro. Haz clic en guardar cuando hayas terminado.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-6">
+                   <div className="space-y-4">
+                      <FormField control={form.control} name="localTeam" render={({ field }) => (
+                          <FormItem><FormLabel>Equipo Local</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                      <FormField control={form.control} name="visitorTeam" render={({ field }) => (
+                          <FormItem><FormLabel>Equipo Visitante</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                   </div>
+                   <div className="space-y-4">
+                      <FormField control={form.control} name="localScore" render={({ field }) => (
+                          <FormItem><FormLabel>Goles Local</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                      <FormField control={form.control} name="visitorScore" render={({ field }) => (
+                          <FormItem><FormLabel>Goles Visitante</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                   </div>
+                   <div className="space-y-4">
+                     <FormField control={form.control} name="date" render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Fecha del partido</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                  {field.value ? format(field.value, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}/>
+                   </div>
+                    <div className="space-y-4">
                         <FormField control={form.control} name="matchType" render={({ field }) => (
-                            <FormItem className="col-span-2">
-                                <FormLabel>Tipo de Partido</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl><SelectTrigger><SelectValue placeholder="Selecciona un tipo" /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Liga">Liga</SelectItem>
-                                        <SelectItem value="Copa">Copa</SelectItem>
-                                        <SelectItem value="Torneo">Torneo</SelectItem>
-                                        <SelectItem value="Amistoso">Amistoso</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="date" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Fecha</FormLabel>
-                                <FormControl><Input type="date" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                         <FormField control={form.control} name="isFinished" render={({ field }) => (
-                            <FormItem className="flex items-end pb-2">
-                                <div className="flex items-center gap-2">
-                                    <FormControl>
-                                        <Checkbox checked={field.value} onCheckedChange={field.onChange} id="isFinished" />
-                                    </FormControl>
-                                    <Label htmlFor="isFinished">Partido finalizado</Label>
-                                </div>
-                            </FormItem>
-                         )}/>
-                        <FormField control={form.control} name="localTeam" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Equipo Local</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                         <FormField control={form.control} name="visitorTeam" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Equipo Visitante</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="localScore" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Goles Local</FormLabel>
-                                <FormControl><Input type="number" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                         <FormField control={form.control} name="visitorScore" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Goles Visitante</FormLabel>
-                                <FormControl><Input type="number" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="competition" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Competición</FormLabel>
-                                <FormControl><Input placeholder="(Opcional)" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}/>
-                         <FormField control={form.control} name="matchday" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Jornada</FormLabel>
-                                <FormControl><Input placeholder="(Opcional)" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
+                          <FormItem><FormLabel>Tipo de Partido</FormLabel><FormControl>
+                              <div className="flex gap-2">
+                               {tipos.filter(t => t !== 'Todos').map(t => (
+                                <Button key={t} type="button" variant={field.value === t ? 'default' : 'outline'} onClick={() => field.onChange(t)} className="flex-1">{t}</Button>
+                               ))}
+                              </div>
+                          </FormControl><FormMessage /></FormItem>
                         )}/>
                     </div>
-                    <DialogFooter>
-                      <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Partido
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-        </div>
+                </div>
+
+                <DialogFooter>
+                  <DialogClose asChild><Button type="button" variant="secondary">Cancelar</Button></DialogClose>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Guardar Partido'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
       
-      {/* Filters */}
-       <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="mb-6">
-          <TabsList>
-            {filterOptions.map(option => (
-              <TabsTrigger key={option} value={option}>{option}</TabsTrigger>
-            ))}
-          </TabsList>
-       </Tabs>
+      <p className="text-muted-foreground mb-6">
+        Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.
+      </p>
 
-      {/* Content */}
+      <div className="border rounded-lg p-1.5 inline-flex gap-1 bg-muted mb-8">
+        {tipos.map((t) => (
+          <Button
+            key={t}
+            onClick={() => setFiltro(t)}
+            variant={filtro === t ? "default" : "ghost"}
+            size="sm"
+            className={cn(filtro === t ? 'bg-primary text-primary-foreground shadow-sm' : '')}
+          >
+            {t}
+          </Button>
+        ))}
+      </div>
+
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-56" />)}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Skeleton className="h-60 w-full" />
+          <Skeleton className="h-60 w-full" />
+          <Skeleton className="h-60 w-full" />
         </div>
-      ) : filteredMatches && filteredMatches.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMatches.map(match => (
-            <MatchCard 
-                key={match.id} 
-                match={match} 
-                onEdit={handleEditClick} 
-                onDelete={handleDeleteMatch}
-                onConmoncar={handleConvocatoriaClick}
-            />
-          ))}
+      ) : filtrados.length === 0 ? (
+        <div className="text-center py-10 border-2 border-dashed rounded-lg">
+             <p className="text-muted-foreground">No hay partidos para mostrar en esta categoría.</p>
         </div>
       ) : (
-        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-          <h2 className="text-xl font-semibold">No hay partidos</h2>
-          <p>Aún no se han añadido partidos para este filtro. ¡Crea el primero!</p>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filtrados.map((match) => (
+            <MatchCard key={match.id} match={match} onEdit={handleEditClick} onDelete={handleDelete} />
+          ))}
         </div>
       )}
-
-      {/* Convocatoria Dialog */}
-       <Dialog open={isConvocatoriaDialogOpen} onOpenChange={setIsConvocatoriaDialogOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>Convocar Jugadores</DialogTitle>
-                <DialogDescription>
-                    Selecciona los jugadores convocados para el partido contra {editingMatch?.visitorTeam}.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4 space-y-2">
-                 {isLoadingPlayers ? <p>Cargando jugadores...</p> : 
-                  players && players.length > 0 ? (
-                  <FormField
-                    control={form.control}
-                    name="convocados"
-                    render={() => (
-                      <FormItem>
-                        {players.map((player) => (
-                          <FormField
-                            key={player.id}
-                            control={form.control}
-                            name="convocados"
-                            render={({ field }) => {
-                              return (
-                                <FormItem key={player.id} className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(player.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...(field.value || []), player.id])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== player.id
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">{player.name}</FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : <p>No hay jugadores en la plantilla.</p>}
-            </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                <Button onClick={handleConvocatoriaSubmit} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Guardar Convocatoria
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-    </Dialog>
-
     </div>
   );
 }
