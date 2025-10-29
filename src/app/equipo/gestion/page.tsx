@@ -165,7 +165,7 @@ function TeamList() {
   const memberTeamsQuery = useMemoFirebase(() => {
     if (!firestore || !canFetchMemberTeams) return null;
     return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds));
-  }, [firestore, memberTeamIds, canFetchMemberTeams]);
+  }, [firestore, canFetchMemberTeams, memberTeamIds]);
 
   const { data: memberTeams, isLoading: isLoadingMember } = useCollection<Team>(memberTeamsQuery);
   
