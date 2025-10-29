@@ -153,11 +153,12 @@ export default function TeamMatchesPage() {
 
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId || !user) return null;
+    
     let q = query(
       collection(firestore, 'matches'), 
       where('teamId', '==', teamId), 
       where('userId', '==', user.uid),
-      orderBy('date', 'desc')
+      orderBy('date', 'asc')
     );
     if (filter !== 'Todos') {
         q = query(q, where('matchType', '==', filter));
