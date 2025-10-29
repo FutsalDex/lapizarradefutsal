@@ -1,284 +1,306 @@
-
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { collection, query, where, doc, documentId, setDoc, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ArrowLeft, UserPlus, Trash2, Loader2, Users } from 'lucide-react';
+import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, UserPlus, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface Team {
   id: string;
   name: string;
   ownerId: string;
+  club?: string;
+  season?: string;
 }
 
-interface Player {
-  id: string; // This is the document ID from the 'players' subcollection
-  name: string;
-  role: 'player' | 'coach';
-  dorsal?: number;
-  posicion?: string;
-}
-
-const getInitials = (name?: string) => {
-    if (!name) return '?';
-    const names = name.split(' ');
-    if (names.length > 1) {
-        return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-}
-
-const addPlayerSchema = z.object({
+const playerSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(2, 'El nombre es obligatorio.'),
-  dorsal: z.coerce.number().min(0, 'El dorsal no puede ser negativo.').optional(),
-  posicion: z.string().optional(),
+  dorsal: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
+  posicion: z.string().optional().nullable(),
+  role: z.literal('player'),
 });
 
+const teamFormSchema = z.object({
+  players: z.array(playerSchema),
+});
 
-function AddPlayerDialog({ team }: { team: Team | null }) {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const [open, setOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const params = useParams();
-    const { teamId } = params;
-
-    const form = useForm<z.infer<typeof addPlayerSchema>>({
-        resolver: zodResolver(addPlayerSchema),
-        defaultValues: { name: '', dorsal: undefined, posicion: '' },
-    });
-
-    const onSubmit = async (values: z.infer<typeof addPlayerSchema>) => {
-        if (!firestore || !team || typeof teamId !== 'string') {
-            toast({ title: 'Error', description: 'No se ha podido añadir al jugador. Inténtalo de nuevo.', variant: 'destructive' });
-            return;
-        }
-
-        setIsSubmitting(true);
-        
-        const playersRef = collection(firestore, 'teams', teamId, 'players');
-        const playerData = {
-            name: values.name,
-            role: 'player',
-            dorsal: values.dorsal ?? null,
-            posicion: values.posicion ?? null,
-        };
-        
-        addDoc(playersRef, playerData)
-            .then(() => {
-                toast({ title: '¡Jugador añadido!', description: `${values.name} ha sido añadido a la plantilla.` });
-                form.reset();
-                setOpen(false);
-            })
-            .catch((error) => {
-                const permissionError = new FirestorePermissionError({
-                    path: playersRef.path,
-                    operation: 'create',
-                    requestResourceData: playerData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-            });
-    }
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button>
-                    <UserPlus className="mr-2 h-4 w-4" /> Dar de alta jugador
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Dar de alta a un nuevo jugador</DialogTitle>
-                    <DialogDescription>
-                        Añade un nuevo miembro a tu equipo '{team?.name}'.
-                    </DialogDescription>
-                </DialogHeader>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Nombre del jugador</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Nombre completo" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <div className="grid grid-cols-2 gap-4">
-                           <FormField
-                                control={form.control}
-                                name="dorsal"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Dorsal (Opcional)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" placeholder="Ej: 10" {...field} value={field.value ?? ''} onChange={field.onChange} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="posicion"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Posición (Opcional)</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Ej: Cierre" {...field} value={field.value ?? ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isSubmitting ? 'Añadiendo...' : 'Añadir Jugador a la Plantilla'}
-                        </Button>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function Roster() {
-    const firestore = useFirestore();
-    const params = useParams();
-    const teamId = params.teamId as string;
-    
-    const teamPlayersSubcollectionRef = useMemoFirebase(() => {
-        if (!firestore || !teamId) return null;
-        return collection(firestore, 'teams', teamId, 'players');
-    }, [firestore, teamId]);
-
-    const { data: roster, isLoading: isLoadingRoster } = useCollection<Player>(teamPlayersSubcollectionRef);
-
-    if (isLoadingRoster) {
-         return (
-            <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4 p-4">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <div className='flex-grow space-y-2'>
-                           <Skeleton className="h-4 w-3/4" />
-                           <Skeleton className="h-4 w-1/2" />
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-    
-    if (!roster || roster.length === 0) {
-        return (
-            <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-                <p className="font-semibold">Aún no hay miembros en este equipo.</p>
-                <p className="text-sm mt-1">Usa el botón "Dar de alta jugador" para añadir a tu primer miembro.</p>
-            </div>
-        );
-    }
-
-    return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[80px]">Dorsal</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Posición</TableHead>
-                    <TableHead>Rol</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {roster.map((player) => (
-                    <TableRow key={player.id}>
-                        <TableCell className="font-medium text-center">{player.dorsal ?? '-'}</TableCell>
-                        <TableCell>
-                            <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarFallback>{getInitials(player.name)}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-medium">{player.name || 'Usuario sin nombre'}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell>{player.posicion ?? '-'}</TableCell>
-                        <TableCell className="text-muted-foreground capitalize">{player.role}</TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
-}
+type TeamFormData = z.infer<typeof teamFormSchema>;
 
 export default function TeamRosterPage() {
   const params = useParams();
   const teamId = params.teamId as string;
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
+
+  const playersCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !teamId) return null;
+    return collection(firestore, `teams/${teamId}/players`);
+  }, [firestore, teamId]);
+
+  const { data: initialPlayers, isLoading: isLoadingPlayers } = useCollection<z.infer<typeof playerSchema>>(playersCollectionRef);
   
+  const form = useForm<TeamFormData>({
+    resolver: zodResolver(teamFormSchema),
+    defaultValues: {
+      players: [],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'players',
+  });
+
+  useEffect(() => {
+    if (initialPlayers) {
+      form.reset({ players: initialPlayers });
+    }
+  }, [initialPlayers, form]);
+
+  const onSubmit = async (data: TeamFormData) => {
+    if (!firestore || !teamId || !user || user.uid !== team?.ownerId) {
+      toast({ title: 'Error de permisos', description: 'No tienes permiso para guardar los cambios.', variant: 'destructive' });
+      return;
+    }
+    setIsSubmitting(true);
+
+    try {
+      const batch = writeBatch(firestore);
+      const playersRef = collection(firestore, `teams/${teamId}/players`);
+
+      // Simple diffing to avoid unnecessary writes
+      const initialPlayerMap = new Map(initialPlayers?.map(p => [p.id, p]));
+      const currentPlayerMap = new Map(data.players.filter(p => p.id).map(p => [p.id, p]));
+      
+      // Deletions
+      initialPlayers?.forEach(initialPlayer => {
+        if (!currentPlayerMap.has(initialPlayer.id)) {
+          const docRef = doc(playersRef, initialPlayer.id);
+          batch.delete(docRef);
+        }
+      });
+      
+      // Additions and Updates
+      data.players.forEach(player => {
+        const docRef = player.id ? doc(playersRef, player.id) : doc(playersRef);
+        const playerData = {
+          name: player.name,
+          dorsal: player.dorsal ?? null,
+          posicion: player.posicion ?? null,
+          role: 'player'
+        };
+        batch.set(docRef, playerData, { merge: true });
+      });
+
+      await batch.commit();
+      toast({ title: '¡Plantilla guardada!', description: 'Los cambios en la plantilla se han guardado correctamente.' });
+
+    } catch (error) {
+       const permissionError = new FirestorePermissionError({
+            path: playersCollectionRef?.path || `teams/${teamId}/players`,
+            operation: 'write',
+            requestResourceData: data.players,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const isOwner = user?.uid === team?.ownerId;
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Button asChild variant="outline" className="mb-4">
-          <Link href={`/partidos/gestion/${teamId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al Panel
-          </Link>
-        </Button>
-        {isLoadingTeam ? <Skeleton className='h-10 w-1/2' /> : <h1 className="text-4xl font-bold font-headline text-primary">Plantilla de {team?.name}</h1>}
-        <p className="text-lg text-muted-foreground mt-2">Visualiza y gestiona los miembros de tu equipo.</p>
+  if (isLoadingTeam || isLoadingPlayers) {
+    return (
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
+    );
+  }
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-                <CardTitle>Miembros del Equipo</CardTitle>
-                <CardDescription>
-                    {isLoadingTeam ? <Skeleton className="h-4 w-32 mt-1" /> : `Gestiona la plantilla de tu equipo.`}
-                </CardDescription>
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div className='flex items-center gap-4'>
+                <Users className="w-8 h-8 text-primary" />
+                <div>
+                    <h1 className="text-3xl font-bold font-headline text-primary">Mi Plantilla</h1>
+                    <p className="text-muted-foreground">Gestiona la plantilla de tu equipo y sus datos principales.</p>
+                </div>
             </div>
-            {isOwner && <AddPlayerDialog team={team} />}
-        </CardHeader>
-        <CardContent>
-           <Roster />
-        </CardContent>
-      </Card>
-    </div>
+            <Button asChild variant="outline">
+              <Link href={`/partidos/gestion/${teamId}`}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al Panel
+              </Link>
+            </Button>
+          </div>
+
+          <div className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información del Equipo</CardTitle>
+                <CardDescription>Datos generales del equipo y cuerpo técnico.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <Label>Club</Label>
+                    <Input readOnly value={team?.club || ''} />
+                  </div>
+                   <div>
+                    <Label>Equipo</Label>
+                    <Input readOnly value={team?.name || ''} />
+                  </div>
+                   <div>
+                    <Label>Competición</Label>
+                    <Input readOnly value={team?.season || ''} />
+                  </div>
+                </div>
+                 <div>
+                    <Label>Cuerpo Técnico</Label>
+                     <div className="p-4 border rounded-md flex items-center gap-4 mt-2">
+                        <RadioGroup defaultValue={user?.uid} className="flex items-center">
+                            <RadioGroupItem value={user?.uid} id={user?.uid} checked/>
+                        </RadioGroup>
+                        <div>
+                            <p className='font-medium'>{user?.displayName || user?.email}</p>
+                            <p className='text-sm text-muted-foreground'>Entrenador</p>
+                        </div>
+                    </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Plantilla del Equipo</CardTitle>
+                <CardDescription>Introduce los datos de tus jugadores. Máximo 20. Todos los jugadores estarán disponibles para la convocatoria.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flow-root">
+                    <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className='w-[100px]'>Dorsal</TableHead>
+                                  <TableHead>Nombre</TableHead>
+                                  <TableHead>Posición</TableHead>
+                                  <TableHead className="text-right w-[100px]">Acciones</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {fields.map((field, index) => (
+                                  <TableRow key={field.id}>
+                                    <TableCell>
+                                      <FormField
+                                        control={form.control}
+                                        name={`players.${index}.dorsal`}
+                                        render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} disabled={!isOwner} />}
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <FormField
+                                        control={form.control}
+                                        name={`players.${index}.name`}
+                                        render={({ field }) => <Input {...field} disabled={!isOwner} />}
+                                      />
+                                    </TableCell>
+                                     <TableCell>
+                                      <FormField
+                                        control={form.control}
+                                        name={`players.${index}.posicion`}
+                                        render={({ field }) => (
+                                           <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={!isOwner}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Seleccionar" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Portero">Portero</SelectItem>
+                                                    <SelectItem value="Cierre">Cierre</SelectItem>
+                                                    <SelectItem value="Ala">Ala</SelectItem>
+                                                    <SelectItem value="Pivot">Pivot</SelectItem>
+                                                    <SelectItem value="Ala-Pivot">Ala-Pivot</SelectItem>
+                                                    <SelectItem value="Universal">Universal</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {isOwner && (
+                                        <Button variant="ghost" size="icon" onClick={() => remove(index)}>
+                                          <Trash2 className="h-4 w-4" />
+                                          <span className="sr-only">Eliminar</span>
+                                        </Button>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </div>
+                {isOwner && (
+                     <div className="mt-6 flex flex-col sm:flex-row items-center gap-4 justify-between">
+                         <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => append({ name: '', role: 'player', dorsal: null, posicion: null })}
+                            disabled={fields.length >= 20}
+                            >
+                            <UserPlus className="mr-2 h-4 w-4" /> Añadir Jugador
+                        </Button>
+                         <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Guardar Plantilla
+                        </Button>
+                    </div>
+                )}
+                
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </form>
+    </Form>
   );
 }
+
+    
