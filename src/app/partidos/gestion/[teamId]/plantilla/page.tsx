@@ -36,15 +36,9 @@ interface Team {
 const playerSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, 'El nombre es obligatorio.'),
-  dorsal: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
-  posicion: z.string().optional().nullable(),
+  number: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
+  position: z.string().optional().nullable(),
   role: z.literal('player'),
-  pj: z.number().optional().default(0),
-  minutosJugados: z.number().optional().default(0),
-  goals: z.number().optional().default(0),
-  assists: z.number().optional().default(0),
-  ta: z.number().optional().default(0),
-  tr: z.number().optional().default(0),
 });
 
 const teamFormSchema = z.object({
@@ -89,7 +83,7 @@ export default function TeamRosterPage() {
 
   useEffect(() => {
     if (initialPlayers) {
-      form.reset({ players: initialPlayers.map(p => ({...p, dorsal: p.dorsal ?? null})) });
+      form.reset({ players: initialPlayers.map(p => ({...p, role: 'player', number: p.number ?? null, position: p.position ?? null})) });
     }
   }, [initialPlayers, form]);
 
@@ -104,11 +98,9 @@ export default function TeamRosterPage() {
       const batch = writeBatch(firestore);
       const playersRef = collection(firestore, `teams/${teamId}/players`);
 
-      // Simple diffing to avoid unnecessary writes
       const initialPlayerMap = new Map(initialPlayers?.map(p => [p.id, p]));
       const currentPlayerMap = new Map(data.players.filter(p => p.id).map(p => [p.id, p]));
       
-      // Deletions
       initialPlayers?.forEach(initialPlayer => {
         if (!currentPlayerMap.has(initialPlayer.id)) {
           const docRef = doc(playersRef, initialPlayer.id);
@@ -116,22 +108,20 @@ export default function TeamRosterPage() {
         }
       });
       
-      // Additions and Updates
       data.players.forEach(player => {
         const docRef = player.id ? doc(playersRef, player.id) : doc(playersRef);
-        // We only want to save the editable fields, not the stats.
         const playerData = {
           name: player.name,
-          dorsal: player.dorsal ?? null,
-          posicion: player.posicion ?? null,
+          number: player.number ?? null,
+          position: player.position ?? null,
           role: 'player'
         };
 
         const initialPlayer = initialPlayerMap.get(player.id || '');
         if (!initialPlayer || 
             initialPlayer.name !== playerData.name ||
-            initialPlayer.dorsal !== playerData.dorsal ||
-            initialPlayer.posicion !== playerData.posicion
+            initialPlayer.number !== playerData.number ||
+            initialPlayer.position !== playerData.position
         ) {
             batch.set(docRef, playerData, { merge: true });
         }
@@ -235,12 +225,6 @@ export default function TeamRosterPage() {
                                   <TableHead className='w-[80px]'>Dorsal</TableHead>
                                   <TableHead className='min-w-[150px]'>Nombre</TableHead>
                                   <TableHead className='min-w-[150px]'>Posición</TableHead>
-                                  <TableHead>PJ</TableHead>
-                                  <TableHead>Min</TableHead>
-                                  <TableHead>Goles</TableHead>
-                                  <TableHead>Asis</TableHead>
-                                  <TableHead>TA</TableHead>
-                                  <TableHead>TR</TableHead>
                                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -250,7 +234,7 @@ export default function TeamRosterPage() {
                                     <TableCell>
                                       <FormField
                                         control={form.control}
-                                        name={`players.${index}.dorsal`}
+                                        name={`players.${index}.number`}
                                         render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} disabled={!isOwner} className="w-16" />}
                                       />
                                     </TableCell>
@@ -264,7 +248,7 @@ export default function TeamRosterPage() {
                                      <TableCell>
                                       <FormField
                                         control={form.control}
-                                        name={`players.${index}.posicion`}
+                                        name={`players.${index}.position`}
                                         render={({ field }) => (
                                            <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={!isOwner}>
                                                 <FormControl>
@@ -276,20 +260,14 @@ export default function TeamRosterPage() {
                                                     <SelectItem value="Portero">Portero</SelectItem>
                                                     <SelectItem value="Cierre">Cierre</SelectItem>
                                                     <SelectItem value="Ala">Ala</SelectItem>
-                                                    <SelectItem value="Pivot">Pivot</SelectItem>
-                                                    <SelectItem value="Ala-Pivot">Ala-Pivot</SelectItem>
+                                                    <SelectItem value="Pívot">Pívot</SelectItem>
+                                                    <SelectItem value="Ala-Pívot">Ala-Pívot</SelectItem>
                                                     <SelectItem value="Universal">Universal</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}
                                       />
                                     </TableCell>
-                                     <TableCell className="text-center">{field.pj}</TableCell>
-                                    <TableCell className="text-center">{field.minutosJugados}</TableCell>
-                                    <TableCell className="text-center">{field.goals}</TableCell>
-                                    <TableCell className="text-center">{field.assists}</TableCell>
-                                    <TableCell className="text-center">{field.ta}</TableCell>
-                                    <TableCell className="text-center">{field.tr}</TableCell>
                                     <TableCell className="text-right">
                                       {isOwner && (
                                         <Button variant="ghost" size="icon" onClick={() => remove(index)}>
@@ -310,7 +288,7 @@ export default function TeamRosterPage() {
                          <Button
                             type="button"
                             variant="outline"
-                            onClick={() => append({ name: '', role: 'player', dorsal: null, posicion: null })}
+                            onClick={() => append({ name: '', role: 'player', number: null, position: null })}
                             disabled={fields.length >= 20}
                             >
                             <UserPlus className="mr-2 h-4 w-4" /> Añadir Jugador
