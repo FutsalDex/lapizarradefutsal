@@ -200,15 +200,10 @@ export default function GestionEquiposPage() {
     return collection(firestore, 'teams');
   }, [firestore]);
 
-  const invitationsCollectionRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'teamInvitations');
-  }, [firestore]);
-
   const userInvitationsQuery = useMemoFirebase(() => {
-    if (!invitationsCollectionRef || !user?.uid) return null;
-    return query(invitationsCollectionRef, where('userId', '==', user.uid), where('status', '==', 'pending'));
-  }, [invitationsCollectionRef, user?.uid]);
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'pending'));
+  }, [firestore, user?.uid]);
 
   const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(userInvitationsQuery);
 
@@ -383,3 +378,5 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
+
+    
