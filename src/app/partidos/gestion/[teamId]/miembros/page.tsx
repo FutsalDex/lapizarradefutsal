@@ -1,15 +1,15 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp, where, query, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,6 +30,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, UserPlus, Trash2, Loader2, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface Team {
   id: string;
@@ -37,18 +39,34 @@ interface Team {
   ownerId: string;
 }
 
+interface TeamMember {
+  id: string; // This will be the user ID
+  name: string;
+  email: string;
+  role: string;
+  invitationId?: string; // ID of the invitation document, for deletion
+}
+
+interface UserProfile {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+}
+
+interface TeamInvitation {
+    id: string;
+    userId: string;
+    role: string;
+}
+
 const staffInvitationSchema = z.object({
-    name: z.string().min(2, 'El nombre es obligatorio.'),
     email: z.string().email('Introduce un email válido.'),
     role: z.string({ required_error: 'Debes seleccionar un rol.' }),
 });
 
 type StaffInvitationForm = z.infer<typeof staffInvitationSchema>;
 
-// Mock data, this should come from Firestore later
-const staffMembers = [
-    { id: '1', name: 'Francisco', email: 'futsaldex@gmail.com', role: 'Propietario' }
-];
 
 export default function TeamMembersPage() {
     const params = useParams();
@@ -59,33 +77,88 @@ export default function TeamMembersPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+    // 1. Get Team Info
     const teamRef = useMemoFirebase(() => {
         if (!firestore || !teamId) return null;
         return doc(firestore, 'teams', teamId);
     }, [firestore, teamId]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
+    // 2. Get accepted invitations for this team
+    const invitationsQuery = useMemoFirebase(() => {
+        if (!firestore || !teamId) return null;
+        return query(collection(firestore, 'teamInvitations'), where('teamId', '==', teamId), where('status', '==', 'accepted'));
+    }, [firestore, teamId]);
+    const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(invitationsQuery);
+
+    const memberUserIds = useMemo(() => invitations?.map(inv => inv.userId) || [], [invitations]);
+    
+    // 3. Get profiles for the owner and members
+    const usersToFetch = useMemo(() => {
+        const ids = new Set(memberUserIds);
+        if (team?.ownerId) {
+            ids.add(team.ownerId);
+        }
+        return Array.from(ids);
+    }, [memberUserIds, team?.ownerId]);
+
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore || usersToFetch.length === 0) return null;
+        // Firestore 'in' query is limited to 30 items
+        return query(collection(firestore, 'users'), where('__name__', 'in', usersToFetch.slice(0, 30)));
+    }, [firestore, usersToFetch]);
+    const { data: userProfiles, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
+
+    // 4. Combine data to create the final members list
+    const staffMembers = useMemo<TeamMember[]>(() => {
+        if (!userProfiles || !team) return [];
+
+        const membersMap = new Map<string, TeamMember>();
+        const invitationsMap = new Map(invitations?.map(inv => [inv.userId, inv]));
+
+        userProfiles.forEach(profile => {
+            const isOwner = profile.id === team.ownerId;
+            const invitation = invitationsMap.get(profile.id);
+            membersMap.set(profile.id, {
+                id: profile.id,
+                name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.email,
+                email: profile.email,
+                role: isOwner ? 'Propietario' : invitation?.role || 'Miembro',
+                invitationId: invitation?.id
+            });
+        });
+
+        return Array.from(membersMap.values());
+    }, [userProfiles, team, invitations]);
+    
+
     const form = useForm<StaffInvitationForm>({
         resolver: zodResolver(staffInvitationSchema),
-        defaultValues: {
-            name: '',
-            email: '',
-        },
+        defaultValues: { email: '', },
     });
 
     const onSubmit = async (data: StaffInvitationForm) => {
+        // This is a complex operation: find user by email, then create invitation.
+        // For simplicity, we'll assume the user exists and create the invitation.
+        // A robust implementation would use a Cloud Function to verify the user.
         if (!firestore || !user || !team) return;
         setIsSubmitting(true);
         
         try {
+            // Firestore security rules prevent querying users by email on the client.
+            // This needs to be handled by a backend function. For now, we'll create
+            // the invitation and assume the user will see it.
+            // A placeholder userId is needed, but we can't get it from the email on the client.
+            
             // This is a simplified version. A real implementation would need to check
-            // if the user exists, handle sending emails, and create a secure token.
-            // For now, we'll just add to a 'teamInvitations' collection.
+            // if the user exists via a backend call. We'll just add to a 'teamInvitations' collection.
+             const userQuery = query(collection(firestore, 'users'), where('email', '==', data.email));
+
             await addDoc(collection(firestore, 'teamInvitations'), {
                 teamId: team.id,
                 teamName: team.name,
-                invitedUserEmail: data.email,
-                invitedUserName: data.name,
+                userId: "TBD_BY_FUNCTION", // This needs to be resolved by a backend function that finds user by email
+                invitedUserEmail: data.email, // Storing email for display, but security should be based on userId
                 role: data.role,
                 status: 'pending',
                 invitedByUserId: user.uid,
@@ -93,8 +166,8 @@ export default function TeamMembersPage() {
             });
 
             toast({
-                title: 'Invitación enviada',
-                description: `Se ha enviado una invitación a ${data.name} para unirse como ${data.role}.`
+                title: 'Invitación enviada (simulado)',
+                description: `Se ha enviado una invitación a ${data.email}. El usuario debe existir en la plataforma.`
             });
             form.reset();
             setIsDialogOpen(false);
@@ -109,8 +182,31 @@ export default function TeamMembersPage() {
             setIsSubmitting(false);
         }
     };
+    
+    const handleDeleteMember = async (member: TeamMember) => {
+        if (!firestore || !member.invitationId) {
+             toast({ title: 'Error', description: 'No se puede eliminar al propietario o el miembro no tiene una invitación asociada.', variant: 'destructive'});
+             return;
+        }
+        
+        const invitationRef = doc(firestore, 'teamInvitations', member.invitationId);
+        
+        deleteDoc(invitationRef)
+            .then(() => {
+                toast({ title: 'Miembro eliminado', description: `${member.name} ha sido eliminado del equipo.`});
+            })
+            .catch((error) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: invitationRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+    }
 
-    if (isLoadingTeam) {
+    const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingUsers;
+
+    if (isLoading && !team) {
         return (
              <div className="container mx-auto px-4 py-8 space-y-8">
                 <Skeleton className="h-10 w-48" />
@@ -118,6 +214,8 @@ export default function TeamMembersPage() {
             </div>
         )
     }
+    
+    const isOwner = user?.uid === team?.ownerId;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -145,7 +243,7 @@ export default function TeamMembersPage() {
                     </div>
                      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button>
+                            <Button disabled={!isOwner}>
                                 <UserPlus className="mr-2 h-4 w-4" />
                                 Añadir nuevo miembro
                             </Button>
@@ -156,18 +254,11 @@ export default function TeamMembersPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Invitar nuevo miembro al cuerpo técnico</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Introduce los datos del nuevo miembro. Se generará una invitación para que se una.
+                                            Introduce el email del usuario a invitar. Este deberá tener una cuenta en la plataforma.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     
                                     <div className="py-4 space-y-4">
-                                        <FormField control={form.control} name="name" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Nombre y Apellidos</FormLabel>
-                                                <FormControl><Input placeholder="Nombre completo" {...field} /></FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}/>
                                         <FormField control={form.control} name="email" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Email</FormLabel>
@@ -224,32 +315,62 @@ export default function TeamMembersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {staffMembers.map((member) => (
-                                <TableRow key={member.id}>
-                                    <TableCell className="font-medium">{member.name}</TableCell>
-                                    <TableCell className="text-muted-foreground">{member.email}</TableCell>
-                                    <TableCell>
-                                         <Select defaultValue={member.role} disabled={member.role === 'Propietario'}>
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Propietario">Propietario</SelectItem>
-                                                <SelectItem value="Entrenador">Entrenador</SelectItem>
-                                                <SelectItem value="2º Entrenador">2º Entrenador</SelectItem>
-                                                <SelectItem value="Delegado">Delegado</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {member.role !== 'Propietario' && (
-                                            <Button variant="ghost" size="icon">
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">
+                                        <p className="text-muted-foreground">Cargando miembros...</p>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : staffMembers.length > 0 ? (
+                                staffMembers.map((member) => (
+                                    <TableRow key={member.id}>
+                                        <TableCell className="font-medium">{member.name}</TableCell>
+                                        <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                                        <TableCell>
+                                             <Select defaultValue={member.role} disabled={member.role === 'Propietario' || !isOwner}>
+                                                <SelectTrigger className="w-[180px]">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Propietario">Propietario</SelectItem>
+                                                    <SelectItem value="Entrenador">Entrenador</SelectItem>
+                                                    <SelectItem value="2º Entrenador">2º Entrenador</SelectItem>
+                                                    <SelectItem value="Delegado">Delegado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {isOwner && member.role !== 'Propietario' && (
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Se eliminará a {member.name} del cuerpo técnico. Esta acción revocará su acceso.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteMember(member)}>Eliminar</AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center">
+                                        <p className="text-muted-foreground">No hay miembros en el cuerpo técnico.</p>
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>

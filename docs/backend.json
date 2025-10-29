@@ -202,6 +202,10 @@
           "type": "string",
           "description": "Reference to the User who is invited to the team."
         },
+        "role": {
+            "type": "string",
+            "description": "The role assigned to the user within the team (e.g., 'Entrenador', 'Delegado')."
+        },
         "status": {
           "type": "string",
           "description": "Status of the invitation (e.g., 'pending', 'accepted', 'rejected')."
@@ -216,7 +220,8 @@
         "teamName",
         "userId",
         "status",
-        "invitedByUserId"
+        "invitedByUserId",
+        "role"
       ]
     }
   },
