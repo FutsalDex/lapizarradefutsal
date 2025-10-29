@@ -44,6 +44,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 interface Match {
@@ -271,7 +272,7 @@ export default function TeamMatchesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
-        <h1 className="text-3xl font-bold font-headline text-primary">
+        <h1 className="text-3xl font-bold font-headline">
             Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
         </h1>
         <div className="flex gap-2">
@@ -375,21 +376,15 @@ export default function TeamMatchesPage() {
       </div>
       
        <div className="mb-6 rounded-lg border p-2">
-            <div className="flex items-center gap-2">
-                {filterOptions.map((option) => (
-                    <Button
-                        key={option}
-                        variant={filter === option ? 'default' : 'ghost'}
-                        onClick={() => setFilter(option)}
-                        className={cn(
-                            "rounded-md px-3 py-1 text-sm font-medium",
-                            filter === option ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
-                        )}
-                    >
-                        {option}
-                    </Button>
-                ))}
-            </div>
+         <Tabs defaultValue="Todos" onValueChange={setFilter}>
+             <TabsList>
+                <TabsTrigger value="Todos">Todos</TabsTrigger>
+                <TabsTrigger value="Liga">Liga</TabsTrigger>
+                <TabsTrigger value="Copa">Copa</TabsTrigger>
+                <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+                <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+             </TabsList>
+         </Tabs>
        </div>
 
 
@@ -509,5 +504,3 @@ function ConvocatoriaForm({ players, convocadosIniciales, onSave }: { players: P
         </form>
     );
 }
-
-    
