@@ -86,6 +86,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 interface Team {
@@ -121,10 +122,6 @@ const matchSchema = z.object({
 
 type MatchFormData = z.infer<typeof matchSchema>;
 
-const tipos = ["Todos", "Liga", "Copa", "Torneo", "Amistoso"] as const;
-type FiltroTipo = (typeof tipos)[number];
-
-
 function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: Match) => void; onDelete: (matchId: string) => void; }) {
   const resultado =
     typeof match.localScore !== 'number' || typeof match.visitorScore !== 'number'
@@ -132,32 +129,44 @@ function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: 
       : `${match.localScore} - ${match.visitorScore}`;
 
   return (
-    <Card className="shadow-md border border-gray-200 flex flex-col">
-      <CardContent className="p-6 text-center flex-grow">
-        <h3 className="text-lg font-semibold mb-1 text-gray-800">
-          {match.localTeam} vs {match.visitorTeam}
-        </h3>
-        <p className="text-sm text-gray-500 mb-3">
+    <Card className="flex flex-col">
+      <CardHeader>
+        <CardTitle>{match.localTeam} vs {match.visitorTeam}</CardTitle>
+        <p className="text-sm text-muted-foreground pt-1">
           {format(new Date(match.date), "PPP", { locale: es })}
         </p>
-        <p className="text-4xl font-bold text-primary mb-2">
-            {resultado}
-        </p>
-        <Badge variant="secondary">{match.matchType}</Badge>
+      </CardHeader>
+      <CardContent className="flex-grow flex flex-col items-center justify-center">
+        <p className="text-4xl font-bold">{resultado}</p>
+        <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
       </CardContent>
-      <CardFooter className="p-2 bg-gray-50 border-t flex justify-center gap-1">
-          <Button size="sm" variant="ghost" className="flex-1">
-             <Users className="mr-2 h-4 w-4" /> Convocar
-          </Button>
-          <Button size="sm" variant="ghost" className="flex-1">
-            <BarChart2 className="mr-2 h-4 w-4" /> Stats
-          </Button>
+      <CardFooter className="flex justify-between p-2 bg-muted/50">
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="ghost">
+                    <Users className="mr-2 h-4 w-4" /> Convocar
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Convocar Jugadores</DialogTitle>
+                    <DialogDescription>
+                        Selecciona los jugadores para este partido. (Función en desarrollo)
+                    </DialogDescription>
+                </DialogHeader>
+            </DialogContent>
+        </Dialog>
+        
+        <Button size="sm" variant="ghost">
+          <BarChart2 className="mr-2 h-4 w-4" /> Stats
+        </Button>
+        <div className="flex">
           <Button onClick={() => onEdit(match)} size="icon" variant="ghost">
-            <Pencil className="w-4 h-4" />
+            <Edit className="w-4 h-4" />
           </Button>
           <AlertDialog>
               <AlertDialogTrigger asChild>
-                 <Button size="icon" variant="destructive_ghost">
+                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive">
                     <Trash2 className="w-4 h-4" />
                 </Button>
               </AlertDialogTrigger>
@@ -174,6 +183,7 @@ function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: 
                 </AlertDialogFooter>
               </AlertDialogContent>
           </AlertDialog>
+        </div>
       </CardFooter>
     </Card>
   );
@@ -186,7 +196,6 @@ export default function PartidosPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [filtro, setFiltro] = useState<FiltroTipo>("Todos");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
@@ -283,10 +292,10 @@ export default function PartidosPage() {
     try {
       if (editingMatch) {
         const matchRef = doc(firestore, "matches", editingMatch.id);
-        await updateDoc(matchRef, matchData);
+        await updateDoc(matchRef, { ...matchData, updatedAt: serverTimestamp() });
         toast({ title: "Partido actualizado", description: "El partido se ha actualizado correctamente." });
       } else {
-        await addDoc(collection(firestore, "matches"), matchData);
+        await addDoc(collection(firestore, "matches"), { ...matchData, createdAt: serverTimestamp() });
         toast({ title: "Partido añadido", description: "El nuevo partido se ha añadido correctamente." });
       }
       setIsDialogOpen(false);
@@ -303,34 +312,25 @@ export default function PartidosPage() {
     }
   };
 
-  const filtrados = useMemo(() => {
-    if (!matches) return [];
-    if (filtro === "Todos") return matches;
-    return matches.filter((m) => m.matchType === filtro);
-  }, [matches, filtro]);
-
   const isLoading = isLoadingTeam || isUserLoading || isLoadingMatches;
 
   return (
     <div className="container mx-auto px-4 py-8">
-       <Button asChild variant="ghost" className="mb-4 text-muted-foreground">
+       <Button asChild variant="outline" className="mb-4">
          <Link href={`/partidos/gestion/${teamId}`}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Panel del Equipo
          </Link>
       </Button>
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Trophy className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl font-bold text-primary">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold font-headline">
             {isLoadingTeam ? <Skeleton className="h-9 w-48" /> : `Partidos de ${team?.name}`}
-          </h1>
-        </div>
+        </h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-           <Button onClick={handleAddNewClick} className="bg-primary hover:bg-primary/90">
+           <Button onClick={handleAddNewClick}>
              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
            </Button>
-          <DialogContent className="sm:max-w-2xl">
+          <DialogContent className="sm:max-w-[625px]">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <DialogHeader>
@@ -348,6 +348,16 @@ export default function PartidosPage() {
                       <FormField control={form.control} name="visitorTeam" render={({ field }) => (
                           <FormItem><FormLabel>Equipo Visitante</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                       )}/>
+                       <FormField control={form.control} name="matchType" render={({ field }) => (
+                          <FormItem><FormLabel>Tipo de Partido</FormLabel><FormControl>
+                              <select {...field} className="w-full p-2 border rounded-md">
+                                <option value="Liga">Liga</option>
+                                <option value="Copa">Copa</option>
+                                <option value="Torneo">Torneo</option>
+                                <option value="Amistoso">Amistoso</option>
+                              </select>
+                          </FormControl><FormMessage /></FormItem>
+                        )}/>
                    </div>
                    <div className="space-y-4">
                       <FormField control={form.control} name="localScore" render={({ field }) => (
@@ -356,9 +366,7 @@ export default function PartidosPage() {
                       <FormField control={form.control} name="visitorScore" render={({ field }) => (
                           <FormItem><FormLabel>Goles Visitante</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                       )}/>
-                   </div>
-                   <div className="space-y-4">
-                     <FormField control={form.control} name="date" render={({ field }) => (
+                       <FormField control={form.control} name="date" render={({ field }) => (
                         <FormItem className="flex flex-col">
                           <FormLabel>Fecha del partido</FormLabel>
                           <Popover>
@@ -378,17 +386,6 @@ export default function PartidosPage() {
                         </FormItem>
                       )}/>
                    </div>
-                    <div className="space-y-4">
-                        <FormField control={form.control} name="matchType" render={({ field }) => (
-                          <FormItem><FormLabel>Tipo de Partido</FormLabel><FormControl>
-                              <div className="flex gap-2">
-                               {tipos.filter(t => t !== 'Todos').map(t => (
-                                <Button key={t} type="button" variant={field.value === t ? 'default' : 'outline'} onClick={() => field.onChange(t)} className="flex-1">{t}</Button>
-                               ))}
-                              </div>
-                          </FormControl><FormMessage /></FormItem>
-                        )}/>
-                    </div>
                 </div>
 
                 <DialogFooter>
@@ -402,41 +399,40 @@ export default function PartidosPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
-      <p className="text-muted-foreground mb-6">
-        Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.
-      </p>
-
-      <div className="border rounded-lg p-1.5 inline-flex gap-1 bg-muted mb-8">
-        {tipos.map((t) => (
-          <Button
-            key={t}
-            onClick={() => setFiltro(t)}
-            variant={filtro === t ? "default" : "ghost"}
-            size="sm"
-            className={cn(filtro === t ? 'bg-primary text-primary-foreground shadow-sm' : '')}
-          >
-            {t}
-          </Button>
-        ))}
-      </div>
 
       {isLoading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Skeleton className="h-60 w-full" />
-          <Skeleton className="h-60 w-full" />
-          <Skeleton className="h-60 w-full" />
-        </div>
-      ) : filtrados.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-             <p className="text-muted-foreground">No hay partidos para mostrar en esta categoría.</p>
-        </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64" />)}
+          </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtrados.map((match) => (
-            <MatchCard key={match.id} match={match} onEdit={handleEditClick} onDelete={handleDelete} />
-          ))}
-        </div>
+        <Tabs defaultValue="Todos">
+          <TabsList className="mb-4">
+            <TabsTrigger value="Todos">Todos</TabsTrigger>
+            <TabsTrigger value="Liga">Liga</TabsTrigger>
+            <TabsTrigger value="Copa">Copa</TabsTrigger>
+            <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+            <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+          </TabsList>
+
+          {["Todos", "Liga", "Copa", "Torneo", "Amistoso"].map(tab => {
+            const filteredMatches = tab === 'Todos' ? matches : matches?.filter(m => m.matchType === tab);
+            return (
+              <TabsContent key={tab} value={tab}>
+                {filteredMatches && filteredMatches.length > 0 ? (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filteredMatches.map(match => (
+                      <MatchCard key={match.id} match={match} onEdit={handleEditClick} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 border-2 border-dashed rounded-lg">
+                    <p className="text-muted-foreground">No hay partidos de tipo '{tab}' para mostrar.</p>
+                  </div>
+                )}
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       )}
     </div>
   );
