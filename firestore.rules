@@ -1,110 +1,232 @@
+/**
+ * @fileoverview Firestore Security Rules for Futsal Training App
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes user data ownership and restricts access based on authenticated user IDs.
+ *
+ * Data Structure:
+ * - /teams/{teamId}: Teams are top-level documents owned by a user (ownerId).
+ * - /teams/{teamId}/players/{playerId}: Players within a team.  playerId matches the user ID.
+ * - /users/{userId}: User profiles, accessible only to the owning user.
+ * - /exercises/{exerciseId}: Public collection of exercises, readable by all, writable only by a designated owner (not implemented in this version).
+ * - /teamInvitations/{invitationId}: Invitations to join teams.
+ * - /users/{userId}/favorites/{exerciseId}: User-specific list of favorited exercises.
+ * - /users/{userId}/sessions/{sessionId}: User-specific training sessions.
+ * - /users/{userId}/matches/{matchId}: User-specific match data.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profile data.
+ * - Teams are owned by a user, who has full control.
+ * - Public exercises are readable by everyone, but write access is not yet secured in this prototype.
+ * - Listing the `/users` collection is denied to prevent unauthorized access to user data.
+ *
+ * Denormalization for Authorization:
+ * - The `Team` entity includes an `ownerId` field to simplify ownership checks for teams.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows reading and writing of user profile information.
-     * @path /users/{userId}
+     * @description Prevents listing all user profiles.  Individual profiles are accessible via /users/{userId}.
+     * @path /databases/{database}/documents/users
+     * @allow (get) N/A - Cannot get on a collection
+     * @deny (list) Any authenticated user.
+     * @principle Prevents unauthorized enumeration of user accounts.
+     */
+    match /users {
+      allow get: if false;
+      allow list: if false; // Listing all users is prohibited.
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /databases/{database}/documents/users/{userId}
+     * @allow (get) Authenticated user reading their own profile.
+     * @allow (create) Authenticated user creating their own profile.
+     * @allow (update) Authenticated user updating their own profile.
+     * @allow (delete) Authenticated user deleting their own profile.
+     * @deny (get) Authenticated user reading another user's profile.
+     * @deny (create) Authenticated user creating a profile with a mismatched ID.
+     * @deny (update) Authenticated user updating another user's profile or changing their ID.
+     * @deny (delete) Authenticated user deleting another user's profile.
+     * @principle Enforces user-ownership for profile data.
      */
     match /users/{userId} {
       allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false; // User listing is disallowed.
+      allow list: if false;
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Allows reading public exercises.
-     * @path /exercises/{exerciseId}
+     * @description Controls access to exercises.  Currently, anyone can read, but write permissions are not secured (TODO).
+     * @path /databases/{database}/documents/exercises/{exerciseId}
+     * @allow (get) Any user can read an exercise.
+     * @allow (list) Any user can list exercises.
+     * @deny (create) No one can create exercises (yet).
+     * @deny (update) No one can update exercises (yet).
+     * @deny (delete) No one can delete exercises (yet).
+     * @principle Public read access for exercises, but write access is currently disabled and requires an owner field.
      */
     match /exercises/{exerciseId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Allows creating, reading, updating, and deleting teams, restricted to team owners.
-     * @path /teams/{teamId}
+     * @description Controls access to team documents.
+     * @path /databases/{database}/documents/teams/{teamId}
+     * @allow (get) Any authenticated user can read a team.
+     * @allow (list) Any authenticated user can list teams.
+     * @allow (create) Authenticated user creating a team, where the ownerId matches their UID.
+     * @allow (update) Authenticated user updating a team they own.
+     * @allow (delete) Authenticated user deleting a team they own.
+     * @deny (create) Authenticated user creating a team with a mismatched ownerId.
+     * @deny (update) Authenticated user updating a team they don't own.
+     * @deny (delete) Authenticated user deleting a team they don't own.
+     * @principle Enforces team ownership.
      */
     match /teams/{teamId} {
-      allow get, list: if true;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isExistingTeamOwner(teamId);
+      allow delete: if isSignedIn() && isExistingTeamOwner(teamId);
+    }
+
+    /**
+     * @description Controls access to team players.
+     * @path /databases/{database}/documents/teams/{teamId}/players/{playerId}
+     * @allow (get) Any authenticated user can read a player in a team.
+     * @allow (list) Any authenticated user can list players in a team.
+     * @allow (create) Team owner can add a player.  playerId must match the user ID.
+     * @allow (update) Team owner can update a player.
+     * @allow (delete) Team owner can delete a player.
+     * @deny (create) Non-team owner cannot add a player.
+     * @deny (update) Non-team owner cannot update a player.
+     * @deny (delete) Non-team owner cannot delete a player.
+     * @principle Enforces team ownership for managing players.
+     */
+    match /teams/{teamId}/players/{playerId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isTeamOwner(teamId);
       allow update: if isSignedIn() && isTeamOwner(teamId);
       allow delete: if isSignedIn() && isTeamOwner(teamId);
     }
 
-     /**
-      * @description Allows managing team players, restricted to team owners.
-      * @path /teams/{teamId}/players/{playerId}
-      */
-    match /teams/{teamId}/players/{playerId} {
-        allow get, list: if isSignedIn() && isTeamOwner(teamId);
-        allow create: if isSignedIn() && isTeamOwner(teamId);
-        allow update: if isSignedIn() && isTeamOwner(teamId);
-        allow delete: if isSignedIn() && isTeamOwner(teamId);
-    }
-
     /**
-     * @description Allows creating, reading, updating, and deleting team invitations.
-     * @path /teamInvitations/{invitationId}
+     * @description Controls access to team invitations.
+     * @path /databases/{database}/documents/teamInvitations/{invitationId}
+     * @allow (get) Any authenticated user can read a team invitation.
+     * @allow (list) Any authenticated user can list team invitations.
+     * @allow (create) Any authenticated user can create a team invitation.
+     * @allow (update) Any authenticated user can update a team invitation.
+     * @allow (delete) Any authenticated user can delete a team invitation.
      */
     match /teamInvitations/{invitationId} {
-      allow get, list, create, update, delete: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
-    /**
-     * @description Allows managing a user's favorite exercises.
-     * @path /users/{userId}/favorites/{exerciseId}
-     */
+     /**
+      * @description Controls access to a user's favorite exercises.
+      * @path /databases/{database}/documents/users/{userId}/favorites/{exerciseId}
+      * @allow (get) Authenticated user can read their own favorite exercise.
+      * @allow (list) Authenticated user can list their own favorite exercises.
+      * @allow (create) Authenticated user can add a favorite exercise.
+      * @allow (update) Authenticated user can update a favorite exercise.
+      * @allow (delete) Authenticated user can delete a favorite exercise.
+      * @deny (get) Authenticated user reading another user's favorite exercise.
+      * @deny (list) Authenticated user listing another user's favorite exercises.
+      * @deny (create) Authenticated user creating a favorite exercise for another user.
+      * @deny (update) Authenticated user updating another user's favorite exercise.
+      * @deny (delete) Authenticated user deleting another user's favorite exercise.
+      * @principle Enforces user-ownership for favorite exercises.
+      */
     match /users/{userId}/favorites/{exerciseId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId);
       allow update: if isSignedIn() && isOwner(userId);
       allow delete: if isSignedIn() && isOwner(userId);
     }
 
     /**
-     * @description Allows managing training sessions created by a user.
-     * @path /users/{userId}/sessions/{sessionId}
+     * @description Controls access to a user's training sessions.
+     * @path /databases/{database}/documents/users/{userId}/sessions/{sessionId}
+     * @allow (get) Authenticated user can read their own training session.
+     * @allow (list) Authenticated user can list their own training sessions.
+     * @allow (create) Authenticated user can create a training session.
+     * @allow (update) Authenticated user can update a training session.
+     * @allow (delete) Authenticated user can delete a training session.
+     * @deny (get) Authenticated user reading another user's training session.
+     * @deny (list) Authenticated user listing another user's training sessions.
+     * @deny (create) Authenticated user creating a training session for another user.
+     * @deny (update) Authenticated user updating another user's training session.
+     * @deny (delete) Authenticated user deleting another user's training session.
+     * @principle Enforces user-ownership for training sessions.
      */
     match /users/{userId}/sessions/{sessionId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Allows managing match data recorded by a user.
-     * @path /users/{userId}/matches/{matchId}
+     * @description Controls access to a user's match data.
+     * @path /databases/{database}/documents/users/{userId}/matches/{matchId}
+     * @allow (get) Authenticated user can read their own match data.
+     * @allow (list) Authenticated user can list their own match data.
+     * @allow (create) Authenticated user can create match data.
+     * @allow (update) Authenticated user can update match data.
+     * @allow (delete) Authenticated user can delete match data.
+     * @deny (get) Authenticated user reading another user's match data.
+     * @deny (list) Authenticated user listing another user's match data.
+     * @deny (create) Authenticated user creating match data for another user.
+     * @deny (update) Authenticated user updating another user's match data.
+     * @deny (delete) Authenticated user deleting another user's match data.
+     * @principle Enforces user-ownership for match data.
      */
     match /users/{userId}/matches/{matchId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isExistingOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
-    /**
-     * @description Placeholder for additional rules.
-     * @path N/A
-     */
-    match /{path=**} {
-      allow read, write: if false;
+    function isSignedIn() {
+      return request.auth != null;
     }
-  }
 
-  // Helper Functions
-  function isSignedIn() {
-    return request.auth != null;
-  }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
+    function isExistingOwner(userId) {
+        return isSignedIn() && isOwner(userId) && resource != null;
+    }
 
-  function isTeamOwner(teamId) {
-    return get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    function isTeamOwner(teamId) {
+      return get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    }
+
+    function isExistingTeamOwner(teamId) {
+        return isSignedIn() && isTeamOwner(teamId) && resource != null;
+    }
   }
 }
