@@ -44,7 +44,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 interface Match {
@@ -138,7 +138,6 @@ export default function TeamMatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   const form = useForm<MatchFormData>();
-  const filterOptions = ["Todos", "Liga", "Copa", "Torneo", "Amistoso"];
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -375,18 +374,17 @@ export default function TeamMatchesPage() {
         </div>
       </div>
       
-       <div className="mb-6 rounded-lg border p-2">
-         <Tabs defaultValue="Todos" onValueChange={setFilter}>
-             <TabsList>
+       <div className="mb-6 rounded-lg border p-2 bg-card">
+          <Tabs defaultValue="Todos" onValueChange={setFilter} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="Todos">Todos</TabsTrigger>
                 <TabsTrigger value="Liga">Liga</TabsTrigger>
                 <TabsTrigger value="Copa">Copa</TabsTrigger>
                 <TabsTrigger value="Torneo">Torneo</TabsTrigger>
                 <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-             </TabsList>
-         </Tabs>
+            </TabsList>
+          </Tabs>
        </div>
-
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -504,3 +502,5 @@ function ConvocatoriaForm({ players, convocadosIniciales, onSave }: { players: P
         </form>
     );
 }
+
+    
