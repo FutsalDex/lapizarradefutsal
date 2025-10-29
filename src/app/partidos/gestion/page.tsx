@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCollection, useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, where, query, doc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, where, query, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
@@ -61,56 +61,40 @@ function TeamList() {
     const { user } = useUser();
     const { toast } = useToast();
 
-    const [allTeams, setAllTeams] = useState<Team[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    // Query for teams owned by the current user
+    const ownedTeamsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
+    }, [firestore, user]);
 
-    const teamsCollectionRef = useMemoFirebase(() => collection(firestore, 'teams'), [firestore]);
+    // Query for accepted invitations for the current user
+    const acceptedInvitationsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'accepted'));
+    }, [firestore, user]);
 
-    useEffect(() => {
-        if (!user || !firestore || !teamsCollectionRef) return;
+    const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
+    const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
 
-        setIsLoading(true);
-        const fetchTeams = async () => {
-            try {
-                // 1. Fetch teams owned by the user
-                const ownedTeamsQuery = query(teamsCollectionRef, where('ownerId', '==', user.uid));
-                const ownedTeamsSnapshot = await getDocs(ownedTeamsQuery);
-                const ownedTeams = ownedTeamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+    const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
+    
+    // Query for teams the user is a member of (but doesn't own)
+    const memberTeamsQuery = useMemoFirebase(() => {
+        if (!firestore || memberTeamIds.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 items.
+        return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
+    }, [firestore, memberTeamIds]);
 
-                // 2. Fetch teams the user is a member of
-                const invitationsRef = collection(firestore, 'teamInvitations');
-                const memberInvitationsQuery = query(invitationsRef, where('userId', '==', user.uid), where('status', '==', 'accepted'));
-                const memberInvitationsSnapshot = await getDocs(memberInvitationsQuery);
-                const memberTeamIds = memberInvitationsSnapshot.docs.map(doc => doc.data().teamId);
-
-                let memberTeams: Team[] = [];
-                if (memberTeamIds.length > 0) {
-                    const memberTeamsQuery = query(teamsCollectionRef, where('id', 'in', memberTeamIds));
-                    const memberTeamsSnapshot = await getDocs(memberTeamsQuery);
-                    memberTeams = memberTeamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-                }
-                
-                // 3. Combine and deduplicate
-                const combinedTeams = [...ownedTeams, ...memberTeams];
-                const uniqueTeams = Array.from(new Map(combinedTeams.map(team => [team.id, team])).values());
-                
-                setAllTeams(uniqueTeams);
-            } catch (error) {
-                console.error("Error fetching teams:", error);
-                toast({
-                    title: "Error al cargar equipos",
-                    description: "No se pudieron cargar los equipos. Revisa los permisos.",
-                    variant: "destructive"
-                });
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchTeams();
-
-    }, [user, firestore, teamsCollectionRef, toast]);
-
+    const { data: memberTeams, isLoading: isLoadingMemberTeams } = useCollection<Team>(memberTeamsQuery);
+    
+    const allTeams = useMemo(() => {
+        const teamsMap = new Map<string, Team>();
+        (ownedTeams || []).forEach(team => teamsMap.set(team.id, team));
+        (memberTeams || []).forEach(team => teamsMap.set(team.id, team));
+        return Array.from(teamsMap.values());
+    }, [ownedTeams, memberTeams]);
+    
+    const isLoading = isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!firestore) return;
@@ -122,10 +106,8 @@ function TeamList() {
                 title: "Equipo eliminado",
                 description: "El equipo ha sido eliminado correctamente."
             });
-            setAllTeams(prev => prev.filter(t => t.id !== teamId));
         })
         .catch((error) => {
-            console.error("Error deleting team:", error);
             const permissionError = new FirestorePermissionError({
                 path: teamRef.path,
                 operation: 'delete',
@@ -260,11 +242,8 @@ export default function GestionEquiposPage() {
             description: `El equipo "${data.name}" ha sido creado correctamente.`,
         });
         form.reset();
-        // This component doesn't re-render automatically, so we can't update the list without a page reload
-        // Or converting TeamList to manage its own state fetched from scratch or passed down.
     })
     .catch((error) => {
-        console.error('Error creating team:', error);
         const permissionError = new FirestorePermissionError({
             path: teamsCollectionRef.path,
             operation: 'create',
@@ -287,7 +266,6 @@ export default function GestionEquiposPage() {
         toast({ title: accept ? '¡Invitación aceptada!' : 'Invitación rechazada' });
     })
     .catch(error => {
-        console.error("Error handling invitation", error);
         const permissionError = new FirestorePermissionError({
             path: invitationRef.path,
             operation: 'update',
@@ -410,5 +388,3 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
-
-    
