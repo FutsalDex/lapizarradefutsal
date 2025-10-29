@@ -57,24 +57,25 @@ function TeamsTable({ teams, users }: { teams: Team[], users: UserProfile[] }) {
 export default function AdminTeamsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const isAdmin = user?.email === 'futsaldex@gmail.com';
 
-  // Admin sees all teams, regular users see nothing on this page.
   const teamsCollectionRef = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only build the query if the user is an admin
+    if (!firestore || !isAdmin) return null;
     return collection(firestore, 'teams');
-  }, [firestore]);
+  }, [firestore, isAdmin]);
 
   const usersCollectionRef = useMemoFirebase(() => {
-    if(!firestore) return null;
+    // Only build the query if the user is an admin
+    if(!firestore || !isAdmin) return null;
     return collection(firestore, 'users');
-  }, [firestore]);
+  }, [firestore, isAdmin]);
 
   const { data: teams, isLoading: isLoadingTeams } = useCollection<Team>(teamsCollectionRef);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersCollectionRef);
 
-  const isLoading = isLoadingTeams || isLoadingUsers;
-  const isAdmin = user?.email === 'futsaldex@gmail.com';
-
+  const isLoading = (isLoadingTeams || isLoadingUsers) && isAdmin;
+  
   if (!isAdmin) {
     return (
          <div className="container mx-auto px-4 py-8 text-center">
