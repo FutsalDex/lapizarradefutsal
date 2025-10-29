@@ -71,9 +71,9 @@ export default function TeamMatchesPage() {
   const { user } = useUser();
 
   const matchesQuery = useMemoFirebase(() => {
-    if (!firestore || !teamId) return null;
-    return query(collection(firestore, 'matches'), where('teamId', '==', teamId));
-  }, [firestore, teamId]);
+    if (!firestore || !teamId || !user) return null;
+    return query(collection(firestore, 'matches'), where('teamId', '==', teamId), where('userId', '==', user.uid));
+  }, [firestore, teamId, user]);
 
   const { data: matches, isLoading } = useCollection<Match>(matchesQuery);
 
