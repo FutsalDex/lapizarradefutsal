@@ -75,9 +75,10 @@ function TeamList() {
 
     const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
     
+    // CRITICAL: This query must depend on memberTeamIds being populated.
     const memberTeamsQuery = useMemoFirebase(() => {
-        // CRITICAL: Only run query if memberTeamIds has been populated and is not empty.
         if (!firestore || memberTeamIds.length === 0) return null;
+        // Firestore 'in' queries are limited to 30 elements.
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
     }, [firestore, memberTeamIds]);
 
@@ -90,8 +91,9 @@ function TeamList() {
         return Array.from(teamsMap.values());
     }, [ownedTeams, memberTeams]);
     
-    // isLoading should be true if auth is loading, or if any of the subsequent dependent queries are loading.
+    // isLoading is true if auth is loading, or if any subsequent dependent queries are loading.
     const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
+
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!firestore) return;
@@ -351,7 +353,7 @@ export default function GestionEquiposPage() {
             <CardDescription>Equipos a los que has sido invitado a unirte.</CardDescription>
           </CardHeader>
           <CardContent>
-             {isLoadingInvitations ? (
+             {isLoadingInvitations || isUserLoading ? (
               <p className="text-muted-foreground">Cargando invitaciones...</p>
             ) : invitations && invitations.length > 0 ? (
               <div className="space-y-3">
