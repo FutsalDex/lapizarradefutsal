@@ -145,7 +145,7 @@ function TeamList() {
   }, [firestore, user]);
 
   const acceptedInvitationsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
+    if (!user || !user.email || !firestore) return null;
     return query(
       collection(firestore, 'teamInvitations'),
       where('userEmail', '==', user.email),
