@@ -67,6 +67,7 @@ interface Match {
 interface Team {
   id: string;
   name: string;
+  competition?: string;
 }
 
 interface Player {
@@ -198,7 +199,7 @@ export default function TeamMatchesPage() {
     
     let q = query(
       collection(firestore, 'matches'), 
-      where('teamId', '==', teamId), 
+      where('teamId', '==', teamId),
       where('userId', '==', user.uid)
     );
 
