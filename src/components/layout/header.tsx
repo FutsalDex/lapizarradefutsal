@@ -28,7 +28,6 @@ import {
 const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
   { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
-  { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
   { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
 ];
 

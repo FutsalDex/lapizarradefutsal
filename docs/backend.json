@@ -75,110 +75,6 @@
         "exerciseIds"
       ]
     },
-    "Match": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Match",
-      "type": "object",
-      "description": "Represents a futsal match and its statistics.",
-      "properties": {
-        "competition": {
-            "type": "string",
-            "description": "Name of the competition."
-        },
-        "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the match was recorded."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date and time of the match.",
-          "format": "date-time"
-        },
-        "isFinished": {
-            "type": "boolean",
-            "description": "Indicates if the match has finished."
-        },
-        "localScore": {
-            "type": "number",
-            "description": "Score of the local team."
-        },
-        "localTeam": {
-            "type": "string",
-            "description": "Name of the local team."
-        },
-        "matchType": {
-            "type": "string",
-            "description": "Type of match (e.g., league, cup, friendly)."
-        },
-        "matchday": {
-            "type": "string",
-            "description": "The matchday or round number."
-        },
-        "teamId": {
-          "type": "string",
-          "description": "Reference to the Team this match belongs to."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who recorded the match."
-        },
-        "visitorScore": {
-            "type": "number",
-            "description": "Score of the visitor team."
-        },
-        "visitorTeam": {
-            "type": "string",
-            "description": "Name of the visitor team."
-        }
-      },
-      "required": [
-        "competition",
-        "date",
-        "isFinished",
-        "localScore",
-        "localTeam",
-        "matchday",
-        "teamId",
-        "userId",
-        "visitorScore",
-        "visitorTeam"
-      ]
-    },
-    "Team": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Team",
-      "type": "object",
-      "description": "Represents a futsal team.",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the team."
-        },
-        "club": {
-            "type": "string",
-            "description": "The club the team belongs to."
-        },
-        "competition": {
-            "type": "string",
-            "description": "The competition the team is playing in."
-        },
-        "ownerId": {
-          "type": "string",
-          "description": "User ID of the person who created the team."
-        },
-        "createdAt": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the team was created."
-        }
-      },
-      "required": [
-        "name",
-        "ownerId",
-        "createdAt"
-      ]
-    },
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
@@ -207,46 +103,6 @@
         "id",
         "email"
       ]
-    },
-    "TeamInvitation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "TeamInvitation",
-      "type": "object",
-      "description": "Represents an invitation for a user to join a team.",
-      "properties": {
-        "teamId": {
-          "type": "string",
-          "description": "Reference to the Team to which the user is being invited."
-        },
-        "teamName": {
-            "type": "string",
-            "description": "Denormalized name of the team for easy display."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who is invited to the team."
-        },
-        "role": {
-            "type": "string",
-            "description": "The role assigned to the user within the team (e.g., 'Entrenador', 'Delegado')."
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of the invitation (e.g., 'pending', 'accepted', 'rejected')."
-        },
-        "invitedByUserId": {
-          "type": "string",
-          "description": "Reference to the User who sent the invitation."
-        }
-      },
-      "required": [
-        "teamId",
-        "teamName",
-        "userId",
-        "status",
-        "invitedByUserId",
-        "role"
-      ]
     }
   },
   "auth": {
@@ -256,39 +112,6 @@
     ]
   },
   "firestore": {
-    "/teams/{teamId}": {
-      "schema": {
-        "$ref": "#/entities/Team"
-      },
-      "description": "Stores all team documents."
-    },
-    "/teams/{teamId}/players/{playerId}": {
-        "schema": {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "number": {"type": "number"},
-                "position": {"type": "string"},
-                "active": {"type": "boolean"},
-                "assists": {"type": "number"},
-                "faltas": {"type": "number"},
-                "gRec": {"type": "number"},
-                "goals": {"type": "number"},
-                "minutosJugados": {"type": "number"},
-                "paradas": {"type": "number"},
-                "perdidas": {"type": "number"},
-                "pj": {"type": "number"},
-                "recuperaciones": {"type": "number"},
-                "smvp": {"type": "string"},
-                "ta": {"type": "number"},
-                "tirosFuera": {"type": "number"},
-                "tirosPuerta": {"type": "number"},
-                "tr": {"type": "number"}
-            },
-            "required": ["name"]
-        },
-        "description": "Stores team players with their stats. The document ID is auto-generated."
-    },
     "/users/{userId}": {
       "schema": {
         "$ref": "#/entities/UserProfile"
@@ -300,18 +123,6 @@
         "$ref": "#/entities/Exercise"
       },
       "description": "Stores the public library of futsal exercises."
-    },
-    "/teamInvitations/{invitationId}": {
-      "schema": {
-        "$ref": "#/entities/TeamInvitation"
-      },
-      "description": "Stores all team invitations."
-    },
-    "/matches/{matchId}": {
-      "schema": {
-        "$ref": "#/entities/Match"
-      },
-      "description": "Stores match data for all teams."
     },
     "/users/{userId}/favorites/{exerciseId}": {
         "schema": {
