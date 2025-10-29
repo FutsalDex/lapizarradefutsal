@@ -43,12 +43,12 @@ function MatchCard({ match }: { match: Match }) {
         <Card className="flex flex-col hover:shadow-md transition-shadow">
             <CardContent className="p-4 flex-grow flex flex-col justify-between">
                 <div className="text-center">
-                    <p className="font-semibold">{match.localTeam} vs {match.visitorTeam}</p>
+                    <p className="font-semibold text-sm">{match.localTeam} vs {match.visitorTeam}</p>
                     <p className="text-xs text-muted-foreground">
                         {matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </p>
                 </div>
-                 <div className="text-5xl font-bold tracking-tight text-center my-4">
+                 <div className="text-5xl font-bold tracking-tight text-center my-4 text-primary">
                     <span>{match.localScore}</span>
                     <span className="mx-2 text-3xl text-muted-foreground">-</span>
                     <span>{match.visitorScore}</span>
@@ -98,20 +98,16 @@ export default function TeamMatchesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
-        <div className='flex items-center gap-4'>
-             <Trophy className="w-8 h-8 text-primary" />
-            <div>
-                <h1 className="text-3xl font-bold font-headline text-primary">
-                  Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
-                </h1>
-                <p className="text-muted-foreground">Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.</p>
-            </div>
+        <div>
+            <h1 className="text-2xl font-bold">
+              Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
+            </h1>
         </div>
         <div className="flex gap-2">
             <Button asChild variant="outline">
                 <Link href={`/partidos/gestion/${teamId}`}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Volver al Panel del Equipo
+                    Volver al Panel
                 </Link>
             </Button>
              <Button>
@@ -121,19 +117,22 @@ export default function TeamMatchesPage() {
         </div>
       </div>
       
-       <Tabs defaultValue="Todos" onValueChange={setFilter} className="mb-6">
-        <TabsList>
-            <TabsTrigger value="Todos">Todos</TabsTrigger>
-            <TabsTrigger value="Liga">Liga</TabsTrigger>
-            <TabsTrigger value="Copa">Copa</TabsTrigger>
-            <TabsTrigger value="Torneo">Torneo</TabsTrigger>
-            <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-        </TabsList>
-      </Tabs>
+       <div className="border rounded-lg p-2 mb-6">
+        <Tabs defaultValue="Todos" onValueChange={setFilter} className="w-full">
+            <TabsList className="grid w-full grid-cols-5 bg-transparent p-0">
+                <TabsTrigger value="Todos">Todos</TabsTrigger>
+                <TabsTrigger value="Liga">Liga</TabsTrigger>
+                <TabsTrigger value="Copa">Copa</TabsTrigger>
+                <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+                <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+            </TabsList>
+        </Tabs>
+       </div>
+
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
                 <Card key={i}>
                     <CardContent className="p-4">
                         <div className="flex flex-col items-center gap-4">
@@ -147,7 +146,7 @@ export default function TeamMatchesPage() {
             ))}
         </div>
       ) : matches && matches.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {matches.map(match => (
             <MatchCard key={match.id} match={match} />
           ))}
