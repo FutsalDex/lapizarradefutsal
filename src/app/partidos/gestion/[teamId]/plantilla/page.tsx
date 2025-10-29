@@ -36,7 +36,6 @@ const playerSchema = z.object({
   name: z.string().min(2, 'El nombre es obligatorio.'),
   number: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
   position: z.string().optional().nullable(),
-  role: z.literal('player'),
   // Add all other stats fields to be preserved
   active: z.boolean().optional(),
   assists: z.number().optional(),
@@ -101,7 +100,6 @@ export default function TeamRosterPage() {
       // Ensure all fields have default values to avoid uncontrolled components
       const formattedPlayers = initialPlayers.map(p => ({
         ...p,
-        role: 'player' as const,
         number: p.number ?? null,
         position: p.position ?? null,
       }));
@@ -291,7 +289,7 @@ export default function TeamRosterPage() {
                          <Button
                             type="button"
                             variant="outline"
-                            onClick={() => append({ name: '', role: 'player', number: null, position: null })}
+                            onClick={() => append({ name: '', number: null, position: null })}
                             disabled={fields.length >= 20}
                             >
                             <UserPlus className="mr-2 h-4 w-4" /> Añadir Jugador
@@ -311,5 +309,3 @@ export default function TeamRosterPage() {
     </Form>
   );
 }
-
-    

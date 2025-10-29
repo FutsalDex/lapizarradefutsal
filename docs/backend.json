@@ -267,13 +267,27 @@
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
-                "role": {"type": "string", "enum": ["player", "coach"]},
                 "number": {"type": "number"},
-                "position": {"type": "string"}
+                "position": {"type": "string"},
+                "active": {"type": "boolean"},
+                "assists": {"type": "number"},
+                "faltas": {"type": "number"},
+                "gRec": {"type": "number"},
+                "goals": {"type": "number"},
+                "minutosJugados": {"type": "number"},
+                "paradas": {"type": "number"},
+                "perdidas": {"type": "number"},
+                "pj": {"type": "number"},
+                "recuperaciones": {"type": "number"},
+                "smvp": {"type": "string"},
+                "ta": {"type": "number"},
+                "tirosFuera": {"type": "number"},
+                "tirosPuerta": {"type": "number"},
+                "tr": {"type": "number"}
             },
-            "required": ["name", "role"]
+            "required": ["name"]
         },
-        "description": "Stores team players. The document ID is auto-generated."
+        "description": "Stores team players with their stats. The document ID is auto-generated."
     },
     "/users/{userId}": {
       "schema": {

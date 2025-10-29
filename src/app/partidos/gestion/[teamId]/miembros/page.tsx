@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -44,15 +43,15 @@ interface TeamInvitation {
     userId: string;
     role: string;
     name?: string;
-    email?: string; // email of the invited user
+    email: string; 
 }
 
 interface TeamMember {
-  id: string; // This will be the user ID
+  id: string; 
   name: string;
   email: string;
   role: string;
-  invitationId?: string; // ID of the invitation document, for deletion
+  invitationId?: string; 
 }
 
 const staffInvitationSchema = z.object({
@@ -89,12 +88,12 @@ export default function TeamMembersPage() {
     
     // 3. Combine data to create the final members list
     const staffMembers = useMemo<TeamMember[]>(() => {
-        if (!team) return [];
+        if (!team || !user) return [];
 
         const members: TeamMember[] = [];
         
         // Add owner
-        if (user && team.ownerId === user.uid) {
+        if (team.ownerId === user.uid) {
              members.push({
                 id: team.ownerId,
                 name: user.displayName || user.email || 'Propietario',
@@ -105,7 +104,6 @@ export default function TeamMembersPage() {
         
         // Add accepted members from invitations
         (invitations || []).forEach(inv => {
-            // Avoid adding owner twice if they have an invitation for some reason
             if (inv.userId !== team.ownerId) {
                 members.push({
                     id: inv.userId,
@@ -132,7 +130,7 @@ export default function TeamMembersPage() {
         const invitationData = {
             teamId: team.id,
             teamName: team.name,
-            userId: "TBD_BY_FUNCTION", // Placeholder
+            userId: "TBD_BY_FUNCTION", // This should be resolved by a cloud function based on email
             email: data.email, 
             name: data.name,
             role: data.role,
@@ -363,5 +361,3 @@ export default function TeamMembersPage() {
         </div>
     );
 }
-
-    
