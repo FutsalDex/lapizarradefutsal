@@ -11,7 +11,6 @@ import {
   collection,
   query,
   where,
-  getDocs,
   deleteDoc,
   doc,
   addDoc,
@@ -61,15 +60,12 @@ import {
   Trophy,
   PlusCircle,
   Trash2,
-  Eye,
-  Edit,
   Users,
   Calendar as CalendarIcon,
   Loader2,
   ArrowLeft,
-  ClipboardList,
-  BarChart2,
   Pencil,
+  BarChart2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -87,7 +83,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-
 
 interface Team {
     id: string;
@@ -345,9 +340,11 @@ export default function PartidosPage() {
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-           <Button onClick={handleAddNewClick}>
-             <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
-           </Button>
+           <DialogTrigger asChild>
+             <Button onClick={handleAddNewClick}>
+               <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
+             </Button>
+           </DialogTrigger>
           <DialogContent className="sm:max-w-[625px]">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -448,5 +445,4 @@ export default function PartidosPage() {
     </div>
   );
 }
-
     
