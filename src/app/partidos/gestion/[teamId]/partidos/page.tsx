@@ -153,16 +153,16 @@ export default function TeamMatchesPage() {
 
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId || !user) return null;
-    let baseQuery = query(
+    let q = query(
       collection(firestore, 'matches'), 
       where('teamId', '==', teamId), 
       where('userId', '==', user.uid),
       orderBy('date', 'asc')
     );
     if (filter !== 'Todos') {
-        baseQuery = query(baseQuery, where('matchType', '==', filter));
+        q = query(q, where('matchType', '==', filter));
     }
-    return baseQuery;
+    return q;
   }, [firestore, teamId, user, filter]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
@@ -174,7 +174,7 @@ export default function TeamMatchesPage() {
     if (match) {
         let formattedDate = '';
         if (match.date) {
-            const dateObj = (match.date as Timestamp).toDate();
+            const dateObj = (match.date as Timestamp).toDate ? (match.date as Timestamp).toDate() : new Date(match.date as string);
             formattedDate = format(dateObj, "yyyy-MM-dd'T'HH:mm");
         }
         form.reset({
