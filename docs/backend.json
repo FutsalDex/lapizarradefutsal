@@ -103,6 +103,33 @@
         "id",
         "email"
       ]
+    },
+     "Team": {
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a futsal team.",
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "club": {"type": "string"},
+        "season": {"type": "string"},
+        "ownerId": {"type": "string", "description": "The UID of the user who owns the team."}
+      },
+      "required": ["name", "ownerId"]
+    },
+    "TeamInvitation": {
+        "title": "Team Invitation",
+        "type": "object",
+        "description": "Represents an invitation for a user to join a team's staff.",
+        "properties": {
+            "id": {"type": "string"},
+            "teamId": {"type": "string"},
+            "teamName": {"type": "string"},
+            "userEmail": {"type": "string", "format": "email"},
+            "status": {"type": "string", "enum": ["pending", "accepted", "rejected"]},
+            "role": {"type": "string", "enum": ["technical_staff", "player"]}
+        },
+        "required": ["teamId", "teamName", "userEmail", "status", "role"]
     }
   },
   "auth": {
@@ -138,6 +165,14 @@
             "$ref": "#/entities/Session"
         },
         "description": "Stores training sessions created by a user."
+    },
+    "/teams/{teamId}": {
+        "schema": { "$ref": "#/entities/Team" },
+        "description": "Stores team information."
+    },
+    "/teamInvitations/{invitationId}": {
+        "schema": { "$ref": "#/entities/TeamInvitation" },
+        "description": "Stores invitations for users to join teams."
     }
   }
 }

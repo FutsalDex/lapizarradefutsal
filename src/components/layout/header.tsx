@@ -29,6 +29,7 @@ const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
   { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
   { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
+  { href: "/partidos/gestion", label: "Mi Equipo", icon: <Shield className="h-4 w-4" /> },
 ];
 
 const adminLink = { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> };
@@ -76,7 +77,7 @@ export function Header() {
     );
   };
 
-  const allNavLinks = isAdmin ? [...navLinks, adminLink] : navLinks;
+  const allNavLinks = isAdmin ? [...navLinks.filter(l => l.href !== '/admin'), adminLink] : navLinks;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
