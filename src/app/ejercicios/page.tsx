@@ -54,12 +54,12 @@ export default function EjerciciosPage() {
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     return exercises.filter(exercise => {
-      if (!exercise.Visible || !exercise.Ejercicio) return false;
+      if (!exercise.visible || !exercise.name) return false;
 
-      const matchesSearch = exercise.Ejercicio.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'Todas' || exercise['Categoría'] === categoryFilter;
-      const matchesPhase = phaseFilter === 'Todas' || exercise['Fase'] === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || exercise['Edad']?.includes(ageFilter.toLowerCase());
+      const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
+      const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
+      const matchesAge = ageFilter === 'Todas' || exercise.edad?.includes(ageFilter.toLowerCase());
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
@@ -158,16 +158,16 @@ export default function EjerciciosPage() {
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-56 w-full">
                   <Image
-                    src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/600/400'}
-                    alt={exercise.Ejercicio}
+                    src={exercise.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+                    alt={exercise.name}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-contain p-2"
-                    data-ai-hint={exercise.aiHint}
+                    data-ai-hint={exercise.imageHint}
                   />
                 </div>
                 <CardContent className="p-4 flex-grow">
-                  <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.Ejercicio}</h3>
+                  <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.name}</h3>
                 </CardContent>
                  <CardFooter className="p-4 bg-muted/30 flex justify-between items-center">
                   <Button asChild variant="outline" size="sm">

@@ -1,3 +1,4 @@
+
 import { sessions } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +37,7 @@ export default function SesionesPage() {
               </div>
               <ul className="mt-4 list-disc list-inside text-muted-foreground/80 space-y-1">
                 {session.exercises.slice(0, 3).map(ex => (
-                    <li key={ex.id}>{ex.title}</li>
+                    <li key={ex.id}>{ex.name}</li>
                 ))}
                 {session.exercises.length > 3 && <li>...y {session.exercises.length - 3} más.</li>}
               </ul>

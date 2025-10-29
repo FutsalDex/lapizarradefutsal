@@ -80,8 +80,8 @@ export default function ExerciseDetailPage() {
                 <CardContent className="p-0">
                     <div className="relative aspect-[4/3] w-full bg-black/5 rounded-t-lg">
                         <Image
-                            src={exercise.Imagen || 'https://picsum.photos/seed/placeholder/800/600'}
-                            alt={`Imagen de ${exercise.Ejercicio}`}
+                            src={exercise.imageUrl || 'https://picsum.photos/seed/placeholder/800/600'}
+                            alt={`Imagen de ${exercise.name}`}
                             fill
                             className="object-contain p-2"
                         />
@@ -91,11 +91,11 @@ export default function ExerciseDetailPage() {
         </div>
 
         <div className="lg:col-span-2">
-            <h1 className="font-headline text-3xl font-bold text-primary mb-2">{exercise.Ejercicio}</h1>
+            <h1 className="font-headline text-3xl font-bold text-primary mb-2">{exercise.name}</h1>
              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary">{exercise['Fase']}</Badge>
-                <Badge variant="secondary">{exercise['Categoría']}</Badge>
-                {exercise['Edad']?.map(age => <Badge key={age} variant="outline">{age}</Badge>)}
+                <Badge variant="secondary">{exercise.fase}</Badge>
+                <Badge variant="secondary">{exercise.category}</Badge>
+                {exercise.edad?.map(age => <Badge key={age} variant="outline">{age}</Badge>)}
             </div>
           
             <div className="space-y-6">
@@ -104,7 +104,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise['Descripción de la tarea']}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise.description}</p>
                     </CardContent>
                 </Card>
 
@@ -113,7 +113,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise.Objetivos}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise.objectives}</p>
                     </CardContent>
                 </Card>
 
@@ -123,9 +123,9 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center'><Info className="mr-2 h-5 w-5 text-primary"/>Detalles</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
-                            <p className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise['Número de jugadores']}</span></p>
-                             <p className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise['Duración (min)']} min</span></p>
-                             <p className='flex items-center text-sm'><Recycle className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Material:</strong><span className='ml-2 text-muted-foreground'>{exercise['Espacio y materiales necesarios']}</span></p>
+                            <p className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise.numberOfPlayers}</span></p>
+                             <p className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise.duration} min</span></p>
+                             <p className='flex items-center text-sm'><Recycle className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Material:</strong><span className='ml-2 text-muted-foreground'>{exercise.spaceAndMaterials}</span></p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -133,7 +133,7 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <p className="text-sm text-muted-foreground text-justify">{exercise['Consejos para el entrenador']}</p>
+                             <p className="text-sm text-muted-foreground text-justify">{exercise.consejos}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -143,7 +143,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise.Variantes}</p>
+                        <p className="text-sm text-muted-foreground text-justify">{exercise.variations}</p>
                     </CardContent>
                 </Card>
             </div>

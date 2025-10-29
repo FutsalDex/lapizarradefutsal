@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -10,6 +11,9 @@ import { exercises, Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+
+// A mock intensity type for the local data, can be removed if not needed.
+type MockIntensity = 'Baja' | 'Media' | 'Alta';
 
 export default function IaPage() {
   const [loading, setLoading] = useState(false);
@@ -29,6 +33,19 @@ export default function IaPage() {
 
     setLoading(false);
   };
+  
+  const getIntensityVariant = (fase: string) => {
+    switch (fase) {
+      case 'Fase Principal':
+        return 'destructive';
+      case 'Calentamiento':
+        return 'secondary';
+      case 'Vuelta a la Calma':
+        return 'default';
+      default:
+        return 'outline';
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -98,7 +115,7 @@ export default function IaPage() {
                     <div className="relative h-48 md:h-auto md:w-1/3">
                       <Image
                         src={exercise.imageUrl}
-                        alt={exercise.title}
+                        alt={exercise.name}
                         fill
                         className="object-cover"
                         data-ai-hint={exercise.imageHint}
@@ -106,9 +123,9 @@ export default function IaPage() {
                     </div>
                   <div className='p-6 flex-grow flex flex-col'>
                     <div className="flex justify-between items-start mb-2">
-                      <CardTitle className="font-headline text-xl">{exercise.title}</CardTitle>
-                      <Badge variant={exercise.intensity === 'Alta' ? 'destructive' : exercise.intensity === 'Media' ? 'secondary' : 'default'}>
-                        {exercise.intensity}
+                      <CardTitle className="font-headline text-xl">{exercise.name}</CardTitle>
+                      <Badge variant={getIntensityVariant(exercise.fase)}>
+                        {exercise.fase}
                       </Badge>
                     </div>
                     <p className="text-muted-foreground text-sm mb-4">{exercise.description}</p>

@@ -6,146 +6,67 @@ const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.star
 export type Exercise = {
   id: string;
   name: string;
-  title: string;
   description: string;
-  category: 'Técnica' | 'Táctica' | 'Físico' | 'Porteros';
-  intensity: 'Baja' | 'Media' | 'Alta';
-  diagramUrl: string;
+  category: string;
+  fase: string;
+  edad: string[];
+  objectives: string;
+  duration: number;
+  numberOfPlayers: string;
+  spaceAndMaterials: string;
+  consejos: string;
+  variations: string;
   imageUrl: string;
   imageHint: string;
-  // Campos de la base de datos
-  "Ejercicio": string;
-  "Descripción de la tarea": string;
-  "Categoría": string;
-  "Fase": string;
-  "Edad": string[];
-  "Imagen": string;
-  "aiHint": string;
-  "Visible": boolean;
+  visible: boolean;
 };
 
 export const exercises: Exercise[] = [
+  // This is mock data and might not be fully representative of Firestore.
+  // The Exercise type definition is the source of truth for fields.
   {
     id: '1',
     name: 'Rondo 4 vs 1',
-    title: 'Rondo 4 vs 1',
     description: 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
     category: 'Técnica',
-    intensity: 'Media',
-    diagramUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
+    fase: 'Fase Principal',
+    edad: ['infantil', 'cadete', 'juvenil', 'senior'],
+    objectives: 'Mejorar el pase y la presión.',
+    duration: 10,
+    numberOfPlayers: '5',
+    spaceAndMaterials: 'Conos, balón',
+    consejos: 'Pases rápidos y movimiento constante.',
+    variations: 'Añadir un segundo defensor.',
     imageUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
     imageHint: exerciseImages[0]?.imageHint || 'futsal drill',
-    "Ejercicio": 'Rondo 4 vs 1',
-    "Descripción de la tarea": 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
-    "Categoría": 'Técnica',
-    "Fase": 'Fase Principal',
-    "Edad": ['infantil', 'cadete', 'juvenil', 'senior'],
-    "Imagen": exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
-    "aiHint": 'futsal drill',
-    "Visible": true,
+    visible: true,
   },
   {
     id: '2',
     name: 'Finalización 2 vs 1',
-    title: 'Finalización 2 vs 1',
     description: 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
     category: 'Táctica',
-    intensity: 'Alta',
-    diagramUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
+    fase: 'Fase Principal',
+    edad: ['cadete', 'juvenil', 'senior'],
+    objectives: 'Mejorar la toma de decisiones en ataque.',
+    duration: 15,
+    numberOfPlayers: '3 + Portero',
+    spaceAndMaterials: 'Portería, balón',
+    consejos: 'Atraer al defensor antes de pasar.',
+    variations: 'Limitar el número de toques.',
     imageUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
     imageHint: exerciseImages[1]?.imageHint || 'futsal attack',
-    "Ejercicio": 'Finalización 2 vs 1',
-    "Descripción de la tarea": 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
-    "Categoría": 'Táctica',
-    "Fase": 'Fase Principal',
-    "Edad": ['cadete', 'juvenil', 'senior'],
-    "Imagen": exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
-    "aiHint": 'futsal attack',
-    "Visible": true,
+    visible: true,
   },
-  {
-    id: '3',
-    name: 'Circuito de Agilidad',
-    title: 'Circuito de Agilidad',
-    description: 'Recorrido con conos, escaleras y vallas para mejorar la coordinación, velocidad y cambios de dirección.',
-    category: 'Físico',
-    intensity: 'Alta',
-    diagramUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
-    imageUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
-    imageHint: exerciseImages[2]?.imageHint || 'agility ladder',
-    "Ejercicio": 'Circuito de Agilidad',
-    "Descripción de la tarea": 'Recorrido con conos, escaleras y vallas para mejorar la coordinación, velocidad y cambios de dirección.',
-    "Categoría": 'Físico',
-    "Fase": 'Fase Principal',
-    "Edad": ['infantil', 'cadete', 'juvenil', 'senior'],
-    "Imagen": exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
-    "aiHint": 'agility ladder',
-    "Visible": true,
-  },
-  {
-    id: '4',
-    name: 'Juego de Posesión 3 vs 3',
-    title: 'Juego de Posesión 3 vs 3',
-    description: 'Partido en espacio reducido con el objetivo de mantener la posesión del balón el mayor tiempo posible.',
-    category: 'Táctica',
-    intensity: 'Media',
-    diagramUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
-    imageUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
-    imageHint: exerciseImages[3]?.imageHint || 'futsal game',
-    "Ejercicio": 'Juego de Posesión 3 vs 3',
-    "Descripción de la tarea": 'Partido en espacio reducido con el objetivo de mantener la posesión del balón el mayor tiempo posible.',
-    "Categoría": 'Táctica',
-    "Fase": 'Fase Principal',
-    "Edad": ['juvenil', 'senior'],
-    "Imagen": exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
-    "aiHint": 'futsal game',
-    "Visible": true,
-  },
-  {
-    id: '5',
-    name: 'Tiros a Puerta con Oposición',
-    title: 'Tiros a Puerta con Oposición',
-    description: 'Ejercicios de finalización con un defensor activo para simular condiciones de partido real.',
-    category: 'Técnica',
-    intensity: 'Media',
-    diagramUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
-    imageUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
-    imageHint: exerciseImages[4]?.imageHint || 'futsal shot',
-    "Ejercicio": 'Tiros a Puerta con Oposición',
-    "Descripción de la tarea": 'Ejercicios de finalización con un defensor activo para simular condiciones de partido real.',
-    "Categoría": 'Técnica',
-    "Fase": 'Fase Principal',
-    "Edad": ['cadete', 'juvenil', 'senior'],
-    "Imagen": exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
-    "aiHint": 'futsal shot',
-    "Visible": true,
-  },
-  {
-    id: '6',
-    name: 'Salida de Presión',
-    title: 'Salida de Presión',
-    description: 'El equipo defensor practica cómo superar una presión alta del rival desde su propia área.',
-    category: 'Táctica',
-    intensity: 'Alta',
-    diagramUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
-    imageUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
-    imageHint: exerciseImages[5]?.imageHint || 'futsal tactics',
-    "Ejercicio": 'Salida de Presión',
-    "Descripción de la tarea": 'El equipo defensor practica cómo superar una presión alta del rival desde su propia área.',
-    "Categoría": 'Táctica',
-    "Fase": 'Fase Principal',
-    "Edad": ['juvenil', 'senior'],
-    "Imagen": exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
-    "aiHint": 'futsal tactics',
-    "Visible": true,
-  },
+  // Add other mock exercises if needed
 ];
+
 
 export type Session = {
     id: string;
     name: string;
     date: string;
-    exercises: Exercise[];
+    exercises: Partial<Exercise>[]; // Can be partial if just storing references
 }
 
 export const sessions: Session[] = [
@@ -153,19 +74,19 @@ export const sessions: Session[] = [
         id: '1',
         name: 'Sesión de Técnica y Posesión',
         date: '2024-08-01',
-        exercises: [exercises[0], exercises[3], exercises[4]],
+        exercises: [{id: '1', name: 'Rondo 4 vs 1'}],
     },
     {
         id: '2',
         name: 'Entrenamiento Físico y Transiciones',
         date: '2024-08-03',
-        exercises: [exercises[2], exercises[1], exercises[5]],
+        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
     },
     {
         id: '3',
         name: 'Preparación de Partido',
         date: '2024-08-05',
-        exercises: [exercises[5], exercises[1]],
+        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
     }
 ]
 
@@ -224,5 +145,3 @@ export const matches: Match[] = [
         }
     }
 ]
-
-    
