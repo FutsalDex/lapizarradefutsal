@@ -86,7 +86,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 
 interface Team {
@@ -129,18 +129,18 @@ function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: 
       : `${match.localScore} - ${match.visitorScore}`;
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader>
-        <CardTitle>{match.localTeam} vs {match.visitorTeam}</CardTitle>
-        <p className="text-sm text-muted-foreground pt-1">
+    <Card className="flex flex-col border-gray-200 shadow-md">
+      <CardHeader className="text-center">
+        <CardTitle className="text-lg font-semibold mb-1 text-gray-800">{match.localTeam} vs {match.visitorTeam}</CardTitle>
+        <p className="text-sm text-gray-500">
           {format(new Date(match.date), "PPP", { locale: es })}
         </p>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center">
-        <p className="text-4xl font-bold">{resultado}</p>
+        <p className="text-4xl font-bold text-primary">{resultado}</p>
         <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
       </CardContent>
-      <CardFooter className="flex justify-between p-2 bg-muted/50">
+      <CardFooter className="flex justify-center p-2 bg-muted/50">
         <Dialog>
             <DialogTrigger asChild>
                 <Button size="sm" variant="ghost">
@@ -157,12 +157,17 @@ function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: 
             </DialogContent>
         </Dialog>
         
+        <Separator orientation="vertical" className="h-6" />
+
         <Button size="sm" variant="ghost">
           <BarChart2 className="mr-2 h-4 w-4" /> Stats
         </Button>
+        
+        <Separator orientation="vertical" className="h-6" />
+        
         <div className="flex">
           <Button onClick={() => onEdit(match)} size="icon" variant="ghost">
-            <Edit className="w-4 h-4" />
+            <Pencil className="w-4 h-4" />
           </Button>
           <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -189,6 +194,8 @@ function MatchCard({ match, onEdit, onDelete }: { match: Match; onEdit: (match: 
   );
 }
 
+const filterTypes = ["Todos", "Liga", "Copa", "Torneo", "Amistoso"];
+
 export default function PartidosPage() {
   const params = useParams();
   const teamId = params.teamId as string;
@@ -199,6 +206,7 @@ export default function PartidosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [activeFilter, setActiveFilter] = useState("Todos");
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -312,6 +320,12 @@ export default function PartidosPage() {
     }
   };
 
+  const filteredMatches = useMemo(() => {
+    if (!matches) return [];
+    if (activeFilter === "Todos") return matches;
+    return matches.filter(m => m.matchType === activeFilter);
+  }, [matches, activeFilter]);
+
   const isLoading = isLoadingTeam || isUserLoading || isLoadingMatches;
 
   return (
@@ -323,9 +337,13 @@ export default function PartidosPage() {
       </Button>
 
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold font-headline">
-            {isLoadingTeam ? <Skeleton className="h-9 w-48" /> : `Partidos de ${team?.name}`}
-        </h1>
+        <div className="flex items-center gap-2">
+            <Trophy className="w-6 h-6 text-primary" />
+            <h1 className="text-3xl font-bold text-primary">
+                {isLoadingTeam ? <Skeleton className="h-9 w-48" /> : `Partidos de ${team?.name}`}
+            </h1>
+        </div>
+
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
            <Button onClick={handleAddNewClick}>
              <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
@@ -350,7 +368,7 @@ export default function PartidosPage() {
                       )}/>
                        <FormField control={form.control} name="matchType" render={({ field }) => (
                           <FormItem><FormLabel>Tipo de Partido</FormLabel><FormControl>
-                              <select {...field} className="w-full p-2 border rounded-md">
+                              <select {...field} className="w-full p-2 border rounded-md h-10 bg-background">
                                 <option value="Liga">Liga</option>
                                 <option value="Copa">Copa</option>
                                 <option value="Torneo">Torneo</option>
@@ -399,41 +417,36 @@ export default function PartidosPage() {
           </DialogContent>
         </Dialog>
       </div>
+      
+      <div className="flex flex-wrap items-center gap-2 mb-8 p-2 rounded-lg border bg-card">
+        {filterTypes.map((type) => (
+          <Button
+            key={type}
+            onClick={() => setActiveFilter(type)}
+            variant={activeFilter === type ? "default" : "ghost"}
+          >
+            {type}
+          </Button>
+        ))}
+      </div>
 
       {isLoading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64" />)}
           </div>
-      ) : (
-        <Tabs defaultValue="Todos">
-          <TabsList className="mb-4">
-            <TabsTrigger value="Todos">Todos</TabsTrigger>
-            <TabsTrigger value="Liga">Liga</TabsTrigger>
-            <TabsTrigger value="Copa">Copa</TabsTrigger>
-            <TabsTrigger value="Torneo">Torneo</TabsTrigger>
-            <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-          </TabsList>
-
-          {["Todos", "Liga", "Copa", "Torneo", "Amistoso"].map(tab => {
-            const filteredMatches = tab === 'Todos' ? matches : matches?.filter(m => m.matchType === tab);
-            return (
-              <TabsContent key={tab} value={tab}>
-                {filteredMatches && filteredMatches.length > 0 ? (
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {filteredMatches.map(match => (
-                      <MatchCard key={match.id} match={match} onEdit={handleEditClick} onDelete={handleDelete} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                    <p className="text-muted-foreground">No hay partidos de tipo '{tab}' para mostrar.</p>
-                  </div>
-                )}
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      )}
+      ) : filteredMatches && filteredMatches.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredMatches.map(match => (
+              <MatchCard key={match.id} match={match} onEdit={handleEditClick} onDelete={handleDelete} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 border-2 border-dashed rounded-lg">
+            <p className="text-muted-foreground">No hay partidos para el filtro '{activeFilter}'.</p>
+          </div>
+        )}
     </div>
   );
 }
+
+    
