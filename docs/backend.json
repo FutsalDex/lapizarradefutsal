@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Exercise": {
@@ -236,12 +237,14 @@
         "schema": {
             "type": "object",
             "properties": {
+                "name": {"type": "string"},
                 "role": {"type": "string", "enum": ["player", "coach"]},
                 "dorsal": {"type": "number"},
                 "posicion": {"type": "string"}
-            }
+            },
+            "required": ["name", "role"]
         },
-        "description": "Stores team players. The document ID is the user ID."
+        "description": "Stores team players. The document ID is auto-generated."
     },
     "/users/{userId}": {
       "schema": {
