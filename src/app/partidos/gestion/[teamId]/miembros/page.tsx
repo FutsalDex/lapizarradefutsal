@@ -39,6 +39,14 @@ interface Team {
   ownerId: string;
 }
 
+interface TeamInvitation {
+    id: string;
+    userId: string;
+    role: string;
+    name?: string;
+    email?: string; // email of the invited user
+}
+
 interface TeamMember {
   id: string; // This will be the user ID
   name: string;
@@ -47,21 +55,9 @@ interface TeamMember {
   invitationId?: string; // ID of the invitation document, for deletion
 }
 
-interface UserProfile {
-    id: string;
-    firstName?: string;
-    lastName?: string;
-    email: string;
-}
-
-interface TeamInvitation {
-    id: string;
-    userId: string;
-    role: string;
-}
-
 const staffInvitationSchema = z.object({
     email: z.string().email('Introduce un email válido.'),
+    name: z.string().min(2, 'El nombre es requerido'),
     role: z.string({ required_error: 'Debes seleccionar un rol.' }),
 });
 
@@ -90,97 +86,79 @@ export default function TeamMembersPage() {
         return query(collection(firestore, 'teamInvitations'), where('teamId', '==', teamId), where('status', '==', 'accepted'));
     }, [firestore, teamId]);
     const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(invitationsQuery);
-
-    const memberUserIds = useMemo(() => invitations?.map(inv => inv.userId) || [], [invitations]);
     
-    // 3. Get profiles for the owner and members
-    const usersToFetch = useMemo(() => {
-        const ids = new Set(memberUserIds);
-        if (team?.ownerId) {
-            ids.add(team.ownerId);
-        }
-        return Array.from(ids);
-    }, [memberUserIds, team?.ownerId]);
-
-    const usersQuery = useMemoFirebase(() => {
-        if (!firestore || usersToFetch.length === 0) return null;
-        // Firestore 'in' query is limited to 30 items
-        return query(collection(firestore, 'users'), where('__name__', 'in', usersToFetch.slice(0, 30)));
-    }, [firestore, usersToFetch]);
-    const { data: userProfiles, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
-
-    // 4. Combine data to create the final members list
+    // 3. Combine data to create the final members list
     const staffMembers = useMemo<TeamMember[]>(() => {
-        if (!userProfiles || !team) return [];
+        if (!team) return [];
 
-        const membersMap = new Map<string, TeamMember>();
-        const invitationsMap = new Map(invitations?.map(inv => [inv.userId, inv]));
-
-        userProfiles.forEach(profile => {
-            const isOwner = profile.id === team.ownerId;
-            const invitation = invitationsMap.get(profile.id);
-            membersMap.set(profile.id, {
-                id: profile.id,
-                name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.email,
-                email: profile.email,
-                role: isOwner ? 'Propietario' : invitation?.role || 'Miembro',
-                invitationId: invitation?.id
+        const members: TeamMember[] = [];
+        
+        // Add owner
+        if (user && team.ownerId === user.uid) {
+             members.push({
+                id: team.ownerId,
+                name: user.displayName || user.email || 'Propietario',
+                email: user.email || 'N/A',
+                role: 'Propietario',
             });
+        }
+        
+        // Add accepted members from invitations
+        (invitations || []).forEach(inv => {
+            // Avoid adding owner twice if they have an invitation for some reason
+            if (inv.userId !== team.ownerId) {
+                members.push({
+                    id: inv.userId,
+                    name: inv.name || inv.email || 'Miembro',
+                    email: inv.email || 'N/A',
+                    role: inv.role,
+                    invitationId: inv.id,
+                });
+            }
         });
 
-        return Array.from(membersMap.values());
-    }, [userProfiles, team, invitations]);
+        return members;
+    }, [team, invitations, user]);
     
-
     const form = useForm<StaffInvitationForm>({
         resolver: zodResolver(staffInvitationSchema),
-        defaultValues: { email: '', },
+        defaultValues: { email: '', name: '' },
     });
 
     const onSubmit = async (data: StaffInvitationForm) => {
-        // This is a complex operation: find user by email, then create invitation.
-        // For simplicity, we'll assume the user exists and create the invitation.
-        // A robust implementation would use a Cloud Function to verify the user.
         if (!firestore || !user || !team) return;
         setIsSubmitting(true);
         
-        try {
-            // Firestore security rules prevent querying users by email on the client.
-            // This needs to be handled by a backend function. For now, we'll create
-            // the invitation and assume the user will see it.
-            // A placeholder userId is needed, but we can't get it from the email on the client.
-            
-            // This is a simplified version. A real implementation would need to check
-            // if the user exists via a backend call. We'll just add to a 'teamInvitations' collection.
-             const userQuery = query(collection(firestore, 'users'), where('email', '==', data.email));
+        const invitationData = {
+            teamId: team.id,
+            teamName: team.name,
+            userId: "TBD_BY_FUNCTION", // Placeholder
+            email: data.email, 
+            name: data.name,
+            role: data.role,
+            status: 'pending',
+            invitedByUserId: user.uid,
+            createdAt: serverTimestamp(),
+        };
 
-            await addDoc(collection(firestore, 'teamInvitations'), {
-                teamId: team.id,
-                teamName: team.name,
-                userId: "TBD_BY_FUNCTION", // This needs to be resolved by a backend function that finds user by email
-                invitedUserEmail: data.email, // Storing email for display, but security should be based on userId
-                role: data.role,
-                status: 'pending',
-                invitedByUserId: user.uid,
-                createdAt: serverTimestamp(),
-            });
-
+        addDoc(collection(firestore, 'teamInvitations'), invitationData)
+        .then(() => {
             toast({
-                title: 'Invitación enviada (simulado)',
-                description: `Se ha enviado una invitación a ${data.email}. El usuario debe existir en la plataforma.`
+                title: 'Invitación enviada',
+                description: `Se ha enviado una invitación a ${data.name}.`
             });
             form.reset();
             setIsDialogOpen(false);
-        } catch (error) {
-            console.error("Error creating invitation:", error);
-            toast({
-                title: 'Error',
-                description: 'No se pudo crear la invitación.',
-                variant: 'destructive',
+        }).catch((error) => {
+             const permissionError = new FirestorePermissionError({
+                path: 'teamInvitations',
+                operation: 'create',
+                requestResourceData: invitationData,
             });
-        } finally {
+            errorEmitter.emit('permission-error', permissionError);
+        }).finally(() => {
             setIsSubmitting(false);
-        }
+        });
     };
     
     const handleDeleteMember = async (member: TeamMember) => {
@@ -204,7 +182,7 @@ export default function TeamMembersPage() {
             });
     }
 
-    const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingUsers;
+    const isLoading = isLoadingTeam || isLoadingInvitations;
 
     if (isLoading && !team) {
         return (
@@ -254,11 +232,18 @@ export default function TeamMembersPage() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Invitar nuevo miembro al cuerpo técnico</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Introduce el email del usuario a invitar. Este deberá tener una cuenta en la plataforma.
+                                            Introduce los datos del usuario a invitar.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     
                                     <div className="py-4 space-y-4">
+                                         <FormField control={form.control} name="name" render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nombre</FormLabel>
+                                                <FormControl><Input placeholder="Nombre del miembro" {...field} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}/>
                                         <FormField control={form.control} name="email" render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Email</FormLabel>
