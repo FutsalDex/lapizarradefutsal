@@ -60,32 +60,34 @@ function TeamList() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const { toast } = useToast();
 
-    // Query for teams the user owns
+    // Step 1: Verify user exists. These queries will be null until user is loaded.
     const ownedTeamsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (isAuthLoading || !user || !firestore) return null;
         return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
-    }, [firestore, user]);
+    }, [firestore, user, isAuthLoading]);
 
-    // Query for invitations the user has accepted
     const acceptedInvitationsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
+        if (isAuthLoading || !user || !firestore) return null;
         return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'accepted'));
-    }, [firestore, user]);
+    }, [firestore, user, isAuthLoading]);
 
     const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
     const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
 
+    // Step 2: Verify we have the team IDs from invitations before querying the teams collection.
     const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
+    const canFetchMemberTeams = !isLoadingInvites && memberTeamIds.length > 0;
 
-    // CRITICAL: This query depends on memberTeamIds being populated.
-    // It will only run when memberTeamIds has content.
+    // Step 3: Only build the member teams query if Step 2 is complete.
     const memberTeamsQuery = useMemoFirebase(() => {
-        if (!firestore || memberTeamIds.length === 0) return null;
+        if (!firestore || !canFetchMemberTeams) return null;
+        // Use slice(0,30) as 'in' queries support a maximum of 30 elements in Firestore v9/v10
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
-    }, [firestore, memberTeamIds]);
+    }, [firestore, memberTeamIds, canFetchMemberTeams]);
 
     const { data: memberTeams, isLoading: isLoadingMemberTeams } = useCollection<Team>(memberTeamsQuery);
     
+    // Combine all teams into a single list, avoiding duplicates.
     const allTeams = useMemo(() => {
         const teamsMap = new Map<string, Team>();
         (ownedTeams || []).forEach(team => teamsMap.set(team.id, team));
@@ -93,8 +95,8 @@ function TeamList() {
         return Array.from(teamsMap.values());
     }, [ownedTeams, memberTeams]);
     
-    // isLoading is true if any dependent query is still running.
-    const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
+    // Overall loading state: true if any of the dependent queries are still running.
+    const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (canFetchMemberTeams && isLoadingMemberTeams);
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!firestore) return;
@@ -201,10 +203,9 @@ export default function GestionEquiposPage() {
   }, [firestore]);
 
   const userInvitationsQuery = useMemoFirebase(() => {
-    // Only build the query if the user is loaded and exists
-    if (!firestore || !user) return null;
+    if (isUserLoading || !user || !firestore) return null;
     return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'pending'));
-  }, [firestore, user]);
+  }, [firestore, user, isUserLoading]);
 
   const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(userInvitationsQuery);
 
