@@ -81,44 +81,68 @@
       "type": "object",
       "description": "Represents a futsal match and its statistics.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Match entity."
+        "competition": {
+            "type": "string",
+            "description": "Name of the competition."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the match was recorded."
         },
         "date": {
           "type": "string",
           "description": "Date and time of the match.",
           "format": "date-time"
         },
-        "teamOneId": {
+        "isFinished": {
+            "type": "boolean",
+            "description": "Indicates if the match has finished."
+        },
+        "localScore": {
+            "type": "number",
+            "description": "Score of the local team."
+        },
+        "localTeam": {
+            "type": "string",
+            "description": "Name of the local team."
+        },
+        "matchType": {
+            "type": "string",
+            "description": "Type of match (e.g., league, cup, friendly)."
+        },
+        "matchday": {
+            "type": "string",
+            "description": "The matchday or round number."
+        },
+        "teamId": {
           "type": "string",
-          "description": "Reference to Team representing team one."
+          "description": "Reference to the Team this match belongs to."
         },
-        "teamTwoId": {
+        "userId": {
           "type": "string",
-          "description": "Reference to Team representing team two."
+          "description": "Reference to the User who recorded the match."
         },
-        "teamOneScore": {
-          "type": "number",
-          "description": "The final score for team one."
+        "visitorScore": {
+            "type": "number",
+            "description": "Score of the visitor team."
         },
-        "teamTwoScore": {
-          "type": "number",
-          "description": "The final score for team two."
-        },
-        "statistics": {
-          "type": "string",
-          "description": "JSON string containing detailed statistics for the match."
+        "visitorTeam": {
+            "type": "string",
+            "description": "Name of the visitor team."
         }
       },
       "required": [
-        "id",
+        "competition",
         "date",
-        "teamOneId",
-        "teamTwoId",
-        "teamOneScore",
-        "teamTwoScore",
-        "statistics"
+        "isFinished",
+        "localScore",
+        "localTeam",
+        "matchday",
+        "teamId",
+        "userId",
+        "visitorScore",
+        "visitorTeam"
       ]
     },
     "Team": {
@@ -269,6 +293,12 @@
       },
       "description": "Stores all team invitations."
     },
+    "/matches/{matchId}": {
+      "schema": {
+        "$ref": "#/entities/Match"
+      },
+      "description": "Stores match data for all teams."
+    },
     "/users/{userId}/favorites/{exerciseId}": {
         "schema": {
             "type": "object",
@@ -283,12 +313,6 @@
             "$ref": "#/entities/Session"
         },
         "description": "Stores training sessions created by a user."
-    },
-    "/users/{userId}/matches/{matchId}": {
-        "schema": {
-            "$ref": "#/entities/Match"
-        },
-        "description": "Stores match data recorded by a user."
     }
   }
 }
