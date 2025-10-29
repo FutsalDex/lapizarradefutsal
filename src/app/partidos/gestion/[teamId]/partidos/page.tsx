@@ -1,19 +1,19 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { collection, query, where, Timestamp, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, useDoc } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, PlusCircle, Calendar, Shield } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Trophy, ClipboardList, BarChart2, Eye, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 interface Match {
     id: string;
@@ -31,33 +31,38 @@ interface Match {
     visitorTeam: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+}
+
 function MatchCard({ match }: { match: Match }) {
     const matchDate = new Date(match.date as any);
 
     return (
-        <Card className="flex flex-col">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-xl font-headline">{match.localTeam} vs {match.visitorTeam}</CardTitle>
-                        <CardDescription>Jornada {match.matchday} - {match.competition}</CardDescription>
-                    </div>
-                    {match.isFinished && <Badge variant="secondary">Finalizado</Badge>}
+        <Card className="flex flex-col hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex-grow flex flex-col justify-between">
+                <div className="text-center">
+                    <p className="font-semibold">{match.localTeam} vs {match.visitorTeam}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </p>
                 </div>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col items-center justify-center text-center">
-                <div className="text-4xl font-bold tracking-tight">
+                 <div className="text-5xl font-bold tracking-tight text-center my-4">
                     <span>{match.localScore}</span>
-                    <span className="mx-4 text-muted-foreground">-</span>
+                    <span className="mx-2 text-3xl text-muted-foreground">-</span>
                     <span>{match.visitorScore}</span>
                 </div>
-                 <div className="flex items-center text-sm text-muted-foreground mt-4">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {matchDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}
+                <div className='text-center'>
+                    <Badge variant="secondary">{match.matchType}</Badge>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button variant="outline" className="w-full">Ver Estadísticas</Button>
+            <CardFooter className="p-2 bg-muted/50 border-t flex justify-around">
+                <Button variant="ghost" size="sm"><ClipboardList className="mr-2 h-4 w-4"/>Convocar</Button>
+                <Button variant="ghost" size="icon"><BarChart2 className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon"><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
             </CardFooter>
         </Card>
     );
@@ -69,45 +74,75 @@ export default function TeamMatchesPage() {
   const teamId = params.teamId as string;
   const firestore = useFirestore();
   const { user } = useUser();
+  const [filter, setFilter] = useState('Todos');
+
+  const teamRef = useMemoFirebase(() => {
+    if (!firestore || !teamId) return null;
+    return doc(firestore, 'teams', teamId);
+  }, [firestore, teamId]);
+  const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId || !user) return null;
-    return query(collection(firestore, 'matches'), where('teamId', '==', teamId), where('userId', '==', user.uid));
-  }, [firestore, teamId, user]);
+    const baseQuery = query(collection(firestore, 'matches'), where('teamId', '==', teamId), where('userId', '==', user.uid));
+    if (filter !== 'Todos') {
+        return query(baseQuery, where('matchType', '==', filter));
+    }
+    return baseQuery;
+  }, [firestore, teamId, user, filter]);
 
-  const { data: matches, isLoading } = useCollection<Match>(matchesQuery);
+  const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
+
+  const isLoading = isLoadingTeam || isLoadingMatches;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
         <div className='flex items-center gap-4'>
-             <Shield className="w-8 h-8 text-primary" />
+             <Trophy className="w-8 h-8 text-primary" />
             <div>
-                <h1 className="text-3xl font-bold font-headline text-primary">Mis Partidos</h1>
-                <p className="text-muted-foreground">Historial de partidos jugados y programados.</p>
+                <h1 className="text-3xl font-bold font-headline text-primary">
+                  Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
+                </h1>
+                <p className="text-muted-foreground">Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.</p>
             </div>
         </div>
         <div className="flex gap-2">
             <Button asChild variant="outline">
                 <Link href={`/partidos/gestion/${teamId}`}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
-                    Volver al Panel
+                    Volver al Panel del Equipo
                 </Link>
             </Button>
              <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Registrar Nuevo Partido
+                Añadir Partido
             </Button>
         </div>
       </div>
       
+       <Tabs defaultValue="Todos" onValueChange={setFilter} className="mb-6">
+        <TabsList>
+            <TabsTrigger value="Todos">Todos</TabsTrigger>
+            <TabsTrigger value="Liga">Liga</TabsTrigger>
+            <TabsTrigger value="Copa">Copa</TabsTrigger>
+            <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+            <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(3)].map((_, i) => (
                 <Card key={i}>
-                    <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
-                    <CardContent className="flex items-center justify-center h-24"><Skeleton className="h-10 w-1/2" /></CardContent>
-                    <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+                    <CardContent className="p-4">
+                        <div className="flex flex-col items-center gap-4">
+                            <Skeleton className="h-6 w-3/4" />
+                            <Skeleton className="h-12 w-1/2" />
+                            <Skeleton className="h-6 w-20 rounded-full" />
+                        </div>
+                    </CardContent>
+                    <CardFooter className="p-2 h-12 bg-muted/50 border-t"></CardFooter>
                 </Card>
             ))}
         </div>
@@ -119,8 +154,8 @@ export default function TeamMatchesPage() {
         </div>
       ) : (
         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">No hay partidos registrados</h2>
-          <p>Aún no se ha añadido ningún partido para este equipo.</p>
+          <h2 className="text-xl font-semibold mb-2">No hay partidos para &quot;{filter}&quot;</h2>
+          <p>No se ha añadido ningún partido que coincida con este filtro.</p>
         </div>
       )}
     </div>
