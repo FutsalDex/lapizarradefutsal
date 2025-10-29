@@ -157,7 +157,7 @@ export default function TeamMatchesPage() {
       collection(firestore, 'matches'), 
       where('teamId', '==', teamId), 
       where('userId', '==', user.uid),
-      orderBy('date', 'asc') // Ordenar por fecha ascendente
+      orderBy('date', 'asc')
     );
     if (filter !== 'Todos') {
         baseQuery = query(baseQuery, where('matchType', '==', filter));
@@ -508,3 +508,5 @@ function ConvocatoriaForm({ players, convocadosIniciales, onSave }: { players: P
         </form>
     );
 }
+
+    
