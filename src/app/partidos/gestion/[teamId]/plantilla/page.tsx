@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -30,7 +31,7 @@ interface Team {
   name: string;
   ownerId: string;
   club?: string;
-  season?: string;
+  competition?: string;
 }
 
 const playerSchema = z.object({
@@ -192,7 +193,7 @@ export default function TeamRosterPage() {
                   </div>
                    <div>
                     <Label>Competición</Label>
-                    <Input readOnly value={team?.season || ''} />
+                    <Input readOnly value={team?.competition || ''} />
                   </div>
                 </div>
                  <div>

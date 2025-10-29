@@ -135,9 +135,9 @@
             "type": "string",
             "description": "The club the team belongs to."
         },
-        "season": {
+        "competition": {
             "type": "string",
-            "description": "The season the team is playing in."
+            "description": "The competition the team is playing in."
         },
         "ownerId": {
           "type": "string",
@@ -239,8 +239,8 @@
             "properties": {
                 "name": {"type": "string"},
                 "role": {"type": "string", "enum": ["player", "coach"]},
-                "dorsal": {"type": "number"},
-                "posicion": {"type": "string"}
+                "number": {"type": "number"},
+                "position": {"type": "string"}
             },
             "required": ["name", "role"]
         },

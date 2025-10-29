@@ -9,7 +9,7 @@ import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart2, CalendarCheck, Shield, Users, ArrowLeft, ChevronRight } from 'lucide-react';
+import { BarChart2, CalendarCheck, Shield, Users, ArrowLeft, ChevronRight, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,15 +17,21 @@ interface Team {
   id: string;
   name: string;
   club?: string;
-  season?: string;
+  competition?: string;
 }
 
 const dashboardItems = [
     {
         title: 'Mi Plantilla',
-        description: 'Visualiza y gestiona los miembros de tu equipo.',
+        description: 'Visualiza y gestiona los jugadores de tu equipo.',
         icon: <Users className="w-6 h-6 text-primary" />,
         href: 'plantilla',
+    },
+    {
+        title: 'Miembros',
+        description: 'Gestiona los miembros del cuerpo técnico (staff).',
+        icon: <UserCog className="w-6 h-6 text-primary" />,
+        href: 'miembros',
     },
     {
         title: 'Mis Partidos',

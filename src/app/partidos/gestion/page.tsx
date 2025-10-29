@@ -34,7 +34,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const teamSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   club: z.string().optional(),
-  season: z.string().optional(),
+  competition: z.string().optional(),
 });
 
 type TeamFormInputs = z.infer<typeof teamSchema>;
@@ -43,7 +43,7 @@ interface Team {
   id: string;
   name: string;
   club?: string;
-  season?: string;
+  competition?: string;
   ownerId: string;
 }
 
@@ -140,7 +140,7 @@ function TeamList() {
               <div className='mb-4 sm:mb-0'>
                 <p className="font-semibold text-lg">{team.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {team.club} {team.season && `(${team.season})`}
+                  {team.club} {team.competition && `(${team.competition})`}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -153,7 +153,7 @@ function TeamList() {
                   <>
                     <Button variant="outline" asChild>
                         <Link href={`/partidos/gestion/${team.id}/plantilla`}>
-                            <Users className="mr-2 h-4 w-4" /> Miembros
+                            <Users className="mr-2 h-4 w-4" /> Plantilla
                         </Link>
                     </Button>
                     <Button variant="ghost" size="icon">
@@ -197,7 +197,7 @@ export default function GestionEquiposPage() {
 
   const form = useForm<TeamFormInputs>({
     resolver: zodResolver(teamSchema),
-    defaultValues: { name: '', club: '', season: '' },
+    defaultValues: { name: '', club: '', competition: '' },
   });
 
   const teamsCollectionRef = useMemoFirebase(() => {
@@ -318,12 +318,12 @@ export default function GestionEquiposPage() {
                     />
                     <FormField
                     control={form.control}
-                    name="season"
+                    name="competition"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Temporada (Opcional)</FormLabel>
+                        <FormLabel>Competición (Opcional)</FormLabel>
                         <FormControl>
-                            <Input placeholder="Ej: 2024-2025" {...field} />
+                            <Input placeholder="Ej: 2ª Andaluza" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
