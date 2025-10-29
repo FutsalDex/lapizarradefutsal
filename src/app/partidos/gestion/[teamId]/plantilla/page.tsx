@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { collection, doc, writeBatch } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,7 +21,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, UserPlus, Trash2, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -54,7 +53,6 @@ export default function TeamRosterPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const teamRef = useMemoFirebase(() => {
@@ -100,15 +98,16 @@ export default function TeamRosterPage() {
       const playersRef = collection(firestore, `teams/${teamId}/players`);
 
       const initialPlayerMap = new Map(initialPlayers?.map(p => [p.id, p]));
-      const currentPlayerMap = new Map(data.players.filter(p => p.id).map(p => [p.id, p]));
       
+      // Delete players that are no longer in the form
       initialPlayers?.forEach(initialPlayer => {
-        if (!currentPlayerMap.has(initialPlayer.id)) {
+        if (!data.players.find(p => p.id === initialPlayer.id)) {
           const docRef = doc(playersRef, initialPlayer.id);
           batch.delete(docRef);
         }
       });
       
+      // Add or update players from the form
       data.players.forEach(player => {
         const docRef = player.id ? doc(playersRef, player.id) : doc(playersRef);
         const playerData = {
@@ -117,15 +116,7 @@ export default function TeamRosterPage() {
           position: player.position ?? null,
           role: 'player'
         };
-
-        const initialPlayer = initialPlayerMap.get(player.id || '');
-        if (!initialPlayer || 
-            initialPlayer.name !== playerData.name ||
-            initialPlayer.number !== playerData.number ||
-            initialPlayer.position !== playerData.position
-        ) {
-            batch.set(docRef, playerData, { merge: true });
-        }
+        batch.set(docRef, playerData, { merge: true });
       });
 
       await batch.commit();
@@ -144,8 +135,9 @@ export default function TeamRosterPage() {
   };
 
   const isOwner = user?.uid === team?.ownerId;
+  const isLoading = isLoadingTeam || isLoadingPlayers;
 
-  if (isLoadingTeam || isLoadingPlayers) {
+  if (isLoading && !team) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
         <Skeleton className="h-10 w-48" />
@@ -179,7 +171,6 @@ export default function TeamRosterPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Información del Equipo</CardTitle>
-                <CardDescription>Datos generales del equipo y cuerpo técnico.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -196,25 +187,13 @@ export default function TeamRosterPage() {
                     <Input readOnly value={team?.competition || ''} />
                   </div>
                 </div>
-                 <div>
-                    <Label>Cuerpo Técnico</Label>
-                     <div className="p-4 border rounded-md flex items-center gap-4 mt-2">
-                        <RadioGroup defaultValue={user?.uid} className="flex items-center">
-                            <RadioGroupItem value={user?.uid} id={user?.uid} checked/>
-                        </RadioGroup>
-                        <div>
-                            <p className='font-medium'>{user?.displayName || user?.email}</p>
-                            <p className='text-sm text-muted-foreground'>Entrenador</p>
-                        </div>
-                    </div>
-                </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Plantilla del Equipo</CardTitle>
-                <CardDescription>Introduce los datos de tus jugadores. Máximo 20. Todos los jugadores estarán disponibles para la convocatoria.</CardDescription>
+                <CardDescription>Introduce los datos de tus jugadores. Máximo 20.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flow-root">
@@ -271,7 +250,7 @@ export default function TeamRosterPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                       {isOwner && (
-                                        <Button variant="ghost" size="icon" onClick={() => remove(index)}>
+                                        <Button variant="ghost" size="icon" type="button" onClick={() => remove(index)}>
                                           <Trash2 className="h-4 w-4" />
                                           <span className="sr-only">Eliminar</span>
                                         </Button>
