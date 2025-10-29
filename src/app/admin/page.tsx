@@ -20,13 +20,20 @@ const adminItems = [
   },
 ];
 
-function AuthGuard({ children }: { children: React.ReactNode }) {
+
+export default function AdminPage() {
     const { user, isUserLoading } = useUser();
     const isAdmin = user?.email === 'futsaldex@gmail.com';
-  
+
     if (isUserLoading) {
       return (
         <div className="container mx-auto px-4 py-8 text-center">
+            <div className="text-center mb-10">
+                <h1 className="text-4xl font-bold font-headline text-primary">Panel de Administración</h1>
+                <p className="text-lg text-muted-foreground mt-2">
+                    Cargando...
+                </p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 <Skeleton className="h-64 w-full" />
                 <Skeleton className="h-64 w-full" />
@@ -44,23 +51,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
            </div>
       )
     }
-  
-    return <>{children}</>;
-}
 
-export default function AdminPage() {
-  const { user } = useUser();
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="text-center mb-10">
+                <h1 className="text-4xl font-bold font-headline text-primary">Panel de Administración</h1>
+                <p className="text-lg text-muted-foreground mt-2">
+                {user ? `Bienvenido, ${user.displayName || 'administrador'}.` : 'Bienvenido.'} 
+                </p>
+            </div>
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold font-headline text-primary">Panel de Administración</h1>
-            <p className="text-lg text-muted-foreground mt-2">
-            {user ? `Bienvenido, ${user.displayName || 'administrador'}.` : 'Bienvenido.'} 
-            </p>
-        </div>
-
-        <AuthGuard>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 {adminItems.map((item) => (
                 <Card key={item.title} className="flex flex-col hover:shadow-lg transition-shadow">
@@ -82,7 +82,6 @@ export default function AdminPage() {
                 </Card>
                 ))}
             </div>
-        </AuthGuard>
-    </div>
-  );
+        </div>
+    );
 }

@@ -224,46 +224,59 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
     )
 }
 
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isUserLoading } = useUser();
+export default function GestionPage() {
+    const { user, isUserLoading } = useUser();
 
   if (isUserLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        <div className="md:col-span-2">
-           <Skeleton className="h-64 w-full" />
-        </div>
-        <div className="md:col-span-1">
-          <Skeleton className="h-48 w-full" />
-        </div>
+        <div className="container mx-auto px-4 py-8">
+            <div className="mb-8 text-center">
+                <h1 className="text-4xl font-bold font-headline text-primary flex items-center justify-center">
+                    <Shield className="mr-3 h-10 w-10" />
+                    Gestión de Equipos
+                </h1>
+                <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="md:col-span-2">
+                <Skeleton className="h-64 w-full" />
+                </div>
+                <div className="md:col-span-1">
+                <Skeleton className="h-48 w-full" />
+                </div>
+            </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <Card className="text-center py-16 max-w-lg mx-auto">
-        <CardHeader>
-          <CardTitle>Acceso Requerido</CardTitle>
-          <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild>
-            <Link href="/acceso">
-              <Eye className="mr-2 h-4 w-4" />
-              Iniciar Sesión o Registrarse
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+        <div className="container mx-auto px-4 py-8">
+            <div className="mb-8 text-center">
+                 <h1 className="text-4xl font-bold font-headline text-primary flex items-center justify-center">
+                    <Shield className="mr-3 h-10 w-10" />
+                    Gestión de Equipos
+                </h1>
+                <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
+            </div>
+            <Card className="text-center py-16 max-w-lg mx-auto">
+                <CardHeader>
+                <CardTitle>Acceso Requerido</CardTitle>
+                <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                <Button asChild>
+                    <Link href="/acceso">
+                    <Eye className="mr-2 h-4 w-4" />
+                    Iniciar Sesión o Registrarse
+                    </Link>
+                </Button>
+                </CardContent>
+            </Card>
+      </div>
     );
   }
 
-  return <>{children}</>;
-}
-
-
-export default function GestionPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
@@ -274,18 +287,14 @@ export default function GestionPage() {
         <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
       </div>
 
-      <AuthGuard>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <div className="md:col-span-2">
               <TeamList />
             </div>
             <div className="md:col-span-1">
               <CreateTeamForm />
             </div>
-          </div>
-      </AuthGuard>
+        </div>
     </div>
   );
 }
-
-    
