@@ -57,16 +57,14 @@ interface TeamInvitation {
 
 function TeamList() {
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, isUserLoading: isAuthLoading } = useUser();
     const { toast } = useToast();
 
-    // Query for teams owned by the current user
     const ownedTeamsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
     }, [firestore, user]);
 
-    // Query for accepted invitations for the current user
     const acceptedInvitationsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'accepted'));
@@ -77,10 +75,8 @@ function TeamList() {
 
     const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
     
-    // Query for teams the user is a member of (but doesn't own)
     const memberTeamsQuery = useMemoFirebase(() => {
         if (!firestore || memberTeamIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 items.
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
     }, [firestore, memberTeamIds]);
 
@@ -93,7 +89,7 @@ function TeamList() {
         return Array.from(teamsMap.values());
     }, [ownedTeams, memberTeams]);
     
-    const isLoading = isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
+    const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!firestore) return;
