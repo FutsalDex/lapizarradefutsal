@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -40,6 +39,12 @@ const playerSchema = z.object({
   dorsal: z.coerce.number().min(0, 'El dorsal debe ser positivo.').optional().nullable(),
   posicion: z.string().optional().nullable(),
   role: z.literal('player'),
+  pj: z.number().optional().default(0),
+  minutosJugados: z.number().optional().default(0),
+  goals: z.number().optional().default(0),
+  assists: z.number().optional().default(0),
+  ta: z.number().optional().default(0),
+  tr: z.number().optional().default(0),
 });
 
 const teamFormSchema = z.object({
@@ -84,7 +89,7 @@ export default function TeamRosterPage() {
 
   useEffect(() => {
     if (initialPlayers) {
-      form.reset({ players: initialPlayers });
+      form.reset({ players: initialPlayers.map(p => ({...p, dorsal: p.dorsal ?? null})) });
     }
   }, [initialPlayers, form]);
 
@@ -114,13 +119,22 @@ export default function TeamRosterPage() {
       // Additions and Updates
       data.players.forEach(player => {
         const docRef = player.id ? doc(playersRef, player.id) : doc(playersRef);
+        // We only want to save the editable fields, not the stats.
         const playerData = {
           name: player.name,
           dorsal: player.dorsal ?? null,
           posicion: player.posicion ?? null,
           role: 'player'
         };
-        batch.set(docRef, playerData, { merge: true });
+
+        const initialPlayer = initialPlayerMap.get(player.id || '');
+        if (!initialPlayer || 
+            initialPlayer.name !== playerData.name ||
+            initialPlayer.dorsal !== playerData.dorsal ||
+            initialPlayer.posicion !== playerData.posicion
+        ) {
+            batch.set(docRef, playerData, { merge: true });
+        }
       });
 
       await batch.commit();
@@ -218,9 +232,15 @@ export default function TeamRosterPage() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className='w-[100px]'>Dorsal</TableHead>
-                                  <TableHead>Nombre</TableHead>
-                                  <TableHead>Posición</TableHead>
+                                  <TableHead className='w-[80px]'>Dorsal</TableHead>
+                                  <TableHead className='min-w-[150px]'>Nombre</TableHead>
+                                  <TableHead className='min-w-[150px]'>Posición</TableHead>
+                                  <TableHead>PJ</TableHead>
+                                  <TableHead>Min</TableHead>
+                                  <TableHead>Goles</TableHead>
+                                  <TableHead>Asis</TableHead>
+                                  <TableHead>TA</TableHead>
+                                  <TableHead>TR</TableHead>
                                   <TableHead className="text-right w-[100px]">Acciones</TableHead>
                                 </TableRow>
                               </TableHeader>
@@ -231,7 +251,7 @@ export default function TeamRosterPage() {
                                       <FormField
                                         control={form.control}
                                         name={`players.${index}.dorsal`}
-                                        render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} disabled={!isOwner} />}
+                                        render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} disabled={!isOwner} className="w-16" />}
                                       />
                                     </TableCell>
                                     <TableCell>
@@ -264,6 +284,12 @@ export default function TeamRosterPage() {
                                         )}
                                       />
                                     </TableCell>
+                                     <TableCell className="text-center">{field.pj}</TableCell>
+                                    <TableCell className="text-center">{field.minutosJugados}</TableCell>
+                                    <TableCell className="text-center">{field.goals}</TableCell>
+                                    <TableCell className="text-center">{field.assists}</TableCell>
+                                    <TableCell className="text-center">{field.ta}</TableCell>
+                                    <TableCell className="text-center">{field.tr}</TableCell>
                                     <TableCell className="text-right">
                                       {isOwner && (
                                         <Button variant="ghost" size="icon" onClick={() => remove(index)}>
