@@ -56,7 +56,7 @@ function TeamsTable({ teams, users }: { teams: Team[], users: UserProfile[] }) {
 
 export default function AdminTeamsPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const isAdmin = user?.email === 'futsaldex@gmail.com';
 
   const teamsCollectionRef = useMemoFirebase(() => {
@@ -72,8 +72,16 @@ export default function AdminTeamsPage() {
   const { data: teams, isLoading: isLoadingTeams } = useCollection<Team>(teamsCollectionRef);
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersCollectionRef);
 
-  const isLoading = (isLoadingTeams || isLoadingUsers) && isAdmin;
+  const isLoading = (isAuthLoading || isLoadingTeams || isLoadingUsers);
   
+  if (isAuthLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
          <div className="container mx-auto px-4 py-8 text-center">
