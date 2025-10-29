@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, Timestamp, doc, addDoc, serverTimestamp, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser, useDoc } from '@/firebase';
@@ -17,7 +17,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -44,6 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
 
 
 interface Match {
@@ -137,6 +137,7 @@ export default function TeamMatchesPage() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   const form = useForm<MatchFormData>();
+  const filterOptions = ["Todos", "Liga", "Copa", "Torneo", "Amistoso"];
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -190,6 +191,7 @@ export default function TeamMatchesPage() {
             matchday: '',
             competition: '',
             isFinished: true,
+            matchType: undefined,
         });
     }
     setIsFormOpen(true);
@@ -371,16 +373,22 @@ export default function TeamMatchesPage() {
         </div>
       </div>
       
-       <div className="border rounded-lg p-1 mb-6 max-w-lg mx-auto bg-muted">
-        <Tabs defaultValue="Todos" onValueChange={setFilter} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-transparent p-0">
-                <TabsTrigger value="Todos" className="data-[state=active]:bg-background">Todos</TabsTrigger>
-                <TabsTrigger value="Liga" className="data-[state=active]:bg-background">Liga</TabsTrigger>
-                <TabsTrigger value="Copa" className="data-[state=active]:bg-background">Copa</TabsTrigger>
-                <TabsTrigger value="Torneo" className="data-[state=active]:bg-background">Torneo</TabsTrigger>
-                <TabsTrigger value="Amistoso" className="data-[state=active]:bg-background">Amistoso</TabsTrigger>
-            </TabsList>
-        </Tabs>
+       <div className="mb-6 rounded-lg border p-2">
+            <div className="flex items-center gap-2">
+                {filterOptions.map((option) => (
+                    <Button
+                        key={option}
+                        variant={filter === option ? 'default' : 'ghost'}
+                        onClick={() => setFilter(option)}
+                        className={cn(
+                            "rounded-md px-3 py-1 text-sm font-medium",
+                            filter === option ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                        )}
+                    >
+                        {option}
+                    </Button>
+                ))}
+            </div>
        </div>
 
 
