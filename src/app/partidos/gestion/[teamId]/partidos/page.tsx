@@ -105,7 +105,23 @@ function MatchCard({ match, onEdit, onDelete, onConvocatoria }: { match: Match, 
                     <Link href="#"><BarChart2 className="h-4 w-4" /></Link>
                 </Button>
                 <Button variant="ghost" size="icon" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
-                <Button variant="destructive" size="icon" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                      <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro de que quieres eliminar el partido?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                          Esta acción no se puede deshacer. Se eliminará permanentemente el partido y todos sus datos.
+                      </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={onDelete}>Eliminar</AlertDialogAction>
+                      </AlertDialogFooter>
+                  </AlertDialogContent>
+              </AlertDialog>
             </CardFooter>
         </Card>
     );
@@ -408,29 +424,9 @@ export default function TeamMatchesPage() {
                 <MatchCard 
                     match={match} 
                     onEdit={() => handleOpenForm(match)}
-                    onDelete={() => {
-                        const dialog = document.getElementById(`delete-dialog-trigger-${match.id}`);
-                        dialog?.click();
-                    }}
+                    onDelete={() => handleDelete(match.id)}
                     onConvocatoria={() => handleOpenConvocatoria(match)}
                 />
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <button id={`delete-dialog-trigger-${match.id}`} className='hidden' />
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro de que quieres eliminar el partido?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Se eliminará permanentemente el partido y todos sus datos.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(match.id)}>Eliminar</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
             </React.Fragment>
           ))}
         </div>
@@ -502,5 +498,7 @@ function ConvocatoriaForm({ players, convocadosIniciales, onSave }: { players: P
         </form>
     );
 }
+
+    
 
     
