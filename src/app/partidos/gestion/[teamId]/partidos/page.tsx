@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, PlusCircle, Trophy, ClipboardList, BarChart2, Eye, Pencil, Trash2, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Trophy, ClipboardList, BarChart2, Eye, Pencil, Trash2, Loader2, Clock, CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -75,39 +75,65 @@ interface Player {
 }
 
 
-function MatchCard({ match, onEdit, onDelete, onConvocatoria }: { match: Match, onEdit: () => void, onDelete: () => void, onConvocatoria: () => void }) {
-    const matchDate = new Date(match.date as any);
+function MatchCard({ match, onEdit, onDelete, onConvocatoria, teamName }: { match: Match, onEdit: () => void, onDelete: () => void, onConvocatoria: () => void, teamName: string }) {
+    const matchDate = match.date ? new Date( (match.date as Timestamp).toDate ? (match.date as Timestamp).toDate() : match.date as string) : new Date();
+    
+    const isLocal = match.localTeam === teamName;
+    const localScore = match.localScore;
+    const visitorScore = match.visitorScore;
+
+    let result: 'W' | 'L' | 'D' = 'D';
+    if(match.isFinished) {
+      if(localScore > visitorScore) result = isLocal ? 'W' : 'L';
+      else if (visitorScore > localScore) result = isLocal ? 'L' : 'W';
+      else result = 'D';
+    }
+    
+    const resultColor = result === 'W' ? 'bg-green-500/20 text-green-700' : result === 'L' ? 'bg-red-500/20 text-red-700' : 'bg-gray-500/20 text-gray-700';
+
 
     return (
         <Card className="flex flex-col hover:shadow-md transition-shadow bg-card">
             <CardContent className="p-4 flex-grow flex flex-col justify-between">
-                <div className="text-center">
-                    <p className="font-semibold text-lg">{match.localTeam} vs {match.visitorTeam}</p>
-                    <p className="text-sm text-muted-foreground">
-                        {matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                <div className='flex justify-between items-start text-xs text-muted-foreground'>
+                   <span>Jornada {match.matchday || '-'}</span>
+                   <Badge variant="outline">{match.matchType}</Badge>
+                </div>
+                <div className="text-center grid grid-cols-3 items-center my-4">
+                    <p className="font-semibold text-sm truncate text-right">{match.localTeam}</p>
+                    <p className="text-3xl font-bold tracking-tight text-center text-primary">
+                        <span>{localScore}</span>
+                        <span className="mx-1 text-2xl text-muted-foreground">-</span>
+                        <span>{visitorScore}</span>
                     </p>
+                    <p className="font-semibold text-sm truncate text-left">{match.visitorTeam}</p>
                 </div>
-                 <div className="text-5xl font-bold tracking-tight text-center my-4 text-primary">
-                    <span>{match.localScore}</span>
-                    <span className="mx-2 text-3xl text-muted-foreground">-</span>
-                    <span>{match.visitorScore}</span>
-                </div>
-                <div className='text-center'>
-                    <Badge variant="secondary">{match.matchType}</Badge>
+                <div className='flex justify-center items-center text-xs text-muted-foreground gap-2'>
+                    <CalendarIcon className='h-3 w-3'/>
+                    <span>
+                      {matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                       - 
+                      {matchDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                     {match.isFinished && (
+                        <span className={cn('font-bold ml-2 px-2 py-0.5 rounded-full text-xs', resultColor)}>
+                           {result}
+                        </span>
+                    )}
                 </div>
             </CardContent>
-            <CardFooter className="p-2 bg-muted/50 border-t flex justify-around">
-                <Button variant="ghost" size="sm" onClick={onConvocatoria}><ClipboardList className="mr-2 h-4 w-4"/>Convocar</Button>
-                 <Button asChild variant="ghost" size="icon" disabled>
-                    <Link href="#"><Clock className="h-4 w-4" /></Link>
+            <CardFooter className="p-2 bg-muted/50 border-t grid grid-cols-5 gap-1">
+                 <Button variant="ghost" size="sm" onClick={onConvocatoria} className="text-xs h-8"><ClipboardList className="mr-1 h-3 w-3"/>Conv.</Button>
+                 <Button asChild variant="ghost" size="sm" className="text-xs h-8" disabled>
+                    <Link href="#"><Clock className="mr-1 h-3 w-3" />Directo</Link>
                 </Button>
-                <Button asChild variant="ghost" size="icon" disabled>
-                    <Link href="#"><BarChart2 className="h-4 w-4" /></Link>
+                <Button asChild variant="ghost" size="sm" className="text-xs h-8" disabled>
+                    <Link href="#"><BarChart2 className="mr-1 h-3 w-3" />Stats</Link>
                 </Button>
-                <Button variant="ghost" size="icon" onClick={onEdit}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="sm" onClick={onEdit} className="text-xs h-8"><Pencil className="mr-1 h-3 w-3" />Editar</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="icon"><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="sm" className="text-xs h-8"><Trash2 className="mr-1 h-3 w-3" />Eliminar</Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                       <AlertDialogHeader>
@@ -173,12 +199,15 @@ export default function TeamMatchesPage() {
     let q = query(
       collection(firestore, 'matches'), 
       where('teamId', '==', teamId), 
-      where('userId', '==', user.uid),
-      orderBy('date', 'asc')
+      where('userId', '==', user.uid)
     );
+
     if (filter !== 'Todos') {
         q = query(q, where('matchType', '==', filter));
     }
+    
+    q = query(q, orderBy('date', 'asc'));
+    
     return q;
   }, [firestore, teamId, user, filter]);
 
@@ -206,7 +235,7 @@ export default function TeamMatchesPage() {
             visitorScore: 0,
             date: '',
             matchday: '',
-            competition: '',
+            competition: team?.competition || '',
             isFinished: true,
             matchType: undefined,
         });
@@ -286,10 +315,13 @@ export default function TeamMatchesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-start mb-8 flex-wrap gap-4">
-        <h1 className="text-3xl font-bold font-headline">
-            Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
-        </h1>
+       <div className="flex justify-between items-start mb-4 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+            <Trophy className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold font-headline">
+                Partidos de {isLoadingTeam ? <Skeleton className="h-8 w-32 inline-block" /> : team?.name}
+            </h1>
+        </div>
         <div className="flex gap-2">
             <Button asChild variant="outline">
                 <Link href={`/partidos/gestion/${teamId}`}>
@@ -376,6 +408,17 @@ export default function TeamMatchesPage() {
                                 </FormItem>
                                 )}/>
                             </div>
+                            <FormField control={form.control} name="isFinished" render={({ field }) => (
+                                <FormItem className='flex flex-row items-center justify-start gap-2 pt-2'>
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className='!mt-0'>¿Partido finalizado?</FormLabel>
+                                </FormItem>
+                            )}/>
                             <DialogFooter>
                                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                                 <Button type="submit" disabled={form.formState.isSubmitting}>
@@ -426,6 +469,7 @@ export default function TeamMatchesPage() {
                     onEdit={() => handleOpenForm(match)}
                     onDelete={() => handleDelete(match.id)}
                     onConvocatoria={() => handleOpenConvocatoria(match)}
+                    teamName={team?.name || ''}
                 />
             </React.Fragment>
           ))}
@@ -498,7 +542,3 @@ function ConvocatoriaForm({ players, convocadosIniciales, onSave }: { players: P
         </form>
     );
 }
-
-    
-
-    

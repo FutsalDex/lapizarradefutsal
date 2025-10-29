@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useDoc, useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { doc, collection, addDoc, serverTimestamp, where, query, deleteDoc } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp, where, query, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -40,10 +40,17 @@ interface Team {
 
 interface TeamInvitation {
     id: string;
-    userId: string;
+    userId: string; // ID of the invited user
+    email: string; // email of the invited user
+    name: string; // name of the invited user
     role: string;
-    name?: string;
-    email: string; 
+    status: 'pending' | 'accepted' | 'rejected';
+}
+
+interface UserProfile {
+    id: string;
+    email: string;
+    displayName?: string;
 }
 
 interface TeamMember {
@@ -79,44 +86,51 @@ export default function TeamMembersPage() {
     }, [firestore, teamId]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
+    // Get owner's user profile to display their name
+    const ownerProfileRef = useMemoFirebase(() => {
+        if (!firestore || !team?.ownerId) return null;
+        return doc(firestore, 'users', team.ownerId);
+    }, [firestore, team?.ownerId]);
+    const { data: ownerProfile, isLoading: isLoadingOwnerProfile } = useDoc<UserProfile>(ownerProfileRef);
+
     // 2. Get accepted invitations for this team
     const invitationsQuery = useMemoFirebase(() => {
         if (!firestore || !teamId) return null;
         return query(collection(firestore, 'teamInvitations'), where('teamId', '==', teamId), where('status', '==', 'accepted'));
     }, [firestore, teamId]);
+
     const { data: invitations, isLoading: isLoadingInvitations } = useCollection<TeamInvitation>(invitationsQuery);
     
     // 3. Combine data to create the final members list
     const staffMembers = useMemo<TeamMember[]>(() => {
-        if (!team || !user) return [];
+        if (!team) return [];
 
-        const members: TeamMember[] = [];
+        const membersMap = new Map<string, TeamMember>();
         
         // Add owner
-        if (team.ownerId === user.uid) {
-             members.push({
-                id: team.ownerId,
-                name: user.displayName || user.email || 'Propietario',
-                email: user.email || 'N/A',
+        if (ownerProfile) {
+             membersMap.set(ownerProfile.id, {
+                id: ownerProfile.id,
+                name: ownerProfile.displayName || ownerProfile.email || 'Propietario',
+                email: ownerProfile.email || 'N/A',
                 role: 'Propietario',
             });
         }
         
         // Add accepted members from invitations
         (invitations || []).forEach(inv => {
-            if (inv.userId !== team.ownerId) {
-                members.push({
+            if (!membersMap.has(inv.userId)) {
+                 membersMap.set(inv.userId, {
                     id: inv.userId,
-                    name: inv.name || inv.email || 'Miembro',
-                    email: inv.email || 'N/A',
+                    name: inv.name || inv.email,
+                    email: inv.email,
                     role: inv.role,
                     invitationId: inv.id,
                 });
             }
         });
-
-        return members;
-    }, [team, invitations, user]);
+        return Array.from(membersMap.values());
+    }, [team, invitations, ownerProfile]);
     
     const form = useForm<StaffInvitationForm>({
         resolver: zodResolver(staffInvitationSchema),
@@ -130,7 +144,7 @@ export default function TeamMembersPage() {
         const invitationData = {
             teamId: team.id,
             teamName: team.name,
-            userId: "TBD_BY_FUNCTION", // This should be resolved by a cloud function based on email
+            userId: "TBD_BY_FUNCTION", // This will be resolved by a cloud function based on email
             email: data.email, 
             name: data.name,
             role: data.role,
@@ -180,7 +194,26 @@ export default function TeamMembersPage() {
             });
     }
 
-    const isLoading = isLoadingTeam || isLoadingInvitations;
+    const handleRoleChange = async (memberId: string, newRole: string) => {
+         const member = staffMembers.find(m => m.id === memberId);
+         if (!firestore || !member?.invitationId) return;
+
+         const invitationRef = doc(firestore, 'teamInvitations', member.invitationId);
+         updateDoc(invitationRef, { role: newRole })
+            .then(() => {
+                toast({ title: 'Rol actualizado', description: `El rol de ${member.name} ahora es ${newRole}.`})
+            })
+            .catch(error => {
+                const permissionError = new FirestorePermissionError({
+                    path: invitationRef.path,
+                    operation: 'update',
+                    requestResourceData: { role: newRole }
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+    }
+
+    const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingOwnerProfile;
 
     if (isLoading && !team) {
         return (
@@ -310,7 +343,11 @@ export default function TeamMembersPage() {
                                         <TableCell className="font-medium">{member.name}</TableCell>
                                         <TableCell className="text-muted-foreground">{member.email}</TableCell>
                                         <TableCell>
-                                             <Select defaultValue={member.role} disabled={member.role === 'Propietario' || !isOwner}>
+                                             <Select 
+                                                defaultValue={member.role} 
+                                                disabled={member.role === 'Propietario' || !isOwner}
+                                                onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
+                                             >
                                                 <SelectTrigger className="w-[180px]">
                                                     <SelectValue />
                                                 </SelectTrigger>
@@ -319,6 +356,12 @@ export default function TeamMembersPage() {
                                                     <SelectItem value="Entrenador">Entrenador</SelectItem>
                                                     <SelectItem value="2º Entrenador">2º Entrenador</SelectItem>
                                                     <SelectItem value="Delegado">Delegado</SelectItem>
+                                                    <SelectItem value="Preparador Físico">Preparador Físico</SelectItem>
+                                                    <SelectItem value="Analista">Analista Táctico/Scouting</SelectItem>
+                                                    <SelectItem value="Fisioterapeuta">Fisioterapeuta</SelectItem>
+                                                    <SelectItem value="Médico">Médico</SelectItem>
+                                                    <SelectItem value="Psicólogo">Psicólogo</SelectItem>
+                                                    <SelectItem value="Nutricionista">Nutricionista</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </TableCell>
