@@ -12,7 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, UserCircle, BookOpen, Edit, Users, Heart, Shield } from "lucide-react";
+import { Menu, UserCircle, BookOpen, Edit, Heart, Shield } from "lucide-react";
 import { useUser } from "@/firebase/use-auth-user";
 import { useAuth } from "@/firebase/provider";
 import { signOut } from "firebase/auth";
