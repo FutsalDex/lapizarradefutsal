@@ -229,16 +229,20 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isUserLoading) {
     return (
-      <div className="space-y-8">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="md:col-span-2">
+           <Skeleton className="h-64 w-full" />
+        </div>
+        <div className="md:col-span-1">
+          <Skeleton className="h-48 w-full" />
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <Card className="text-center py-16">
+      <Card className="text-center py-16 max-w-lg mx-auto">
         <CardHeader>
           <CardTitle>Acceso Requerido</CardTitle>
           <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
@@ -270,18 +274,16 @@ export default function GestionPage() {
         <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        <div className="md:col-span-2">
-           <AuthGuard>
+      <AuthGuard>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="md:col-span-2">
               <TeamList />
-           </AuthGuard>
-        </div>
-        <div className="md:col-span-1">
-          <AuthGuard>
-            <CreateTeamForm />
-          </AuthGuard>
-        </div>
-      </div>
+            </div>
+            <div className="md:col-span-1">
+              <CreateTeamForm />
+            </div>
+          </div>
+      </AuthGuard>
     </div>
   );
 }
