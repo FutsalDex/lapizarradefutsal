@@ -60,13 +60,11 @@ export default function AdminTeamsPage() {
   const isAdmin = user?.email === 'futsaldex@gmail.com';
 
   const teamsCollectionRef = useMemoFirebase(() => {
-    // Only build the query if the user is an admin
     if (!firestore || !isAdmin) return null;
     return collection(firestore, 'teams');
   }, [firestore, isAdmin]);
 
   const usersCollectionRef = useMemoFirebase(() => {
-    // Only build the query if the user is an admin
     if(!firestore || !isAdmin) return null;
     return collection(firestore, 'users');
   }, [firestore, isAdmin]);
