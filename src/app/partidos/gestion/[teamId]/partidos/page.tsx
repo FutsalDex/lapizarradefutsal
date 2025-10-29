@@ -19,7 +19,7 @@ interface Match {
     id: string;
     competition: string;
     createdAt: Timestamp;
-    date: Timestamp;
+    date: Timestamp | Date | string;
     isFinished: boolean;
     localScore: number;
     localTeam: string;
@@ -32,7 +32,7 @@ interface Match {
 }
 
 function MatchCard({ match }: { match: Match }) {
-    const matchDate = match.date.toDate();
+    const matchDate = new Date(match.date as any);
 
     return (
         <Card className="flex flex-col">
