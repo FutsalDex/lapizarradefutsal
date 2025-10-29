@@ -60,11 +60,13 @@ function TeamList() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const { toast } = useToast();
 
+    // Query for teams the user owns
     const ownedTeamsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
     }, [firestore, user]);
 
+    // Query for invitations the user has accepted
     const acceptedInvitationsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'accepted'));
@@ -74,11 +76,11 @@ function TeamList() {
     const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
 
     const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
-    
-    // CRITICAL: This query must depend on memberTeamIds being populated.
+
+    // CRITICAL: This query depends on memberTeamIds being populated.
+    // It will only run when memberTeamIds has content.
     const memberTeamsQuery = useMemoFirebase(() => {
         if (!firestore || memberTeamIds.length === 0) return null;
-        // Firestore 'in' queries are limited to 30 elements.
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
     }, [firestore, memberTeamIds]);
 
@@ -91,9 +93,8 @@ function TeamList() {
         return Array.from(teamsMap.values());
     }, [ownedTeams, memberTeams]);
     
-    // isLoading is true if auth is loading, or if any subsequent dependent queries are loading.
+    // isLoading is true if any dependent query is still running.
     const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (memberTeamIds.length > 0 && isLoadingMemberTeams);
-
 
     const handleDeleteTeam = async (teamId: string) => {
         if (!firestore) return;
@@ -200,6 +201,7 @@ export default function GestionEquiposPage() {
   }, [firestore]);
 
   const userInvitationsQuery = useMemoFirebase(() => {
+    // Only build the query if the user is loaded and exists
     if (!firestore || !user) return null;
     return query(collection(firestore, 'teamInvitations'), where('userId', '==', user.uid), where('status', '==', 'pending'));
   }, [firestore, user]);
