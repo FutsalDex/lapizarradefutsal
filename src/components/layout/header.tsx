@@ -30,13 +30,17 @@ const navLinks = [
   { href: "/sesiones", label: "Crear Sesión", icon: <Edit className="h-4 w-4" /> },
   { href: "/partidos", label: "Mi Equipo", icon: <Users className="h-4 w-4" /> },
   { href: "/favoritos", label: "Favoritos", icon: <Heart className="h-4 w-4" /> },
-  { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> },
 ];
+
+const adminLink = { href: "/admin", label: "Panel Admin", icon: <Shield className="h-4 w-4" /> };
+
 
 export function Header() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  
+  const isAdmin = user?.email === 'futsaldex@gmail.com';
 
   const handleSignOut = () => {
     signOut(auth);
@@ -73,6 +77,8 @@ export function Header() {
     );
   };
 
+  const allNavLinks = isAdmin ? [...navLinks, adminLink] : navLinks;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
       <div className="container flex h-16 items-center">
@@ -83,7 +89,7 @@ export function Header() {
             </span>
           </Link>
           <nav className="flex items-center space-x-1 text-xs font-light">
-            {navLinks.map((link) => (
+            {allNavLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -135,7 +141,7 @@ export function Header() {
               <SheetContent side="right">
                 <SheetTitle className="sr-only">Menú</SheetTitle>
                 <nav className="grid gap-4 text-base font-medium mt-8">
-                  {navLinks.map((link) => (
+                  {allNavLinks.map((link) => (
                     <SheetClose asChild key={link.href}>
                       <Link
                         href={link.href}
