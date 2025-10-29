@@ -151,11 +151,6 @@ function TeamList() {
                 </Button>
                 {team.ownerId === user?.uid && (
                   <>
-                    <Button variant="outline" asChild>
-                        <Link href={`/partidos/gestion/${team.id}/plantilla`}>
-                            <Users className="mr-2 h-4 w-4" /> Plantilla
-                        </Link>
-                    </Button>
                     <Button variant="ghost" size="icon">
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Editar</span>
