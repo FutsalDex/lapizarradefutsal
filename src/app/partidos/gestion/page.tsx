@@ -60,7 +60,7 @@ function TeamList() {
     const { user, isUserLoading: isAuthLoading } = useUser();
     const { toast } = useToast();
 
-    // Step 1: Verify user exists. These queries will be null until user is loaded.
+    // Step 1: Queries that depend only on the user being loaded.
     const ownedTeamsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
@@ -73,14 +73,17 @@ function TeamList() {
 
     const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
     const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
-
-    // Step 2: Verify we have the team IDs from invitations before querying the teams collection.
-    const memberTeamIds = useMemo(() => acceptedInvitations?.map(inv => inv.teamId) || [], [acceptedInvitations]);
     
-    // Step 3: Only build the member teams query if Step 2 is complete.
+    // Step 2: Extract team IDs from accepted invitations. This runs after acceptedInvitations is fetched.
+    const memberTeamIds = useMemo(() => {
+        if (!acceptedInvitations) return [];
+        return acceptedInvitations.map(inv => inv.teamId);
+    }, [acceptedInvitations]);
+
+    // Step 3: Query for member teams, only if there are any IDs to query for.
     const memberTeamsQuery = useMemoFirebase(() => {
         if (!firestore || memberTeamIds.length === 0) return null;
-        // Use slice(0,30) as 'in' queries support a maximum of 30 elements in Firestore v9/v10
+        // Firestore 'in' query is limited to 30 elements in v9/v10
         return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds.slice(0, 30)));
     }, [firestore, memberTeamIds]);
 
