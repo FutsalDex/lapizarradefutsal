@@ -195,8 +195,7 @@ const Scoreboard = ({
 // ====================
 // STATS TABLE COMPONENT
 // ====================
-const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean }) => {
-    const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
+const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[] }) => {
     const { toast } = useToast();
 
     const handleStatChange = (playerId: string, stat: keyof Player, increment: boolean) => {
@@ -218,20 +217,19 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
     };
 
     const toggleActivePlayer = (playerId: string) => {
-        setActivePlayerIds(prevIds => {
-            if (prevIds.includes(playerId)) {
-                return prevIds.filter(id => id !== playerId);
-            }
-            if (prevIds.length < 5) {
-                return [...prevIds, playerId];
-            }
+        const newActiveIds = activePlayerIds.includes(playerId)
+            ? activePlayerIds.filter(id => id !== playerId)
+            : [...activePlayerIds, playerId];
+
+        if (newActiveIds.length > 5) {
             toast({
                 title: 'Límite alcanzado',
                 description: 'Ya has seleccionado 5 jugadores.',
                 variant: 'destructive',
             });
-            return prevIds; // Limit to 5 active players
-        });
+            return;
+        }
+        onActivePlayersChange(newActiveIds);
     }
 
     const StatButton = ({ stat, playerId }: { stat: keyof Player, playerId: string }) => (
@@ -522,6 +520,8 @@ export default function MatchStatsPage() {
                 match={localMatchData}
                 onUpdate={handleUpdate}
                 isMyTeam={true}
+                onActivePlayersChange={setActivePlayers}
+                activePlayerIds={activePlayers}
             />
         </TabsContent>
         <TabsContent value="opponent">
