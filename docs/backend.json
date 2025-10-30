@@ -80,6 +80,7 @@
         "createdAt": {"type": "string", "format": "date-time"},
         "name": {"type": "string"},
         "ownerId": {"type": "string"},
+        "ownerName": {"type": "string"},
         "memberIds": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["name", "ownerId"]

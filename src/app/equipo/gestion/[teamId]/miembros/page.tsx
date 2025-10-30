@@ -53,17 +53,14 @@ interface Team {
   club?: string;
   competition?: string;
   ownerId: string;
-}
-
-interface UserProfile {
-  displayName?: string;
+  ownerName?: string;
 }
 
 // ====================
 // COMPONENTES
 // ====================
 
-function InfoCard({ team, owner, isLoadingOwner }: { team: Team, owner?: UserProfile | null, isLoadingOwner: boolean }) {
+function InfoCard({ team }: { team: Team }) {
     const InfoField = ({ label, value }: { label: string, value: string }) => (
         <div>
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
@@ -89,11 +86,7 @@ function InfoCard({ team, owner, isLoadingOwner }: { team: Team, owner?: UserPro
                     <p className="text-sm font-medium text-muted-foreground">Cuerpo Técnico</p>
                     <div className="border rounded-md p-3 mt-1 flex items-center bg-muted/50">
                         <div className="w-5 h-5 border-2 border-muted-foreground/50 rounded-full mr-3"></div>
-                       {isLoadingOwner ? (
-                         <span className='text-sm'>Cargando entrenador...</span>
-                       ) : (
-                         <span className='text-sm font-medium'>{owner?.displayName || 'Nombre no disponible'}</span>
-                       )}
+                       <span className='text-sm font-medium'>{team.ownerName || 'Nombre no disponible'}</span>
                        <span className='text-xs text-muted-foreground ml-2'>- Entrenador</span>
                     </div>
                 </div>
@@ -336,13 +329,6 @@ export default function MembersPage() {
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
   const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
 
-  const ownerRef = useMemoFirebase(() => {
-    if (!firestore || !team?.ownerId) return null;
-    return doc(firestore, 'users', team.ownerId);
-  }, [firestore, team?.ownerId]);
-
-  const { data: owner, isLoading: isLoadingOwner } = useDoc<UserProfile>(ownerRef);
-
   const isOwner = user && team && user.uid === team.ownerId;
   const isLoading = isLoadingTeam;
 
@@ -407,7 +393,7 @@ export default function MembersPage() {
       </div>
 
        <div className="space-y-8">
-         <InfoCard team={team} owner={owner} isLoadingOwner={isLoadingOwner} />
+         <InfoCard team={team} />
          <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
        </div>
     </div>

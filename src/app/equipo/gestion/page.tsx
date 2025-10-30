@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -66,6 +67,7 @@ function CreateTeamForm() {
         club: values.club,
         season: values.season,
         ownerId: user.uid,
+        ownerName: user.displayName,
         createdAt: serverTimestamp(),
       });
       toast({ title: 'Éxito', description: 'Equipo creado correctamente.' });
