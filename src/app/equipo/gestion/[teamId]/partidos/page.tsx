@@ -267,7 +267,7 @@ function AddMatchDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Juegas en casa o fuera?" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Casa">Casa</SelectItem>
@@ -297,29 +297,34 @@ function AddMatchDialog({
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match }: { match: Match }) {
-  const { isFinished, localScore = 0, visitorScore = 0 } = match;
+function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
+  const { isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0 } = match;
 
   const getResultClasses = () => {
     if (!isFinished) return 'text-muted-foreground';
-    if (localScore === visitorScore) return 'text-muted-foreground';
-    return localScore > visitorScore ? 'text-green-600' : 'text-red-600';
+
+    const isUserTeamLocal = localTeam === teamName;
+    const userTeamScore = isUserTeamLocal ? localScore : visitorScore;
+    const opponentScore = isUserTeamLocal ? visitorScore : localScore;
+
+    if (userTeamScore === opponentScore) return 'text-muted-foreground';
+    return userTeamScore > opponentScore ? 'text-green-600' : 'text-red-600';
   };
 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
-  const scoreDisplay = `${localScore} - ${visitorScore}`;
+  const scoreDisplay = isFinished ? `${localScore} - ${visitorScore}` : 'vs';
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="text-center">
         <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
         <CardDescription>
-          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha no válida'}
+          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center">
         <p className={`text-5xl font-bold ${getResultClasses()}`}>
-          {isFinished ? scoreDisplay : 'vs'}
+          {scoreDisplay}
         </p>
         <Badge variant="secondary" className="mt-4">
           {match.matchType}
@@ -453,7 +458,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} />
+            <MatchCard key={match.id} match={match} teamName={team.name} />
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">
