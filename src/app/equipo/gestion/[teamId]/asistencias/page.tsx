@@ -71,7 +71,7 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
   const dateId = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
 
   const fetchAttendanceRecord = useCallback(async (date: Date | undefined) => {
-    if (!date || !firestore) return;
+    if (!date || !firestore || !sortedPlayers) return;
     setIsLoadingRecord(true);
     const recordId = format(date, 'yyyy-MM-dd');
     const recordRef = doc(firestore, `teams/${teamId}/attendance`, recordId);
