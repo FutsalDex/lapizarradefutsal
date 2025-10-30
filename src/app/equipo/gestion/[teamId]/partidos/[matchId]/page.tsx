@@ -66,6 +66,16 @@ interface Match {
 type Period = '1H' | '2H';
 
 // ====================
+// HELPER FUNCTIONS
+// ====================
+const formatStatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+
+// ====================
 // SCOREBOARD COMPONENT
 // ====================
 const FoulIndicator = ({ count }: { count: number }) => (
@@ -79,36 +89,36 @@ const FoulIndicator = ({ count }: { count: number }) => (
 const Scoreboard = ({
   match,
   onUpdate,
-  activePlayers,
   onMinuteTick,
+  isTimerActive,
+  setIsTimerActive
 }: {
   match: Match;
   onUpdate: (data: Partial<Match>) => void;
-  activePlayers: string[];
   onMinuteTick: () => void;
+  isTimerActive: boolean;
+  setIsTimerActive: (isActive: boolean) => void;
+
 }) => {
   const [time, setTime] = useState(20 * 60);
-  const [isActive, setIsActive] = useState(false);
   const [period, setPeriod] = useState<Period>('1H');
   
   const { toast } = useToast();
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (isActive && time > 0) {
+    if (isTimerActive && time > 0) {
       interval = setInterval(() => {
         setTime((prevTime) => prevTime - 1);
-        if (activePlayers.length > 0) {
-          onMinuteTick();
-        }
+        onMinuteTick();
       }, 1000);
     } else if (time === 0) {
-      setIsActive(false);
+      setIsTimerActive(false);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, time, activePlayers, onMinuteTick]);
+  }, [isTimerActive, time, onMinuteTick, setIsTimerActive]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -129,7 +139,7 @@ const Scoreboard = ({
   const resetPeriod = (newPeriod: Period) => {
     setPeriod(newPeriod);
     setTime(20 * 60);
-    setIsActive(false);
+    setIsTimerActive(false);
     onUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
     toast({ title: `Iniciada ${newPeriod === '1H' ? '1ª Parte' : '2ª Parte'}`})
   }
@@ -174,9 +184,9 @@ const Scoreboard = ({
 
 
         <div className="flex justify-center items-center gap-4">
-            <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm" className={cn(!isActive && "bg-primary hover:bg-primary/90")}>
-                {isActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                {isActive ? 'Pausar' : 'Iniciar'}
+            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant={isTimerActive ? "destructive" : "default"} size="sm" className={cn(!isTimerActive && "bg-primary hover:bg-primary/90")}>
+                {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
+                {isTimerActive ? 'Pausar' : 'Iniciar'}
             </Button>
             <Button onClick={() => resetPeriod(period)} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
@@ -269,25 +279,25 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20")}>
-                                        <TableCell className="py-2">
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "border-2 border-primary")}>
+                                        <TableCell className="py-1">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
                                                 <span className='text-black'>{player.name}</span>
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums py-2">{Math.floor((stats.minutesPlayed || 0) / 60)}</TableCell>
-                                        <TableCell className="py-2"><StatButton stat="goals" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="assists" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="redCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="fouls" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="recoveries" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="saves" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-2"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
+                                        <TableCell className="text-center tabular-nums py-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="py-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="recoveries" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="saves" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
@@ -394,6 +404,7 @@ export default function MatchStatsPage() {
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
   const [activePlayers, setActivePlayers] = useState<string[]>([]);
+  const [isTimerActive, setIsTimerActive] = useState(false);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
   const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
@@ -427,7 +438,7 @@ export default function MatchStatsPage() {
   };
 
   const handleMinuteTick = useCallback(() => {
-    if (localMatchData?.isFinished || activePlayers.length === 0) return;
+    if (localMatchData?.isFinished || activePlayers.length === 0 || !isTimerActive) return;
 
     setLocalMatchData(prev => {
       if (!prev) return null;
@@ -440,7 +451,7 @@ export default function MatchStatsPage() {
       debouncedUpdate(newState);
       return newState;
     });
-  }, [activePlayers, localMatchData?.isFinished, debouncedUpdate]);
+  }, [activePlayers, localMatchData?.isFinished, isTimerActive, debouncedUpdate]);
 
 
   const toggleMatchFinished = async () => {
@@ -506,7 +517,13 @@ export default function MatchStatsPage() {
         </div>
       </div>
 
-      <Scoreboard match={localMatchData} onUpdate={handleUpdate} activePlayers={activePlayers} onMinuteTick={handleMinuteTick} />
+      <Scoreboard 
+        match={localMatchData} 
+        onUpdate={handleUpdate} 
+        onMinuteTick={handleMinuteTick}
+        isTimerActive={isTimerActive}
+        setIsTimerActive={setIsTimerActive}
+      />
 
       <Tabs defaultValue="myTeam" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
