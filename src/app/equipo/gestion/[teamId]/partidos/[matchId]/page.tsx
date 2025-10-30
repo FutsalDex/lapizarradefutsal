@@ -410,9 +410,9 @@ export default function MatchStatsPage() {
     }
   }, [remoteMatchData]);
 
-  const debouncedUpdate = useCallback(_.debounce(async (data: Partial<Match>) => {
+  const debouncedUpdate = useCallback(_.debounce((data: Partial<Match>) => {
     if (!matchRef || remoteMatchData?.isFinished) return;
-    await updateDoc(matchRef, data);
+    updateDoc(matchRef, data);
     toast({title: "Autoguardado", description: "Cambios guardados."});
   }, 5000), [matchRef, toast, remoteMatchData?.isFinished]);
 
@@ -427,7 +427,7 @@ export default function MatchStatsPage() {
   };
 
   const handleMinuteTick = useCallback(() => {
-    if (localMatchData?.isFinished) return;
+    if (localMatchData?.isFinished || activePlayers.length === 0) return;
 
     setLocalMatchData(prev => {
       if (!prev) return null;
