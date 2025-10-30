@@ -91,17 +91,21 @@
       "properties": {
         "active": { "type": "boolean" },
         "assists": { "type": "number" },
-        "faltas": { "type": "number" },
-        "gRec": { "type": "number" },
+        "fouls": { "type": "number" },
+        "goalsConceded": { "type": "number" },
         "goals": { "type": "number" },
-        "minutosJugados": { "type": "number" },
+        "minutesPlayed": { "type": "number" },
         "name": { "type": "string" },
         "number": { "type": "string" },
-        "paradas": { "type": "number" },
-        "perdidas": { "type": "number" },
+        "saves": { "type": "number" },
+        "turnovers": { "type": "number" },
         "pj": { "type": "number" },
         "position": { "type": "string" },
-        "recuperaciones": { "type": "number" }
+        "recoveries": { "type": "number" },
+        "shotsOnTarget": { "type": "number" },
+        "shotsOffTarget": { "type": "number" },
+        "yellowCards": { "type": "number" },
+        "redCards": { "type": "number" }
       },
       "required": ["name", "number", "position"]
     },
@@ -122,7 +126,24 @@
         "userId": {"type": "string"},
         "visitorScore": {"type": "number"},
         "visitorTeam": {"type": "string"},
-        "squad": {"type": "array", "items": {"type": "string"}}
+        "squad": {"type": "array", "items": {"type": "string"}},
+        "playerStats": {
+          "type": "object",
+          "patternProperties": {
+            ".*": { "$ref": "#/entities/Player" }
+          }
+        },
+        "opponentStats": {
+          "type": "object",
+          "properties": {
+              "goals": {"type": "number"},
+              "fouls": {"type": "number"},
+              "shotsOnTarget": {"type": "number"},
+              "shotsOffTarget": {"type": "number"},
+              "shotsBlocked": {"type": "number"},
+              "timeouts": {"type": "number"}
+          }
+        }
       },
       "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
     },

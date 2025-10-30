@@ -26,11 +26,25 @@ interface Player {
   // Stats
   goals: number;
   assists: number;
-  foulsCommitted: number;
-  foulsReceived: number;
   yellowCards: number;
   redCards: number;
+  fouls: number;
+  shotsOnTarget: number;
+  shotsOffTarget: number;
+  recoveries: number;
+  turnovers: number;
+  saves: number;
+  goalsConceded: number;
   minutesPlayed: number;
+}
+
+interface OpponentStats {
+  goals: number;
+  fouls: number;
+  shotsOnTarget: number;
+  shotsOffTarget: number;
+  shotsBlocked: number;
+  timeouts: number;
 }
 
 interface Match {
@@ -47,6 +61,7 @@ interface Match {
   isFinished: boolean;
   squad?: string[];
   playerStats?: { [playerId: string]: Partial<Player> };
+  opponentStats?: Partial<OpponentStats>;
 }
 
 type Period = '1H' | '2H';
@@ -67,14 +82,32 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
   const [time, setTime] = useState(20 * 60);
   const [isActive, setIsActive] = useState(false);
   const [period, setPeriod] = useState<Period>('1H');
+  const [activePlayers, setActivePlayers] = useState<string[]>([]);
 
   const { toast } = useToast();
+  
+  const handlePlayerTime = useCallback(() => {
+    if (activePlayers.length > 0) {
+      const playerStatsUpdate = _.cloneDeep(match.playerStats) || {};
+      activePlayers.forEach(playerId => {
+        const currentMinutes = _.get(playerStatsUpdate, `${playerId}.minutesPlayed`, 0);
+        _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
+      });
+      onUpdate({ playerStats: playerStatsUpdate });
+    }
+  }, [activePlayers, match.playerStats, onUpdate]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isActive && time > 0) {
       interval = setInterval(() => {
-        setTime((prevTime) => prevTime - 1);
+        setTime((prevTime) => {
+            const newTime = prevTime - 1;
+            if (newTime % 60 === 0) { // Update every minute
+              handlePlayerTime();
+            }
+            return newTime;
+        });
       }, 1000);
     } else if (time === 0) {
       setIsActive(false);
@@ -82,7 +115,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, time]);
+  }, [isActive, time, handlePlayerTime]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -126,6 +159,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
                 <FoulIndicator count={match.localFouls || 0} />
+                 <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
             </div>
             
             <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
@@ -135,15 +169,14 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
                 <FoulIndicator count={match.visitorFouls || 0} />
+                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
             </div>
         </div>
 
         <div className="flex justify-center items-center gap-4 mb-4">
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
             <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
 
         <div className="flex justify-center items-center gap-4">
@@ -169,7 +202,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
 // STATS TABLE COMPONENT
 // ====================
 const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean }) => {
-    const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
+    const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
 
     const handleStatChange = (playerId: string, stat: keyof Player, increment: boolean) => {
         const playerStats = match.playerStats?.[playerId] || {};
@@ -184,17 +217,21 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
              const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
              scoreUpdate[scoreField] = newScore;
-        } else if (stat === 'goals' && !isMyTeam) {
-             const scoreField = match.localTeam !== teamName ? 'localScore' : 'visitorScore';
-             const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
-             scoreUpdate[scoreField] = newScore;
         }
 
         onUpdate({ playerStats: updatedStats, ...scoreUpdate });
     };
 
     const toggleActivePlayer = (playerId: string) => {
-        setActivePlayerId(prevId => prevId === playerId ? null : playerId);
+        setActivePlayerIds(prevIds => {
+            if (prevIds.includes(playerId)) {
+                return prevIds.filter(id => id !== playerId);
+            }
+            if (prevIds.length < 5) {
+                return [...prevIds, playerId];
+            }
+            return prevIds; // Limit to 5 active players
+        });
     }
 
     const StatButton = ({ stat, playerId }: { stat: keyof Player, playerId: string }) => (
@@ -217,19 +254,24 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                             <TableRow>
                                 <TableHead className="w-[150px]">Jugador</TableHead>
                                 <TableHead className="text-center">Min</TableHead>
-                                <TableHead className="text-center">G</TableHead>
-                                <TableHead className="text-center">A</TableHead>
-                                <TableHead className="text-center">FC</TableHead>
-                                <TableHead className="text-center">FR</TableHead>
+                                <TableHead className="text-center">Goles</TableHead>
+                                <TableHead className="text-center">Asist</TableHead>
                                 <TableHead className="text-center">TA</TableHead>
                                 <TableHead className="text-center">TR</TableHead>
+                                <TableHead className="text-center">Faltas</TableHead>
+                                <TableHead className="text-center">T. Puerta</TableHead>
+                                <TableHead className="text-center">T. Fuera</TableHead>
+                                <TableHead className="text-center">Recup.</TableHead>
+                                <TableHead className="text-center">Perdidas</TableHead>
+                                <TableHead className="text-center">Paradas</TableHead>
+                                <TableHead className="text-center">GC</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerId === player.id && "bg-primary/10")}>
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-blue-100")}>
                                         <TableCell>
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>{player.name}
@@ -238,15 +280,20 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                                         <TableCell className="text-center tabular-nums">{stats.minutesPlayed || 0}</TableCell>
                                         <TableCell><StatButton stat="goals" playerId={player.id} /></TableCell>
                                         <TableCell><StatButton stat="assists" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="foulsCommitted" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="foulsReceived" playerId={player.id} /></TableCell>
                                         <TableCell><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
                                         <TableCell><StatButton stat="redCards" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="fouls" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="recoveries" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="turnovers" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="saves" playerId={player.id} /></TableCell>
+                                        <TableCell><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={13} className="text-center h-24 text-muted-foreground">
                                         {isMyTeam ? "No hay jugadores convocados." : "Las estadísticas del rival no están disponibles."}
                                     </TableCell>
                                 </TableRow>
@@ -258,13 +305,66 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
             {isMyTeam && (
                 <CardFooter>
                     <p className="text-xs text-muted-foreground">
-                        <b>Leyenda:</b> <b>Min:</b> Minutos Jugados, <b>G:</b> Goles, <b>A:</b> Asistencias, <b>FC:</b> Faltas Cometidas, <b>FR:</b> Faltas Recibidas, <b>TA:</b> Tarjetas Amarillas, <b>TR:</b> Tarjetas Rojas.
+                        <b>Leyenda:</b> <b>Min:</b> Minutos, <b>Goles:</b> Goles, <b>Asist:</b> Asistencias, <b>TA:</b> T. Amarilla, <b>TR:</b> T. Roja, <b>Faltas:</b> Faltas, <b>T. Puerta:</b> Tiros a Puerta, <b>T. Fuera:</b> Tiros Fuera, <b>Recup:</b> Recuperaciones, <b>Perdidas:</b> Perdidas, <b>Paradas:</b> Paradas, <b>GC:</b> Goles en Contra.
                     </p>
                 </CardFooter>
             )}
         </Card>
     );
 };
+
+const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void }) => {
+
+    const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
+        const opponentStats = match.opponentStats || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, timeouts: 0 };
+        let currentVal = opponentStats[stat] || 0;
+        let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
+
+        const updatedStats = { ...opponentStats, [stat]: newVal };
+        
+        let scoreUpdate: Partial<Match> = {};
+        if (stat === 'goals') {
+             const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
+             const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
+             scoreUpdate[scoreField] = newScore;
+        }
+
+        onUpdate({ opponentStats: updatedStats, ...scoreUpdate });
+    };
+
+    const StatRow = ({ label, stat }: { label: string, stat: keyof OpponentStats }) => (
+         <TableRow>
+            <TableCell className="font-medium">{label}</TableCell>
+            <TableCell className="text-right">
+                <div className="flex items-center gap-1 justify-end">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, false)}><Minus className="h-4 w-4"/></Button>
+                    <span className="w-6 text-center tabular-nums">{match.opponentStats?.[stat] || 0}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, true)}><Plus className="h-4 w-4"/></Button>
+                </div>
+            </TableCell>
+        </TableRow>
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Estadísticas del Rival - {teamName}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <Table>
+                    <TableBody>
+                        <StatRow label="Goles" stat="goals" />
+                        <StatRow label="Faltas" stat="fouls" />
+                        <StatRow label="Tiros a Puerta" stat="shotsOnTarget" />
+                        <StatRow label="Tiros Fuera" stat="shotsOffTarget" />
+                        <StatRow label="Tiros Bloqueados" stat="shotsBlocked" />
+                        <StatRow label="Tiempos Muertos" stat="timeouts" />
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    )
+}
 
 // ====================
 // MAIN PAGE COMPONENT
@@ -329,7 +429,6 @@ export default function MatchStatsPage() {
     const squadIds = new Set(localMatchData.squad);
     const filteredPlayers = teamPlayers.filter(p => squadIds.has(p.id));
     
-    // Sort players by dorsal number (ascending)
     return filteredPlayers.sort((a, b) => {
         const numA = parseInt(a.number, 10);
         const numB = parseInt(b.number, 10);
@@ -393,12 +492,10 @@ export default function MatchStatsPage() {
             />
         </TabsContent>
         <TabsContent value="opponent">
-            <StatsTable 
+             <OpponentStatsTable 
                 teamName={opponentTeamName}
-                players={[]} // Opponent players not implemented
                 match={localMatchData}
                 onUpdate={handleUpdate}
-                isMyTeam={false}
             />
         </TabsContent>
       </Tabs>
