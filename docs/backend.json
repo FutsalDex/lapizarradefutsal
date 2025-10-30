@@ -80,7 +80,19 @@
         "createdAt": {"type": "string", "format": "date-time"},
         "name": {"type": "string"},
         "ownerId": {"type": "string"},
-        "season": {"type": "string"}
+        "season": {"type": "string"},
+        "players": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "dorsal": {"type": "string"},
+                    "nombre": {"type": "string"},
+                    "posicion": {"type": "string"}
+                },
+                "required": ["dorsal", "nombre", "posicion"]
+            }
+        }
       },
       "required": ["name", "ownerId"]
     },
