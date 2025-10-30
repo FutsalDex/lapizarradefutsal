@@ -18,7 +18,7 @@ import _ from 'lodash';
 // ====================
 // TYPES
 // ====================
-interface Player {
+interface PlayerStats {
   id: string;
   name: string;
   number: string;
@@ -36,8 +36,10 @@ interface Player {
   goalsConceded: number;
   minutesPlayed: number;
 }
+type Player = Omit<PlayerStats, 'id'> & { id: string };
 
-interface OpponentStats {
+
+interface OpponentPeriodStats {
   goals: number;
   fouls: number;
   shotsOnTarget: number;
@@ -45,24 +47,29 @@ interface OpponentStats {
   shotsBlocked: number;
 }
 
+type Period = '1H' | '2H';
+
 interface Match {
   id: string;
   localTeam: string;
   visitorTeam: string;
   localScore: number;
   visitorScore: number;
-  localFouls?: number;
-  visitorFouls?: number;
-  localTimeouts?: number;
-  visitorTimeouts?: number;
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: { [playerId: string]: Partial<Player> };
-  opponentStats?: Partial<OpponentStats>;
+  playerStats?: {
+    '1H'?: { [playerId: string]: Partial<PlayerStats> };
+    '2H'?: { [playerId: string]: Partial<PlayerStats> };
+  };
+  opponentStats?: {
+    '1H'?: Partial<OpponentPeriodStats>;
+    '2H'?: Partial<OpponentPeriodStats>;
+  };
+   periodFouls?: { '1H': { local: number; visitor: number }; '2H': { local: number; visitor: number } };
+   periodTimeouts?: { '1H': { local: number; visitor: number }; '2H': { local: number; visitor: number } };
 }
 
-type Period = '1H' | '2H';
 
 // ====================
 // HELPER FUNCTIONS
@@ -123,13 +130,19 @@ const Scoreboard = ({
     </Button>
   );
 
+  const localFouls = match.periodFouls?.[period]?.local ?? 0;
+  const visitorFouls = match.periodFouls?.[period]?.visitor ?? 0;
+  const localTimeouts = match.periodTimeouts?.[period]?.local ?? 0;
+  const visitorTimeouts = match.periodTimeouts?.[period]?.visitor ?? 0;
+
+
   return (
     <Card>
       <CardContent className="p-4 md:p-6">
         <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
-                 <FoulIndicator count={match.localFouls || 0} />
+                 <FoulIndicator count={localFouls} />
             </div>
             
             <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
@@ -138,16 +151,16 @@ const Scoreboard = ({
 
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
-                <FoulIndicator count={match.visitorFouls || 0} />
+                <FoulIndicator count={visitorFouls} />
             </div>
         </div>
         
         <div className="flex justify-center items-center gap-4 mb-4">
-             <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+             <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 1} className={cn("w-16 mx-auto", localTimeouts >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
-            <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+            <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 1} className={cn("w-16 mx-auto", visitorTimeouts >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
 
 
@@ -173,30 +186,35 @@ const Scoreboard = ({
 // ====================
 // STATS TABLE COMPONENT
 // ====================
-const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[] }) => {
+const StatsTable = ({ teamName, players, match, period, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds }: { teamName: string, players: Player[], match: Match, period: Period, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[] }) => {
     const { toast } = useToast();
 
-    const handleStatChange = (playerId: string, stat: keyof Player, increment: boolean) => {
-        const playerStats = match.playerStats?.[playerId] || {};
-        let currentVal = (playerStats[stat] as number) || 0;
+    const handleStatChange = (playerId: string, stat: keyof PlayerStats, increment: boolean) => {
+        const periodStats = match.playerStats?.[period]?.[playerId] || {};
+        let currentVal = (periodStats[stat] as number) || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
         
         const updatedStats = _.cloneDeep(match.playerStats || {});
-        _.set(updatedStats, `${playerId}.${stat}`, newVal);
+        _.set(updatedStats, `${period}.${playerId}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
         const isLocalTeam = match.localTeam === teamName;
         const scoreField = isLocalTeam ? 'localScore' : 'visitorScore';
-        const foulField = isLocalTeam ? 'localFouls' : 'visitorFouls';
-
+        
         if (stat === 'goals' && isMyTeam) {
-             const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
+             const scoreDiff = newVal - currentVal;
+             const newScore = (match[scoreField] || 0) + scoreDiff;
              batchUpdate[scoreField] = newScore;
         }
 
         if (stat === 'fouls' && isMyTeam) {
-            const newFouls = increment ? (match[foulField] || 0) + 1 : Math.max(0, (match[foulField] || 0) - 1);
-            batchUpdate[foulField] = newFouls;
+             const foulDiff = newVal - currentVal;
+             const currentFouls = match.periodFouls?.[period]?.[isLocalTeam ? 'local' : 'visitor'] ?? 0;
+             const newFouls = currentFouls + foulDiff;
+             
+             const updatedPeriodFouls = _.cloneDeep(match.periodFouls || {});
+             _.set(updatedPeriodFouls, `${period}.${isLocalTeam ? 'local' : 'visitor'}`, newFouls);
+             batchUpdate.periodFouls = updatedPeriodFouls;
         }
 
         onUpdate(batchUpdate);
@@ -219,15 +237,17 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     }
 
      const totals = useMemo(() => {
-        const initialTotals = {
+        const initialTotals: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
             goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
             shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
-            saves: 0, goalsConceded: 0,
+            saves: 0, goalsConceded: 0, minutesPlayed: 0
         };
-        if (!players || !match.playerStats) return initialTotals;
+        if (!players || !match.playerStats?.[period]) return initialTotals;
+        
+        const periodStats = match.playerStats[period]!;
 
         return players.reduce((acc, player) => {
-            const stats = match.playerStats?.[player.id] || {};
+            const stats = periodStats[player.id] || {};
             acc.goals += stats.goals || 0;
             acc.assists += stats.assists || 0;
             acc.yellowCards += stats.yellowCards || 0;
@@ -239,14 +259,15 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             acc.turnovers += stats.turnovers || 0;
             acc.saves += stats.saves || 0;
             acc.goalsConceded += stats.goalsConceded || 0;
+            acc.minutesPlayed += stats.minutesPlayed || 0;
             return acc;
         }, initialTotals);
-    }, [players, match.playerStats]);
+    }, [players, match.playerStats, period]);
 
-    const StatButton = ({ stat, playerId }: { stat: keyof Player, playerId: string }) => (
+    const StatButton = ({ stat, playerId }: { stat: keyof PlayerStats, playerId: string }) => (
         <div className="flex items-center gap-1 justify-center">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, false)}><Minus className="h-4 w-4"/></Button>
-            <span className="w-4 text-center tabular-nums">{((match.playerStats?.[playerId] as any)?.[stat] || 0)}</span>
+            <span className="w-4 text-center tabular-nums">{((match.playerStats?.[period]?.[playerId] as any)?.[stat] || 0)}</span>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, true)}><Plus className="h-4 w-4"/></Button>
         </div>
     );
@@ -272,7 +293,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{teamName}</CardTitle>
+                <CardTitle>{teamName} - Estadísticas {period === '1H' ? '1ª Parte' : '2ª Parte'}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="overflow-x-auto">
@@ -282,7 +303,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                         </TableHeader>
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
-                                const stats = match.playerStats?.[player.id] || {};
+                                const stats = match.playerStats?.[period]?.[player.id] || {};
                                 return (
                                     <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20 border-2 border-primary")}>
                                         <TableCell className="py-1 px-2">
@@ -316,7 +337,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                          <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell className="px-2">Total</TableCell>
-                                <TableCell></TableCell>
+                                <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(totals.minutesPlayed)}</TableCell>
                                 <TableCell className="text-center px-1">{totals.goals}</TableCell>
                                 <TableCell className="text-center px-1">{totals.assists}</TableCell>
                                 <TableCell className="text-center px-1">{totals.fouls}</TableCell>
@@ -358,39 +379,45 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     );
 };
 
-const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void }) => {
+const OpponentStatsTable = ({ teamName, match, period, onUpdate }: { teamName: string, match: Match, period: Period, onUpdate: (data: Partial<Match>) => void }) => {
 
-    const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
-        const opponentStats = match.opponentStats || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 };
-        let currentVal = opponentStats[stat] || 0;
+    const handleStatChange = (stat: keyof OpponentPeriodStats, increment: boolean) => {
+        const periodStats = match.opponentStats?.[period] || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 };
+        let currentVal = periodStats[stat] || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
 
-        const updatedStats = { ...opponentStats, [stat]: newVal };
+        const updatedStats = _.cloneDeep(match.opponentStats || {});
+         _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
         const scoreField = 'visitorScore';
-        const foulField = 'visitorFouls';
 
         if (stat === 'goals') {
-             const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
+             const scoreDiff = newVal - currentVal;
+             const newScore = (match[scoreField] || 0) + scoreDiff;
              batchUpdate[scoreField] = newScore;
         }
 
         if (stat === 'fouls') {
-             const newFouls = increment ? (match.visitorFouls || 0) + 1 : Math.max(0, (match.visitorFouls || 0) - 1);
-            batchUpdate.visitorFouls = newFouls;
+             const foulDiff = newVal - currentVal;
+             const currentFouls = match.periodFouls?.[period]?.visitor ?? 0;
+             const newFouls = currentFouls + foulDiff;
+
+             const updatedPeriodFouls = _.cloneDeep(match.periodFouls || {});
+             _.set(updatedPeriodFouls, `${period}.visitor`, newFouls);
+             batchUpdate.periodFouls = updatedPeriodFouls;
         }
 
         onUpdate(batchUpdate);
     };
 
-    const StatRow = ({ label, stat }: { label: string, stat: keyof OpponentStats }) => (
+    const StatRow = ({ label, stat }: { label: string, stat: keyof OpponentPeriodStats }) => (
          <TableRow>
             <TableCell className="font-medium">{label}</TableCell>
             <TableCell className="text-right">
                 <div className="flex items-center gap-1 justify-end">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, false)}><Minus className="h-4 w-4"/></Button>
-                    <span className="w-6 text-center tabular-nums">{match.opponentStats?.[stat] || 0}</span>
+                    <span className="w-6 text-center tabular-nums">{match.opponentStats?.[period]?.[stat] || 0}</span>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, true)}><Plus className="h-4 w-4"/></Button>
                 </div>
             </TableCell>
@@ -400,7 +427,7 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Estadísticas del Rival - {teamName}</CardTitle>
+                <CardTitle>Estadísticas del Rival - {teamName} - {period === '1H' ? '1ª Parte' : '2ª Parte'}</CardTitle>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -433,7 +460,7 @@ export default function MatchStatsPage() {
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
   const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
   
-  const [time, setTime] = useState(0); // Timer state now in parent
+  const [time, setTime] = useState(0); 
   const [period, setPeriod] = useState<Period>('1H');
   const [isTimerActive, setIsTimerActive] = useState(false);
 
@@ -449,6 +476,8 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (remoteMatchData) {
       setLocalMatchData(prevLocal => {
+        // Basic check to avoid re-render loops if the data is the same.
+        // For production, a deep equality check might be better if objects are complex.
         if (_.isEqual(prevLocal, remoteMatchData)) {
             return prevLocal;
         }
@@ -460,39 +489,39 @@ export default function MatchStatsPage() {
   const debouncedUpdate = useCallback(_.debounce((data: Partial<Match>) => {
     if (!matchRef || remoteMatchData?.isFinished) return;
     updateDoc(matchRef, data);
-  }, 5000), [matchRef, remoteMatchData?.isFinished]);
+  }, 1000), [matchRef, remoteMatchData?.isFinished]);
 
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
-    const newState = _.merge({}, localMatchData, data);
-    setLocalMatchData(newState as Match);
-    debouncedUpdate(newState);
+    // We use a functional update with lodash's merge to prevent race conditions
+    setLocalMatchData(prevData => {
+        const newState = _.merge({}, prevData, data);
+        debouncedUpdate(newState);
+        return newState as Match;
+    });
   };
   
     const maxTime = useMemo(() => {
       if (!localMatchData) return 25 * 60;
       const baseTime = 25 * 60; // 25 minutes
-      const timeouts = (localMatchData.localTimeouts || 0) + (localMatchData.visitorTimeouts || 0);
+      const timeouts = (localMatchData.periodTimeouts?.[period]?.local ?? 0) + (localMatchData.periodTimeouts?.[period]?.visitor ?? 0);
       return baseTime + (timeouts * 60); // Add 1 minute for each timeout
-    }, [localMatchData]);
-
+    }, [localMatchData, period]);
+    
+    // Timer logic moved to the parent component
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
         if (isTimerActive && time < maxTime) {
             interval = setInterval(() => {
                 setTime(prevTime => prevTime + 1);
-
-                // Update player minutes
-                if (activePlayerIds.length > 0) {
-                    setLocalMatchData(prevData => {
+                 if (activePlayerIds.length > 0) {
+                     setLocalMatchData(prevData => {
                         if (!prevData) return null;
                         const newLocalData = _.cloneDeep(prevData);
                         activePlayerIds.forEach(playerId => {
-                            const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
-                            _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
+                            const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
+                            _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, currentMinutes + 1);
                         });
-                        // This update is frequent, so we might want a different debouncing strategy or just let the main one handle it.
                         debouncedUpdate({ playerStats: newLocalData.playerStats });
                         return newLocalData;
                     });
@@ -505,7 +534,7 @@ export default function MatchStatsPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerActive, time, maxTime, activePlayerIds, debouncedUpdate]);
+    }, [isTimerActive, time, maxTime, activePlayerIds, period, debouncedUpdate]);
 
 
   const toggleMatchFinished = async () => {
@@ -523,15 +552,11 @@ export default function MatchStatsPage() {
   const squadPlayers = useMemo(() => {
     if (!teamPlayers || !localMatchData?.squad) return [];
     const squadIds = new Set(localMatchData.squad);
-    const filteredPlayers = teamPlayers.filter(p => squadIds.has(p.id));
-    
-    return filteredPlayers.sort((a, b) => {
+    return teamPlayers.filter(p => squadIds.has(p.id)).sort((a, b) => {
         const numA = parseInt(a.number, 10);
         const numB = parseInt(b.number, 10);
-
         if (isNaN(numA)) return 1;
         if (isNaN(numB)) return -1;
-        
         return numA - numB;
     });
   }, [teamPlayers, localMatchData?.squad]);
@@ -540,15 +565,15 @@ export default function MatchStatsPage() {
     setPeriod(newPeriod);
     setTime(0);
     setIsTimerActive(false);
-    handleUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
   };
   
   const handleTimeout = (team: 'local' | 'visitor') => {
     if(!localMatchData) return;
-    const field = team === 'local' ? 'localTimeouts' : 'visitorTimeouts';
-    const currentVal = localMatchData[field] || 0;
+    const currentVal = localMatchData.periodTimeouts?.[period]?.[team] ?? 0;
     if (currentVal < 1) { // Futsal has 1 timeout per half
-        handleUpdate({ [field]: currentVal + 1 });
+        const updatedTimeouts = _.cloneDeep(localMatchData.periodTimeouts || {});
+        _.set(updatedTimeouts, `${period}.${team}`, currentVal + 1);
+        handleUpdate({ periodTimeouts: updatedTimeouts });
     }
   };
 
@@ -608,6 +633,7 @@ export default function MatchStatsPage() {
                 teamName={myTeamName}
                 players={squadPlayers}
                 match={localMatchData}
+                period={period}
                 onUpdate={handleUpdate}
                 isMyTeam={true}
                 onActivePlayersChange={setActivePlayerIds}
@@ -618,6 +644,7 @@ export default function MatchStatsPage() {
              <OpponentStatsTable 
                 teamName={opponentTeamName}
                 match={localMatchData}
+                period={period}
                 onUpdate={handleUpdate}
             />
         </TabsContent>

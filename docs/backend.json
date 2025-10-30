@@ -130,18 +130,48 @@
         "squad": {"type": "array", "items": {"type": "string"}},
         "playerStats": {
           "type": "object",
-          "patternProperties": {
-            ".*": { "$ref": "#/entities/Player" }
+          "properties": {
+            "1H": {
+              "type": "object",
+              "description": "Stats for the first half",
+              "patternProperties": {
+                ".*": { "$ref": "#/entities/Player" }
+              }
+            },
+            "2H": {
+              "type": "object",
+              "description": "Stats for the second half",
+              "patternProperties": {
+                ".*": { "$ref": "#/entities/Player" }
+              }
+            }
           }
         },
         "opponentStats": {
           "type": "object",
           "properties": {
-              "goals": {"type": "number"},
-              "fouls": {"type": "number"},
-              "shotsOnTarget": {"type": "number"},
-              "shotsOffTarget": {"type": "number"},
-              "shotsBlocked": {"type": "number"}
+            "1H": {
+              "type": "object",
+              "description": "Opponent stats for the first half",
+              "properties": {
+                  "goals": {"type": "number"},
+                  "fouls": {"type": "number"},
+                  "shotsOnTarget": {"type": "number"},
+                  "shotsOffTarget": {"type": "number"},
+                  "shotsBlocked": {"type": "number"}
+              }
+            },
+             "2H": {
+              "type": "object",
+              "description": "Opponent stats for the second half",
+              "properties": {
+                  "goals": {"type": "number"},
+                  "fouls": {"type": "number"},
+                  "shotsOnTarget": {"type": "number"},
+                  "shotsOffTarget": {"type": "number"},
+                  "shotsBlocked": {"type": "number"}
+              }
+            }
           }
         }
       },
