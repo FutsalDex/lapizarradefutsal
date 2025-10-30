@@ -106,19 +106,24 @@
       "required": ["name", "number", "position"]
     },
     "Match": {
-        "title": "Match",
-        "type": "object",
-        "description": "Represents a futsal match.",
-        "properties": {
-            "opponent": {"type": "string"},
-            "date": {"type": "string", "format": "date-time"},
-            "type": {"type": "string", "enum": ["Amistoso", "Liga", "Copa", "Torneo"]},
-            "location": {"type": "string", "enum": ["Casa", "Fuera"]},
-            "teamScore": {"type": "number"},
-            "opponentScore": {"type": "number"},
-            "status": {"type": "string", "enum": ["played", "scheduled"]}
-        },
-        "required": ["opponent", "date", "type", "location", "status"]
+      "title": "Match",
+      "type": "object",
+      "description": "Represents a futsal match.",
+      "properties": {
+        "competition": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time"},
+        "date": {"type": "string", "format": "date-time"},
+        "isFinished": {"type": "boolean"},
+        "localScore": {"type": "number"},
+        "localTeam": {"type": "string"},
+        "matchType": {"type": "string", "enum": ["Amistoso", "Liga", "Copa", "Torneo"]},
+        "matchday": {"type": "number"},
+        "teamId": {"type": "string"},
+        "userId": {"type": "string"},
+        "visitorScore": {"type": "number"},
+        "visitorTeam": {"type": "string"}
+      },
+      "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
     },
     "TeamInvitation": {
         "title": "Team Invitation",
@@ -178,9 +183,9 @@
         "schema": { "$ref": "#/entities/Player" },
         "description": "Stores the players for a specific team."
     },
-    "/teams/{teamId}/matches/{matchId}": {
+    "/matches/{matchId}": {
       "schema": { "$ref": "#/entities/Match" },
-      "description": "Stores the matches for a specific team."
+      "description": "Stores all matches for all teams."
     },
     "/invitations/{invitationId}": {
         "schema": { "$ref": "#/entities/TeamInvitation" },

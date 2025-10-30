@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { addDoc, collection, query, orderBy } from 'firebase/firestore';
+import { addDoc, collection, query, where, orderBy } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { doc, serverTimestamp } from 'firebase/firestore';
@@ -28,7 +28,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -81,21 +80,22 @@ interface Team {
 
 interface Match {
   id: string;
-  opponent: string;
+  visitorTeam: string;
+  localTeam: string;
   date: any; // Firestore timestamp
-  type: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
-  location: 'Casa' | 'Fuera';
-  teamScore?: number;
-  opponentScore?: number;
-  status: 'played' | 'scheduled';
+  matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
+  localScore?: number;
+  visitorScore?: number;
+  isFinished: boolean;
 }
 
 const addMatchSchema = z.object({
-  opponent: z.string().min(2, 'El nombre del rival es requerido.'),
-  date: z.date({ required_error: 'La fecha del partido es requerida.' }),
-  type: z.enum(['Amistoso', 'Liga', 'Copa', 'Torneo']),
-  location: z.enum(['Casa', 'Fuera']),
+    opponent: z.string().min(2, 'El nombre del rival es requerido.'),
+    date: z.date({ required_error: 'La fecha del partido es requerida.' }),
+    type: z.enum(['Amistoso', 'Liga', 'Copa', 'Torneo']),
+    location: z.enum(['Casa', 'Fuera']),
 });
+  
 
 type AddMatchValues = z.infer<typeof addMatchSchema>;
 
@@ -103,16 +103,17 @@ type AddMatchValues = z.infer<typeof addMatchSchema>;
 // FORMULARIO AÑADIR PARTIDO
 // ====================
 function AddMatchDialog({
-  teamId,
+  team,
   isOpen,
   setIsOpen,
 }: {
-  teamId: string;
+  team: Team;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 }) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<AddMatchValues>({
@@ -125,15 +126,26 @@ function AddMatchDialog({
   });
 
   const onSubmit = async (values: AddMatchValues) => {
-    if (!teamId) return;
+    if (!team || !user) return;
     setIsSubmitting(true);
     try {
-      const matchesCollection = collection(firestore, `teams/${teamId}/matches`);
-      await addDoc(matchesCollection, {
-        ...values,
-        status: 'scheduled',
+      const matchesCollection = collection(firestore, `matches`);
+      
+      const matchData = {
+        date: values.date,
+        matchType: values.type,
+        localTeam: values.location === 'Casa' ? team.name : values.opponent,
+        visitorTeam: values.location === 'Casa' ? values.opponent : team.name,
+        localScore: 0,
+        visitorScore: 0,
+        isFinished: false,
+        teamId: team.id,
+        userId: user.uid,
         createdAt: serverTimestamp(),
-      });
+      };
+
+      await addDoc(matchesCollection, matchData);
+
       toast({
         title: 'Partido añadido',
         description: `El partido contra ${values.opponent} ha sido creado.`,
@@ -283,43 +295,32 @@ function AddMatchDialog({
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
-  const isPlayed = match.status === 'played';
-  const teamScore = match.teamScore ?? '-';
-  const opponentScore = match.opponentScore ?? '-';
+function MatchCard({ match }: { match: Match }) {
+  const { isFinished, localScore = 0, visitorScore = 0 } = match;
 
   const getResultClasses = () => {
-    if (!isPlayed || teamScore === opponentScore) {
-      return 'text-muted-foreground'; // Empate o no jugado
-    }
-    return teamScore > opponentScore ? 'text-green-600' : 'text-red-600';
+    if (!isFinished) return 'text-muted-foreground';
+    if (localScore === visitorScore) return 'text-muted-foreground';
+    return localScore > visitorScore ? 'text-green-600' : 'text-red-600';
   };
 
-  const opponentName = match.opponent;
-  const matchTitle =
-    match.location === 'Casa'
-      ? `${teamName} vs ${opponentName}`
-      : `${opponentName} vs ${teamName}`;
-  
-  const scoreDisplay =
-    match.location === 'Casa'
-      ? `${teamScore} - ${opponentScore}`
-      : `${opponentScore} - ${teamScore}`;
+  const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
+  const scoreDisplay = `${localScore} - ${visitorScore}`;
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="text-center">
         <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
         <CardDescription>
-          {format(match.date.toDate(), 'dd/MM/yyyy')}
+          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy') : 'Fecha no válida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center">
         <p className={`text-5xl font-bold ${getResultClasses()}`}>
-          {isPlayed ? scoreDisplay : 'vs'}
+          {isFinished ? scoreDisplay : 'vs'}
         </p>
         <Badge variant="secondary" className="mt-4">
-          {match.type}
+          {match.matchType}
         </Badge>
       </CardContent>
       <CardFooter className="bg-muted/50 p-2 flex justify-around">
@@ -363,7 +364,7 @@ export default function MatchesPage() {
 
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
-    return query(collection(firestore, `teams/${teamId}/matches`), orderBy('date', 'desc'));
+    return query(collection(firestore, `matches`), where('teamId', '==', teamId), orderBy('date', 'desc'));
   }, [firestore, teamId]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
@@ -371,7 +372,7 @@ export default function MatchesPage() {
   const filteredMatches = useMemo(() => {
     if (!matches) return [];
     if (filter === 'Todos') return matches;
-    return matches.filter((match) => match.type === filter);
+    return matches.filter((match) => match.matchType === filter);
   }, [matches, filter]);
 
   const isOwner = user && team && user.uid === team.ownerId;
@@ -431,7 +432,7 @@ export default function MatchesPage() {
         )}
       </div>
 
-       <AddMatchDialog teamId={teamId} isOpen={isAddMatchOpen} setIsOpen={setAddMatchOpen} />
+       <AddMatchDialog team={team} isOpen={isAddMatchOpen} setIsOpen={setAddMatchOpen} />
 
       <Tabs value={filter} onValueChange={setFilter} className="mb-6">
         <TabsList>
@@ -446,7 +447,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} teamName={team.name} />
+            <MatchCard key={match.id} match={match} />
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">
