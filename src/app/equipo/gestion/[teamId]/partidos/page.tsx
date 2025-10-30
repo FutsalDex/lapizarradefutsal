@@ -317,12 +317,12 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
   const formattedDate = () => {
     if (!date) return 'Fecha no disponible';
     
-    // Handle both Firestore Timestamp and ISO string
+    // Handle Firestore Timestamp or ISO string
     const dateObj = date.toDate ? date.toDate() : new Date(date);
-
-    // Check if the date is valid
+    
     if (isNaN(dateObj.getTime())) {
-      return 'Fecha inválida';
+      // If parsing fails, try to return the original string if it exists
+      return typeof date === 'string' ? date.split('T')[0] : 'Fecha inválida';
     }
 
     return format(dateObj, 'dd/MM/yyyy', { locale: es });
