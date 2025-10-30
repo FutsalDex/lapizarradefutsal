@@ -58,7 +58,7 @@ interface TeamInvitation {
   id: string;
   teamId: string;
   teamName: string;
-  userEmail: string;
+  invitedUserEmail: string;
   status: 'pending' | 'accepted' | 'rejected';
 }
 
@@ -184,8 +184,8 @@ function TeamList() {
   const acceptedInvitationsQuery = useMemoFirebase(() => {
     if (!user?.email || !firestore) return null;
     return query(
-      collection(firestore, 'teamInvitations'),
-      where('userEmail', '==', user.email),
+      collection(firestore, 'invitations'),
+      where('invitedUserEmail', '==', user.email),
       where('status', '==', 'accepted')
     );
   }, [firestore, user?.email]);
