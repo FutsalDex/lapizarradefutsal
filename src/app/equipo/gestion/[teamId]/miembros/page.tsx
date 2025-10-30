@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,7 +29,7 @@ const playerSchema = z.object({
   id: z.string().optional(),
   number: z.string().min(1, 'Requerido'),
   name: z.string().min(3, 'Mín. 3 caracteres'),
-  position: z.enum(['Portero', 'Cierre', 'Ala', 'Pívot', 'Ala-Pívot', 'Universal'], {
+  position: z.enum(['Portero', 'Cierre', 'Ala', 'Pívot', 'Ala-Pívot'], {
     required_error: 'Selecciona una posición',
   }),
 });
@@ -43,7 +44,7 @@ interface Player {
   id: string;
   number: string;
   name: string;
-  position: 'Portero' | 'Cierre' | 'Ala' | 'Pívot' | 'Ala-Pívot' | 'Universal';
+  position: 'Portero' | 'Cierre' | 'Ala' | 'Pívot' | 'Ala-Pívot';
 }
 
 interface Team {
@@ -244,7 +245,6 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                                     <SelectItem value="Ala">Ala</SelectItem>
                                     <SelectItem value="Pívot">Pívot</SelectItem>
                                     <SelectItem value="Ala-Pívot">Ala-Pívot</SelectItem>
-                                    <SelectItem value="Universal">Universal</SelectItem>
                                  </SelectContent>
                                </Select>
                             )}
@@ -396,3 +396,5 @@ export default function MembersPage() {
     </div>
   );
 }
+
+    
