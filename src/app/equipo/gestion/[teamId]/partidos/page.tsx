@@ -267,7 +267,7 @@ function AddMatchDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Juegas en casa o fuera?" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Casa">Casa</SelectItem>
