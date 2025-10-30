@@ -159,7 +159,6 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
                 <FoulIndicator count={match.localFouls || 0} />
-                 <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
             </div>
             
             <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
@@ -169,15 +168,17 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
                 <FoulIndicator count={match.visitorFouls || 0} />
-                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
             </div>
         </div>
-
+        
         <div className="flex justify-center items-center gap-4 mb-4">
-            <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+             <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
+
 
         <div className="flex justify-center items-center gap-4">
             <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm" className={cn(!isActive && "bg-primary hover:bg-primary/90")}>
@@ -271,24 +272,24 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-blue-100")}>
-                                        <TableCell>
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/10")}>
+                                        <TableCell className="py-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>{player.name}
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums">{stats.minutesPlayed || 0}</TableCell>
-                                        <TableCell><StatButton stat="goals" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="assists" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="redCards" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="fouls" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="recoveries" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="turnovers" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="saves" playerId={player.id} /></TableCell>
-                                        <TableCell><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
+                                        <TableCell className="text-center tabular-nums py-2">{stats.minutesPlayed || 0}</TableCell>
+                                        <TableCell className="py-2"><StatButton stat="goals" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="assists" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="redCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="fouls" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="recoveries" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="saves" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-2"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
