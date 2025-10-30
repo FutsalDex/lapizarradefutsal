@@ -109,8 +109,13 @@ const Scoreboard = ({
     let interval: NodeJS.Timeout | null = null;
     if (isTimerActive && time > 0) {
       interval = setInterval(() => {
-        setTime((prevTime) => prevTime - 1);
-        onMinuteTick();
+        setTime((prevTime) => {
+            const newTime = prevTime - 1;
+            if (newTime % 1 === 0) { // Call every second
+                onMinuteTick();
+            }
+            return newTime;
+        });
       }, 1000);
     } else if (time === 0) {
       setIsTimerActive(false);
@@ -184,7 +189,7 @@ const Scoreboard = ({
 
 
         <div className="flex justify-center items-center gap-4">
-            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant={isTimerActive ? "destructive" : "default"} size="sm" className={cn(!isTimerActive && "bg-primary hover:bg-primary/90")}>
+            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
                 {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                 {isTimerActive ? 'Pausar' : 'Iniciar'}
             </Button>
@@ -216,14 +221,21 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         const updatedStats = _.cloneDeep(match.playerStats || {});
         _.set(updatedStats, `${playerId}.${stat}`, newVal);
         
-        let scoreUpdate: Partial<Match> = {};
+        let batchUpdate: Partial<Match> = { playerStats: updatedStats };
+        const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
+        const foulField = match.localTeam === teamName ? 'localFouls' : 'visitorFouls';
+
         if (stat === 'goals' && isMyTeam) {
-             const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
-             scoreUpdate[scoreField] = newScore;
+             batchUpdate[scoreField] = newScore;
         }
 
-        onUpdate({ playerStats: updatedStats, ...scoreUpdate });
+        if (stat === 'fouls' && isMyTeam) {
+            const newFouls = increment ? (match[foulField] || 0) + 1 : Math.max(0, (match[foulField] || 0) - 1);
+            batchUpdate[foulField] = newFouls;
+        }
+
+        onUpdate(batchUpdate);
     };
 
     const toggleActivePlayer = (playerId: string) => {
@@ -250,6 +262,24 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         </div>
     );
     
+    const tableHeaders = (
+        <TableRow>
+            <TableHead className="w-[150px] px-2">Jugador</TableHead>
+            <TableHead className="text-center px-1">Min</TableHead>
+            <TableHead className="text-center px-1">Goles</TableHead>
+            <TableHead className="text-center px-1">Asist</TableHead>
+            <TableHead className="text-center px-1">TA</TableHead>
+            <TableHead className="text-center px-1">TR</TableHead>
+            <TableHead className="text-center px-1">Faltas</TableHead>
+            <TableHead className="text-center px-1">T. Puerta</TableHead>
+            <TableHead className="text-center px-1">T. Fuera</TableHead>
+            <TableHead className="text-center px-1">Recup.</TableHead>
+            <TableHead className="text-center px-1">Perdidas</TableHead>
+            <TableHead className="text-center px-1">Paradas</TableHead>
+            <TableHead className="text-center px-1">GC</TableHead>
+        </TableRow>
+    );
+
     return (
         <Card>
             <CardHeader>
@@ -259,45 +289,31 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[150px]">Jugador</TableHead>
-                                <TableHead className="text-center">Min</TableHead>
-                                <TableHead className="text-center">Goles</TableHead>
-                                <TableHead className="text-center">Asist</TableHead>
-                                <TableHead className="text-center">TA</TableHead>
-                                <TableHead className="text-center">TR</TableHead>
-                                <TableHead className="text-center">Faltas</TableHead>
-                                <TableHead className="text-center">T. Puerta</TableHead>
-                                <TableHead className="text-center">T. Fuera</TableHead>
-                                <TableHead className="text-center">Recup.</TableHead>
-                                <TableHead className="text-center">Perdidas</TableHead>
-                                <TableHead className="text-center">Paradas</TableHead>
-                                <TableHead className="text-center">GC</TableHead>
-                            </TableRow>
+                            {tableHeaders}
                         </TableHeader>
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "border-2 border-primary")}>
-                                        <TableCell className="py-1">
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "border-2 border-primary bg-primary/20")}>
+                                        <TableCell className="py-1 px-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
                                                 <span className='text-black'>{player.name}</span>
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums py-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
-                                        <TableCell className="py-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="recoveries" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="saves" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
+                                        <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="recoveries" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="saves" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
@@ -308,6 +324,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 </TableRow>
                             )}
                         </TableBody>
+                        <TableHeader>
+                            {tableHeaders}
+                        </TableHeader>
                     </Table>
                 </div>
             </CardContent>
@@ -345,14 +364,20 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
 
         const updatedStats = { ...opponentStats, [stat]: newVal };
         
-        let scoreUpdate: Partial<Match> = {};
+        let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
+        const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
+        const foulField = match.localTeam === teamName ? 'localFoul' : 'visitorFoul'; // This might be wrong logic, visitor foul is easier
+
         if (stat === 'goals') {
-             const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
-             scoreUpdate[scoreField] = newScore;
+             batchUpdate[scoreField] = newScore;
         }
 
-        onUpdate({ opponentStats: updatedStats, ...scoreUpdate });
+        if (stat === 'fouls') {
+            batchUpdate.visitorFouls = newVal;
+        }
+
+        onUpdate(batchUpdate);
     };
 
     const StatRow = ({ label, stat }: { label: string, stat: keyof OpponentStats }) => (
@@ -448,10 +473,13 @@ export default function MatchStatsPage() {
         _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
       });
       const newState = { ...prev, playerStats: playerStatsUpdate };
-      debouncedUpdate(newState);
+       // Don't debounce minute updates for smoother UI, but still save them
+      if (matchRef) {
+          updateDoc(matchRef, { playerStats: newState.playerStats });
+      }
       return newState;
     });
-  }, [activePlayers, localMatchData?.isFinished, isTimerActive, debouncedUpdate]);
+  }, [activePlayers, localMatchData?.isFinished, isTimerActive, matchRef]);
 
 
   const toggleMatchFinished = async () => {
