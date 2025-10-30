@@ -155,26 +155,29 @@ function TeamList() {
     return acceptedInvitations?.map(inv => inv.teamId) || [];
   }, [acceptedInvitations]);
 
-  const canFetchTeams = !isAuthLoading && user?.uid;
-
   const teamsQuery = useMemoFirebase(() => {
-    if (!firestore || !canFetchTeams) return null;
+    if (!firestore || !user?.uid) return null;
 
-    // If the user is a member of some teams, we need a compound query
-    if (memberTeamIds.length > 0) {
-      return query(
-        collection(firestore, 'teams'),
-        or(
-          where('ownerId', '==', user.uid),
-          where('__name__', 'in', memberTeamIds)
-        )
-      );
+    // Wait until invites (and thus memberTeamIds) are loaded before creating the query.
+    // If we don't wait, an empty memberTeamIds array could result in an invalid query.
+    if (isLoadingInvites) return null;
+
+    const hasMemberTeams = memberTeamIds.length > 0;
+
+    // If the user isn't a member of any teams, just query for owned teams.
+    if (!hasMemberTeams) {
+      return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
     }
     
-    // If the user is not a member of any team, just query for owned teams
-    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
-
-  }, [firestore, user?.uid, memberTeamIds, canFetchTeams]);
+    // If they are a member, create a compound OR query.
+    return query(
+      collection(firestore, 'teams'),
+      or(
+        where('ownerId', '==', user.uid),
+        where('__name__', 'in', memberTeamIds)
+      )
+    );
+  }, [firestore, user?.uid, memberTeamIds, isLoadingInvites]);
 
   const { data: allTeams, isLoading: isLoadingTeams } = useCollection<Team>(teamsQuery);
   
@@ -293,3 +296,5 @@ export default function GestionPage() {
     </div>
   );
 }
+
+    
