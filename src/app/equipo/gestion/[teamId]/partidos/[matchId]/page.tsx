@@ -87,71 +87,34 @@ const FoulIndicator = ({ count }: { count: number }) => (
 
 const Scoreboard = ({
   match,
-  onUpdate,
-  onMinuteTick,
+  time,
+  period,
   isTimerActive,
-  setIsTimerActive
+  onTimerToggle,
+  onTimeReset,
+  onPeriodChange,
+  onTimeout
 }: {
   match: Match;
-  onUpdate: (data: Partial<Match>) => void;
-  onMinuteTick: () => void;
+  time: number;
+  period: Period;
   isTimerActive: boolean;
-  setIsTimerActive: (isActive: boolean) => void;
+  onTimerToggle: () => void;
+  onTimeReset: () => void;
+  onPeriodChange: (newPeriod: Period) => void;
+  onTimeout: (team: 'local' | 'visitor') => void;
 
 }) => {
-  const [time, setTime] = useState(0); // Starts at 0, counts up
-  const [period, setPeriod] = useState<Period>('1H');
-
-  const maxTime = useMemo(() => {
-    const baseTime = 25 * 60; // 25 minutes
-    const timeouts = (match.localTimeouts || 0) + (match.visitorTimeouts || 0);
-    return baseTime + (timeouts * 60); // Add 1 minute for each timeout
-  }, [match.localTimeouts, match.visitorTimeouts]);
-  
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive && time < maxTime) {
-      interval = setInterval(() => {
-        setTime((prevTime) => {
-            const newTime = prevTime + 1;
-            if (newTime <= maxTime) {
-              onMinuteTick();
-            }
-            return newTime;
-        });
-      }, 1000);
-    } else if (time >= maxTime) {
-      setIsTimerActive(false);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isTimerActive, time, maxTime, onMinuteTick, setIsTimerActive]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
-
-  const handleTimeout = (team: 'local' | 'visitor') => {
-    const field = team === 'local' ? 'localTimeouts' : 'visitorTimeouts';
-    const currentVal = match[field] || 0;
-    if (currentVal < 1) { // Futsal has 1 timeout per half
-        onUpdate({ [field]: currentVal + 1 });
-    }
-  };
   
-  const resetPeriod = (newPeriod: Period) => {
-    setPeriod(newPeriod);
-    setTime(0);
-    setIsTimerActive(false);
-    onUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
-  }
-
   const PeriodButton = ({ value, children }: { value: Period; children: React.ReactNode }) => (
     <Button
-        onClick={() => resetPeriod(value)}
+        onClick={() => onPeriodChange(value)}
         variant={period === value ? "secondary" : "outline"}
         size="sm"
         className="text-xs px-4"
@@ -180,20 +143,20 @@ const Scoreboard = ({
         </div>
         
         <div className="flex justify-center items-center gap-4 mb-4">
-             <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+             <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+            <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
 
 
         <div className="flex justify-center items-center gap-4">
-            <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
+            <Button onClick={onTimerToggle} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
                 {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                 {isTimerActive ? 'Pausar' : 'Iniciar'}
             </Button>
-            <Button onClick={() => setTime(0)} variant="outline" size="sm">
+            <Button onClick={onTimeReset} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
             </Button>
             <div className="flex gap-2">
@@ -222,8 +185,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         _.set(updatedStats, `${playerId}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
-        const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
-        const foulField = match.localTeam === teamName ? 'localFouls' : 'visitorFouls';
+        const isLocalTeam = match.localTeam === teamName;
+        const scoreField = isLocalTeam ? 'localScore' : 'visitorScore';
+        const foulField = isLocalTeam ? 'localFouls' : 'visitorFouls';
 
         if (stat === 'goals' && isMyTeam) {
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
@@ -468,6 +432,9 @@ export default function MatchStatsPage() {
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
   const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
+  
+  const [time, setTime] = useState(0); // Timer state now in parent
+  const [period, setPeriod] = useState<Period>('1H');
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
@@ -497,31 +464,48 @@ export default function MatchStatsPage() {
 
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
-    setLocalMatchData(prev => {
-        if (!prev) return null;
-        const newState = _.merge({}, prev, data);
-        debouncedUpdate(newState);
-        return newState;
-    });
+    const newState = _.merge({}, localMatchData, data);
+    setLocalMatchData(newState as Match);
+    debouncedUpdate(newState);
   };
+  
+    const maxTime = useMemo(() => {
+      if (!localMatchData) return 25 * 60;
+      const baseTime = 25 * 60; // 25 minutes
+      const timeouts = (localMatchData.localTimeouts || 0) + (localMatchData.visitorTimeouts || 0);
+      return baseTime + (timeouts * 60); // Add 1 minute for each timeout
+    }, [localMatchData]);
 
-  const handleMinuteTick = useCallback(() => {
-    if (!isTimerActive || localMatchData?.isFinished || activePlayerIds.length === 0) return;
-  
-    setLocalMatchData(prevData => {
-      if (!prevData) return null;
-  
-      const newLocalData = _.cloneDeep(prevData);
-  
-      activePlayerIds.forEach(playerId => {
-        const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
-        _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
-      });
-  
-      debouncedUpdate({ playerStats: newLocalData.playerStats });
-      return newLocalData;
-    });
-  }, [activePlayerIds, isTimerActive, localMatchData?.isFinished, debouncedUpdate]);
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+
+        if (isTimerActive && time < maxTime) {
+            interval = setInterval(() => {
+                setTime(prevTime => prevTime + 1);
+
+                // Update player minutes
+                if (activePlayerIds.length > 0) {
+                    setLocalMatchData(prevData => {
+                        if (!prevData) return null;
+                        const newLocalData = _.cloneDeep(prevData);
+                        activePlayerIds.forEach(playerId => {
+                            const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
+                            _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
+                        });
+                        // This update is frequent, so we might want a different debouncing strategy or just let the main one handle it.
+                        debouncedUpdate({ playerStats: newLocalData.playerStats });
+                        return newLocalData;
+                    });
+                }
+            }, 1000);
+        } else if (time >= maxTime) {
+            setIsTimerActive(false);
+        }
+
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isTimerActive, time, maxTime, activePlayerIds, debouncedUpdate]);
 
 
   const toggleMatchFinished = async () => {
@@ -551,6 +535,22 @@ export default function MatchStatsPage() {
         return numA - numB;
     });
   }, [teamPlayers, localMatchData?.squad]);
+
+  const handlePeriodChange = (newPeriod: Period) => {
+    setPeriod(newPeriod);
+    setTime(0);
+    setIsTimerActive(false);
+    handleUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
+  };
+  
+  const handleTimeout = (team: 'local' | 'visitor') => {
+    if(!localMatchData) return;
+    const field = team === 'local' ? 'localTimeouts' : 'visitorTimeouts';
+    const currentVal = localMatchData[field] || 0;
+    if (currentVal < 1) { // Futsal has 1 timeout per half
+        handleUpdate({ [field]: currentVal + 1 });
+    }
+  };
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -589,10 +589,13 @@ export default function MatchStatsPage() {
 
       <Scoreboard 
         match={localMatchData} 
-        onUpdate={handleUpdate} 
-        onMinuteTick={handleMinuteTick}
+        time={time}
+        period={period}
         isTimerActive={isTimerActive}
-        setIsTimerActive={setIsTimerActive}
+        onTimerToggle={() => setIsTimerActive(!isTimerActive)}
+        onTimeReset={() => setTime(0)}
+        onPeriodChange={handlePeriodChange}
+        onTimeout={handleTimeout}
       />
 
       <Tabs defaultValue="myTeam" className="w-full">
