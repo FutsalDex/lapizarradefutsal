@@ -154,7 +154,17 @@
             "createdAt": {"type": "string", "format": "date-time"},
             "invitedUserEmail": {"type": "string", "format": "email"},
             "name": {"type": "string"},
-            "role": {"type": "string", "enum": ["technical_staff", "player"]},
+            "role": {"type": "string", "enum": [
+                "Entrenador",
+                "2º Entrenador",
+                "Delegado",
+                "Preparador Físico",
+                "Analista Táctico/Scouting",
+                "Fisioterapeuta",
+                "Médico",
+                "Psicólogo",
+                "Nutricionista"
+            ]},
             "status": {"type": "string", "enum": ["pending", "accepted", "rejected"]},
             "teamId": {"type": "string"},
             "teamName": {"type": "string"}

@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Trophy,
+  Briefcase,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,9 +29,16 @@ interface Team {
 const menuItems = [
   {
     title: 'Mi Plantilla',
-    description: 'Gestiona los jugadores y el cuerpo técnico.',
+    description: 'Gestiona los jugadores del equipo.',
     icon: <Users className="w-8 h-8 text-primary" />,
     href: '/miembros',
+  },
+  {
+    title: 'Cuerpo Técnico',
+    description: 'Invita y gestiona a tus colaboradores.',
+    icon: <Briefcase className="w-8 h-8 text-primary" />,
+    href: '/cuerpo-tecnico',
+    disabled: false,
   },
   {
     title: 'Mis Partidos',
@@ -133,7 +141,7 @@ export default function TeamDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {menuItems.map((item) => (
           <Card
             key={item.title}
@@ -157,7 +165,7 @@ export default function TeamDashboardPage() {
             <div className="p-6 pt-0">
               <Button asChild className="w-full" disabled={item.disabled}>
                 <Link href={`/equipo/gestion/${teamId}${item.href}`}>
-                  {item.disabled ? 'Próximamente' : `Acceder a ${item.title}`}
+                  {item.disabled ? 'Próximamente' : `Acceder`}
                   {!item.disabled && <ChevronRight className="w-4 h-4 ml-2" />}
                 </Link>
               </Button>
