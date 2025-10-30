@@ -36,21 +36,21 @@ const menuItems = [
     description: 'Planifica y revisa los resultados de los partidos.',
     icon: <CalendarDays className="w-8 h-8 text-primary" />,
     href: '/partidos',
-    disabled: true,
+    disabled: false,
   },
   {
     title: 'Mis Asistencias',
     description: 'Controla la asistencia a los entrenamientos.',
     icon: <ClipboardList className="w-8 h-8 text-primary" />,
     href: '/asistencias',
-    disabled: true,
+    disabled: false,
   },
   {
     title: 'Mis Estadísticas',
     description: 'Analiza el rendimiento del equipo y los jugadores.',
     icon: <BarChart3 className="w-8 h-8 text-primary" />,
     href: '/estadisticas',
-    disabled: true,
+    disabled: false,
   },
 ];
 
