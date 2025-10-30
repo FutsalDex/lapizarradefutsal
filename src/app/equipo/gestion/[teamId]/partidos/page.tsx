@@ -6,10 +6,9 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { addDoc, collection, query, where, orderBy } from 'firebase/firestore';
+import { addDoc, collection, query, where, orderBy, doc, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -90,15 +89,20 @@ interface Match {
   isFinished: boolean;
 }
 
-const addMatchSchema = z.object({
-    opponent: z.string().min(2, 'El nombre del rival es requerido.'),
+const addMatchSchema = (teamName: string) => z.object({
+    localTeam: z.string().min(2, 'El nombre del equipo local es requerido.'),
+    visitorTeam: z.string().min(2, 'El nombre del equipo visitante es requerido.'),
     date: z.date({ required_error: 'La fecha del partido es requerida.' }),
-    type: z.enum(['Amistoso', 'Liga', 'Copa', 'Torneo']),
-    location: z.enum(['Casa', 'Fuera']),
+    matchType: z.enum(['Amistoso', 'Liga', 'Copa', 'Torneo']),
+    competition: z.string().optional(),
+    matchday: z.string().optional(),
+}).refine(data => data.localTeam === teamName || data.visitorTeam === teamName, {
+    message: 'Tu equipo debe ser el local o el visitante.',
+    path: ['localTeam'],
 });
   
 
-type AddMatchValues = z.infer<typeof addMatchSchema>;
+type AddMatchValues = z.infer<ReturnType<typeof addMatchSchema>>;
 
 // ====================
 // FORMULARIO AÑADIR PARTIDO
@@ -117,12 +121,16 @@ function AddMatchDialog({
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const currentMatchSchema = useMemo(() => addMatchSchema(team.name), [team.name]);
+
   const form = useForm<AddMatchValues>({
-    resolver: zodResolver(addMatchSchema),
+    resolver: zodResolver(currentMatchSchema),
     defaultValues: {
-      opponent: '',
-      type: 'Liga',
-      location: 'Casa',
+      localTeam: '',
+      visitorTeam: '',
+      matchType: 'Amistoso',
+      competition: '',
+      matchday: ''
     },
   });
 
@@ -134,9 +142,11 @@ function AddMatchDialog({
       
       const matchData = {
         date: values.date,
-        matchType: values.type,
-        localTeam: values.location === 'Casa' ? team.name : values.opponent,
-        visitorTeam: values.location === 'Casa' ? values.opponent : team.name,
+        matchType: values.matchType,
+        localTeam: values.localTeam,
+        visitorTeam: values.visitorTeam,
+        competition: values.competition,
+        matchday: values.matchday ? Number(values.matchday) : undefined,
         localScore: 0,
         visitorScore: 0,
         isFinished: false,
@@ -149,7 +159,7 @@ function AddMatchDialog({
 
       toast({
         title: 'Partido añadido',
-        description: `El partido contra ${values.opponent} ha sido creado.`,
+        description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido creado.`,
       });
       form.reset();
       setIsOpen(false);
@@ -167,27 +177,46 @@ function AddMatchDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Añadir Nuevo Partido</DialogTitle>
           <DialogDescription>
-            Introduce los detalles para programar un nuevo encuentro.
+            Introduce los datos básicos del partido. Podrás añadir las estadísticas más tarde.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <FormField
+                control={form.control}
+                name="localTeam"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Equipo Local</FormLabel>
+                        <div className="flex gap-2">
+                           <FormControl>
+                                <Input placeholder="Nombre del equipo" {...field} />
+                           </FormControl>
+                           <Button type="button" variant="outline" onClick={() => form.setValue('localTeam', team.name)}>Mi Equipo</Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
             <FormField
-              control={form.control}
-              name="opponent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rival</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre del equipo rival" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+                control={form.control}
+                name="visitorTeam"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Equipo Visitante</FormLabel>
+                        <div className="flex gap-2">
+                           <FormControl>
+                                <Input placeholder="Nombre del equipo" {...field} />
+                           </FormControl>
+                           <Button type="button" variant="outline" onClick={() => form.setValue('visitorTeam', team.name)}>Mi Equipo</Button>
+                        </div>
+                        <FormMessage />
+                    </FormItem>
+                )}
             />
             <FormField
               control={form.control}
@@ -228,56 +257,61 @@ function AddMatchDialog({
                 </FormItem>
               )}
             />
+            <div className="grid grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="matchType"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Tipo</FormLabel>
+                        <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                        >
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un tipo" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            <SelectItem value="Liga">Liga</SelectItem>
+                            <SelectItem value="Copa">Copa</SelectItem>
+                            <SelectItem value="Torneo">Torneo</SelectItem>
+                            <SelectItem value="Amistoso">Amistoso</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                <FormField
+                    control={form.control}
+                    name="matchday"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Jornada</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="Ej: 5" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un tipo" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Liga">Liga</SelectItem>
-                      <SelectItem value="Copa">Copa</SelectItem>
-                      <SelectItem value="Torneo">Torneo</SelectItem>
-                      <SelectItem value="Amistoso">Amistoso</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Localización</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Juegas en casa o fuera?" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Casa">Casa</SelectItem>
-                      <SelectItem value="Fuera">Fuera</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                control={form.control}
+                name="competition"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Competición</FormLabel>
+                        <FormControl>
+                            <Input placeholder="Ej: 1ª División Nacional" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
+           
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>
                 Cancelar
@@ -316,14 +350,10 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
   
   const formattedDate = () => {
     if (!date) return 'Fecha no disponible';
-    
-    // Handle Firestore Timestamp or ISO string
     const dateObj = date.toDate ? date.toDate() : new Date(date);
-    
     if (isNaN(dateObj.getTime())) {
       return 'Fecha inválida';
     }
-
     return format(dateObj, 'dd/MM/yyyy', { locale: es });
   };
 
