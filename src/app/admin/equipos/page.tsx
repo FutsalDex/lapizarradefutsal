@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useMemo } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { collection, query, where, getDocs, DocumentData } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -25,7 +25,6 @@ interface UserProfile {
     id: string;
     email: string;
 }
-
 
 function TeamsTable({ teams, users }: { teams: Team[], users: UserProfile[] }) {
     const usersMap = useMemo(() => new Map(users.map(u => [u.id, u.email])), [users]);
@@ -58,21 +57,60 @@ export default function AdminTeamsPage() {
   const firestore = useFirestore();
   const { user, isUserLoading: isAuthLoading } = useUser();
   const isAdmin = user?.email === 'futsaldex@gmail.com';
+  
+  const [owners, setOwners] = useState<UserProfile[]>([]);
+  const [isLoadingOwners, setIsLoadingOwners] = useState(true);
 
   const teamsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !isAdmin) return null;
     return collection(firestore, 'teams');
   }, [firestore, isAdmin]);
 
-  const usersCollectionRef = useMemoFirebase(() => {
-    if(!firestore || !isAdmin) return null;
-    return collection(firestore, 'users');
-  }, [firestore, isAdmin]);
-
   const { data: teams, isLoading: isLoadingTeams } = useCollection<Team>(teamsCollectionRef);
-  const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersCollectionRef);
 
-  const isLoading = (isAuthLoading || isLoadingTeams || isLoadingUsers);
+  const fetchOwners = useCallback(async () => {
+    if (!firestore || !teams || teams.length === 0) {
+        setIsLoadingOwners(false);
+        return;
+    }
+    
+    setIsLoadingOwners(true);
+    const ownerIds = [...new Set(teams.map(t => t.ownerId))];
+    
+    // Firestore 'in' query is limited to 30 elements. Chunk if necessary.
+    const chunks = [];
+    for (let i = 0; i < ownerIds.length; i += 30) {
+        chunks.push(ownerIds.slice(i, i + 30));
+    }
+
+    try {
+        const ownerDocs: UserProfile[] = [];
+        for (const chunk of chunks) {
+            if (chunk.length > 0) {
+                const q = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
+                const snapshot = await getDocs(q);
+                snapshot.forEach(doc => {
+                    ownerDocs.push({ id: doc.id, ...doc.data() } as UserProfile);
+                });
+            }
+        }
+        setOwners(ownerDocs);
+    } catch (error) {
+        console.error("Error fetching owners:", error);
+        setOwners([]);
+    } finally {
+        setIsLoadingOwners(false);
+    }
+  }, [firestore, teams]);
+
+  useEffect(() => {
+    // Fetch owners only when teams data is available
+    if (!isLoadingTeams && teams) {
+        fetchOwners();
+    }
+  }, [teams, isLoadingTeams, fetchOwners]);
+
+  const isLoading = (isAuthLoading || isLoadingTeams || isLoadingOwners);
   
   if (isAuthLoading) {
     return (
@@ -108,7 +146,7 @@ export default function AdminTeamsPage() {
         <CardHeader>
             <CardTitle>Todos los Equipos</CardTitle>
             <CardDescription>
-                {isLoading ? <Skeleton className="h-4 w-32 mt-1" /> : `${teams?.length ?? 0} equipos en total.`}
+                {isLoadingTeams ? <Skeleton className="h-4 w-32 mt-1" /> : `${teams?.length ?? 0} equipos en total.`}
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -120,7 +158,7 @@ export default function AdminTeamsPage() {
                         </div>
                     ))}
                   </div>
-                : <TeamsTable teams={teams || []} users={users || []} />
+                : <TeamsTable teams={teams || []} users={owners} />
            }
         </CardContent>
       </Card>
