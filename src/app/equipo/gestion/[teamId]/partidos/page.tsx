@@ -556,29 +556,31 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
           {match.matchType}
         </Badge>
       </CardContent>
-      <CardFooter className="bg-muted/50 p-2 flex justify-around">
+      <CardFooter className="bg-muted/50 p-2 grid grid-cols-5 gap-1">
         {isOwner ? (
             <ConvocatoriaDialog teamId={team.id} match={match}>
-                <Button variant="ghost" size="sm" className={cn("text-xs", convocadosCount > 0 && "font-bold text-primary")}>
+                <Button variant="ghost" size="sm" className={cn("text-xs col-span-2", convocadosCount > 0 && "font-bold text-primary")}>
                     <Users className="mr-1 h-4 w-4" /> 
-                    {convocadosCount > 0 ? `${convocadosCount} Convocados` : 'Convocar'}
+                    {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
                 </Button>
             </ConvocatoriaDialog>
         ) : (
-             <Button variant="ghost" size="sm" className="text-xs" disabled>
-                <Users className="mr-1 h-4 w-4" /> {convocadosCount > 0 ? `${convocadosCount} Convocados` : 'Convocar'}
+             <Button variant="ghost" size="sm" className="text-xs col-span-2" disabled>
+                <Users className="mr-1 h-4 w-4" /> {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
              </Button>
         )}
         <Button asChild variant="ghost" size="sm" className="text-xs">
           <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
+            <BarChart className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button asChild variant="ghost" size="sm" className="text-xs" disabled={!isFinished}>
+          <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
             <Eye className="h-4 w-4" />
           </Link>
         </Button>
         <Button variant="ghost" size="sm" className="text-xs" onClick={onEdit} disabled={!isOwner}>
           <Edit className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive" disabled={!isOwner}>
-          <Trash2 className="h-4 w-4" />
         </Button>
       </CardFooter>
     </Card>
