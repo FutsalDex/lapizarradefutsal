@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -266,7 +267,7 @@ function AddMatchDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Juegas en casa o fuera?" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Casa">Casa</SelectItem>
@@ -292,6 +293,7 @@ function AddMatchDialog({
   );
 }
 
+
 // ====================
 // TARJETA DE PARTIDO
 // ====================
@@ -312,7 +314,7 @@ function MatchCard({ match }: { match: Match }) {
       <CardHeader className="text-center">
         <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
         <CardDescription>
-          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy') : 'Fecha no válida'}
+          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha no válida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center">
@@ -462,3 +464,5 @@ export default function MatchesPage() {
     </div>
   );
 }
+
+    
