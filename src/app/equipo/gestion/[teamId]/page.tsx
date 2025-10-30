@@ -8,6 +8,7 @@ import {
   BarChart3,
   ArrowLeft,
   ChevronRight,
+  Trophy,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,9 +35,9 @@ const menuItems = [
   {
     title: 'Mis Partidos',
     description: 'Planifica y revisa los resultados de los partidos.',
-    icon: <CalendarDays className="w-8 h-8 text-primary" />,
+    icon: <Trophy className="w-8 h-8 text-primary" />,
     href: '/partidos',
-    disabled: true,
+    disabled: false,
   },
   {
     title: 'Mis Asistencias',
@@ -155,7 +156,7 @@ export default function TeamDashboardPage() {
             </CardContent>
             <div className="p-6 pt-0">
               <Button asChild className="w-full" disabled={item.disabled}>
-                <Link href={`/equipo/${teamId}${item.href}`}>
+                <Link href={`/equipo/gestion/${teamId}${item.href}`}>
                   {item.disabled ? 'Próximamente' : `Acceder a ${item.title}`}
                   {!item.disabled && <ChevronRight className="w-4 h-4 ml-2" />}
                 </Link>

@@ -79,7 +79,8 @@
         "competition": {"type": "string"},
         "createdAt": {"type": "string", "format": "date-time"},
         "name": {"type": "string"},
-        "ownerId": {"type": "string"}
+        "ownerId": {"type": "string"},
+        "memberIds": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["name", "ownerId"]
     },
@@ -103,6 +104,21 @@
         "recuperaciones": { "type": "number" }
       },
       "required": ["name", "number", "position"]
+    },
+    "Match": {
+        "title": "Match",
+        "type": "object",
+        "description": "Represents a futsal match.",
+        "properties": {
+            "opponent": {"type": "string"},
+            "date": {"type": "string", "format": "date-time"},
+            "type": {"type": "string", "enum": ["Amistoso", "Liga", "Copa", "Torneo"]},
+            "location": {"type": "string", "enum": ["Casa", "Fuera"]},
+            "teamScore": {"type": "number"},
+            "opponentScore": {"type": "number"},
+            "status": {"type": "string", "enum": ["played", "scheduled"]}
+        },
+        "required": ["opponent", "date", "type", "location", "status"]
     },
     "TeamInvitation": {
         "title": "Team Invitation",
@@ -161,6 +177,10 @@
     "/teams/{teamId}/players/{playerId}": {
         "schema": { "$ref": "#/entities/Player" },
         "description": "Stores the players for a specific team."
+    },
+    "/teams/{teamId}/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/Match" },
+      "description": "Stores the matches for a specific team."
     },
     "/invitations/{invitationId}": {
         "schema": { "$ref": "#/entities/TeamInvitation" },
