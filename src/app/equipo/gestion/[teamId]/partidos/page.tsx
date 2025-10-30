@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, forwardRef } from 'react';
@@ -364,16 +363,36 @@ const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: M
 
   const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
   const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
+  
+  const sortedPlayers = useMemo(() => {
+    if (!players) return [];
+    return [...players].sort((a, b) => {
+        const numA = parseInt(a.number, 10);
+        const numB = parseInt(b.number, 10);
+
+        if (isNaN(numA)) return 1;
+        if (isNaN(numB)) return -1;
+
+        return numA - numB;
+    });
+  }, [players]);
 
   useEffect(() => {
-    // Sync state if match data changes from parent
     setSelectedPlayers(match.squad || []);
-  }, [match.squad]);
+  }, [match.squad, isOpen]); // Also reset on open
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayers(prev => 
       prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
     );
+  };
+  
+  const handleSelectAllToggle = () => {
+    if (selectedPlayers.length === sortedPlayers.length) {
+      setSelectedPlayers([]);
+    } else {
+      setSelectedPlayers(sortedPlayers.map(p => p.id));
+    }
   };
 
   const handleSave = async () => {
@@ -400,14 +419,25 @@ const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: M
           <DialogDescription>Selecciona los jugadores convocados para este partido.</DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <ScrollArea className="h-72 w-full rounded-md border">
+          <div className="flex items-center space-x-3 p-4 border-b">
+              <Checkbox
+                id="select-all"
+                checked={sortedPlayers.length > 0 && selectedPlayers.length === sortedPlayers.length}
+                onCheckedChange={handleSelectAllToggle}
+                disabled={!sortedPlayers || sortedPlayers.length === 0}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium leading-none">
+                Seleccionar todos
+              </label>
+          </div>
+          <ScrollArea className="h-60 w-full rounded-md">
             <div className="p-4">
               {isLoadingPlayers ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
                 </div>
-              ) : players && players.length > 0 ? (
-                players.map(player => (
+              ) : sortedPlayers.length > 0 ? (
+                sortedPlayers.map(player => (
                   <div key={player.id} className="flex items-center space-x-3 py-2">
                     <Checkbox
                       id={`player-${player.id}`}
