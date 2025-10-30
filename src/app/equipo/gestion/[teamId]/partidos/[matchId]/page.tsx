@@ -12,7 +12,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList } from 'lucide-react';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -77,37 +76,31 @@ const FoulIndicator = ({ count }: { count: number }) => (
     </div>
 );
 
-
-const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partial<Match>) => void }) => {
+const Scoreboard = ({
+  match,
+  onUpdate,
+  activePlayers,
+  onMinuteTick,
+}: {
+  match: Match;
+  onUpdate: (data: Partial<Match>) => void;
+  activePlayers: string[];
+  onMinuteTick: () => void;
+}) => {
   const [time, setTime] = useState(20 * 60);
   const [isActive, setIsActive] = useState(false);
   const [period, setPeriod] = useState<Period>('1H');
-  const [activePlayers, setActivePlayers] = useState<string[]>([]);
-
-  const { toast } = useToast();
   
-  const handlePlayerTime = useCallback(() => {
-    if (activePlayers.length > 0) {
-      const playerStatsUpdate = _.cloneDeep(match.playerStats) || {};
-      activePlayers.forEach(playerId => {
-        const currentMinutes = _.get(playerStatsUpdate, `${playerId}.minutesPlayed`, 0);
-        _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
-      });
-      onUpdate({ playerStats: playerStatsUpdate });
-    }
-  }, [activePlayers, match.playerStats, onUpdate]);
+  const { toast } = useToast();
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isActive && time > 0) {
       interval = setInterval(() => {
-        setTime((prevTime) => {
-            const newTime = prevTime - 1;
-            if (newTime % 60 === 0) { // Update every minute
-              handlePlayerTime();
-            }
-            return newTime;
-        });
+        setTime((prevTime) => prevTime - 1);
+        if (activePlayers.length > 0) {
+          onMinuteTick();
+        }
       }, 1000);
     } else if (time === 0) {
       setIsActive(false);
@@ -115,7 +108,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, time, handlePlayerTime]);
+  }, [isActive, time, activePlayers, onMinuteTick]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -158,6 +151,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
         <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
+                <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
                 <FoulIndicator count={match.localFouls || 0} />
             </div>
             
@@ -167,16 +161,15 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
 
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
+                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
                 <FoulIndicator count={match.visitorFouls || 0} />
             </div>
         </div>
         
         <div className="flex justify-center items-center gap-4 mb-4">
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
 
 
@@ -204,6 +197,7 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
 // ====================
 const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean }) => {
     const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
+    const { toast } = useToast();
 
     const handleStatChange = (playerId: string, stat: keyof Player, increment: boolean) => {
         const playerStats = match.playerStats?.[playerId] || {};
@@ -231,6 +225,11 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
             if (prevIds.length < 5) {
                 return [...prevIds, playerId];
             }
+            toast({
+                title: 'Límite alcanzado',
+                description: 'Ya has seleccionado 5 jugadores.',
+                variant: 'destructive',
+            });
             return prevIds; // Limit to 5 active players
         });
     }
@@ -272,13 +271,14 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/10")}>
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20")}>
                                         <TableCell className="py-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                <span className="font-bold mr-2">{player.number}.</span>{player.name}
+                                                <span className="font-bold mr-2">{player.number}.</span>
+                                                <span className='text-black'>{player.name}</span>
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums py-2">{stats.minutesPlayed || 0}</TableCell>
+                                        <TableCell className="text-center tabular-nums py-2">{Math.floor((stats.minutesPlayed || 0) / 60)}</TableCell>
                                         <TableCell className="py-2"><StatButton stat="goals" playerId={player.id} /></TableCell>
                                         <TableCell className="py-2"><StatButton stat="assists" playerId={player.id} /></TableCell>
                                         <TableCell className="py-2"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
@@ -381,6 +381,7 @@ export default function MatchStatsPage() {
   const { toast } = useToast();
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
+  const [activePlayers, setActivePlayers] = useState<string[]>([]);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
   const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
@@ -401,7 +402,7 @@ export default function MatchStatsPage() {
     if (!matchRef || remoteMatchData?.isFinished) return;
     await updateDoc(matchRef, data);
     toast({title: "Autoguardado", description: "Cambios guardados."});
-  }, 2000), [matchRef, toast, remoteMatchData?.isFinished]);
+  }, 5000), [matchRef, toast, remoteMatchData?.isFinished]);
 
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
@@ -412,6 +413,23 @@ export default function MatchStatsPage() {
         return newState;
     });
   };
+
+  const handleMinuteTick = useCallback(() => {
+    if (localMatchData?.isFinished) return;
+
+    setLocalMatchData(prev => {
+      if (!prev) return null;
+      const playerStatsUpdate = _.cloneDeep(prev.playerStats) || {};
+      activePlayers.forEach(playerId => {
+        const currentMinutes = _.get(playerStatsUpdate, `${playerId}.minutesPlayed`, 0);
+        _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
+      });
+      const newState = { ...prev, playerStats: playerStatsUpdate };
+      debouncedUpdate(newState);
+      return newState;
+    });
+  }, [activePlayers, localMatchData?.isFinished, debouncedUpdate]);
+
 
   const toggleMatchFinished = async () => {
     if (!matchRef || !localMatchData) return;
@@ -476,7 +494,7 @@ export default function MatchStatsPage() {
         </div>
       </div>
 
-      <Scoreboard match={localMatchData} onUpdate={handleUpdate} />
+      <Scoreboard match={localMatchData} onUpdate={handleUpdate} activePlayers={activePlayers} onMinuteTick={handleMinuteTick} />
 
       <Tabs defaultValue="myTeam" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
