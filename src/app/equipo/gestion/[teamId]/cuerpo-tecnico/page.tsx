@@ -135,12 +135,6 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
         };
 
         addDoc(invitationsRef, invitationData)
-          .then(() => {
-            toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${values.email}.` });
-            onInvitationSent(); // Callback to refetch data
-            setIsOpen(false);
-            form.reset();
-          })
           .catch((error) => {
             console.error("Original Firebase Error:", error);
             const contextualError = new FirestorePermissionError({
@@ -149,7 +143,14 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
               requestResourceData: invitationData,
             });
             errorEmitter.emit('permission-error', contextualError);
+          })
+          .then(() => {
+            toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${values.email}.` });
+            onInvitationSent(); // Callback to refetch data
+            setIsOpen(false);
+            form.reset();
           });
+          
     } catch (error) {
         console.error("Error querying user:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo verificar el usuario.' });
