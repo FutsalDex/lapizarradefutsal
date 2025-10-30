@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -42,7 +43,7 @@ interface Player {
 
 interface AttendanceRecord {
     id: string; // YYYY-MM-DD
-    playerStatus: Record<string, AttendanceStatus>;
+    playerStatus?: Record<string, AttendanceStatus>;
 }
 
 type AttendanceStatus = 'Presente' | 'Ausente' | 'Justificado' | 'Lesionado';
@@ -305,9 +306,11 @@ function AttendanceHistoryTable({ players, attendanceRecords }: { players: Playe
             };
 
             attendanceRecords.forEach(record => {
-                const status = record.playerStatus[player.id];
-                if (status) {
-                    stats[status]++;
+                if (record.playerStatus) {
+                    const status = record.playerStatus[player.id];
+                    if (status) {
+                        stats[status]++;
+                    }
                 }
             });
 
@@ -478,3 +481,5 @@ export default function AttendancePage() {
     </div>
   );
 }
+
+    
