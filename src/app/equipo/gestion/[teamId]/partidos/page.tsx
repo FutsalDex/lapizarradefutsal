@@ -83,7 +83,7 @@ interface Match {
   id: string;
   visitorTeam: string;
   localTeam: string;
-  date: any; // Firestore timestamp
+  date: any; // Firestore timestamp or string
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
   localScore?: number;
   visitorScore?: number;
@@ -298,7 +298,7 @@ function AddMatchDialog({
 // TARJETA DE PARTIDO
 // ====================
 function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
-  const { isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0 } = match;
+  const { isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date } = match;
 
   const getResultClasses = () => {
     if (!isFinished) return 'text-muted-foreground';
@@ -313,13 +313,28 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
   const scoreDisplay = isFinished ? `${localScore} - ${visitorScore}` : 'vs';
+  
+  const formattedDate = () => {
+    if (!date) return 'Fecha no disponible';
+    
+    // Handle both Firestore Timestamp and ISO string
+    const dateObj = date.toDate ? date.toDate() : new Date(date);
+
+    // Check if the date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Fecha inválida';
+    }
+
+    return format(dateObj, 'dd/MM/yyyy', { locale: es });
+  };
+
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="text-center">
         <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
         <CardDescription>
-          {match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida'}
+          {formattedDate()}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center">
@@ -469,5 +484,3 @@ export default function MatchesPage() {
     </div>
   );
 }
-
-    
