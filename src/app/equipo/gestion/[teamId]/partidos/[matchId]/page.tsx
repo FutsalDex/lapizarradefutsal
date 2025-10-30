@@ -99,28 +99,34 @@ const Scoreboard = ({
   setIsTimerActive: (isActive: boolean) => void;
 
 }) => {
-  const [time, setTime] = useState(20 * 60);
+  const [time, setTime] = useState(0); // Starts at 0, counts up
   const [period, setPeriod] = useState<Period>('1H');
+
+  const maxTime = useMemo(() => {
+    const baseTime = 25 * 60; // 25 minutes
+    const timeouts = (match.localTimeouts || 0) + (match.visitorTimeouts || 0);
+    return baseTime + (timeouts * 60); // Add 1 minute for each timeout
+  }, [match.localTimeouts, match.visitorTimeouts]);
   
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (isTimerActive && time > 0) {
+    if (isTimerActive && time < maxTime) {
       interval = setInterval(() => {
         setTime((prevTime) => {
-            const newTime = prevTime - 1;
-            if (newTime >= 0) {
+            const newTime = prevTime + 1;
+            if (newTime <= maxTime) {
               onMinuteTick();
             }
             return newTime;
         });
       }, 1000);
-    } else if (time === 0) {
+    } else if (time >= maxTime) {
       setIsTimerActive(false);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isTimerActive, time, onMinuteTick, setIsTimerActive]);
+  }, [isTimerActive, time, maxTime, onMinuteTick, setIsTimerActive]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -138,7 +144,7 @@ const Scoreboard = ({
   
   const resetPeriod = (newPeriod: Period) => {
     setPeriod(newPeriod);
-    setTime(20 * 60);
+    setTime(0);
     setIsTimerActive(false);
     onUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
   }
@@ -174,7 +180,7 @@ const Scoreboard = ({
         </div>
         
         <div className="flex justify-center items-center gap-4 mb-4">
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+             <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
@@ -187,7 +193,7 @@ const Scoreboard = ({
                 {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                 {isTimerActive ? 'Pausar' : 'Iniciar'}
             </Button>
-            <Button onClick={() => resetPeriod(period)} variant="outline" size="sm">
+            <Button onClick={() => setTime(0)} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
             </Button>
             <div className="flex gap-2">
