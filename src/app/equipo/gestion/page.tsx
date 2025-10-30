@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -156,7 +155,7 @@ function TeamList() {
     return acceptedInvitations?.map(inv => inv.teamId) || [];
   }, [acceptedInvitations]);
 
-  const canFetchTeams = !isAuthLoading && !isLoadingInvites && user?.uid;
+  const canFetchTeams = !isAuthLoading && user?.uid;
 
   const teamsQuery = useMemoFirebase(() => {
     if (!firestore || !canFetchTeams) return null;
@@ -224,7 +223,7 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
                 </p>
             </div>
             <Button asChild variant="ghost" size="sm">
-                <Link href={`/equipo/gestion/${team.id}/miembros`}>
+                <Link href={`/equipo/gestion/${team.id}`}>
                     Gestionar <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>
