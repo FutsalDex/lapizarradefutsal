@@ -153,7 +153,9 @@
                   "fouls": {"type": "number"},
                   "shotsOnTarget": {"type": "number"},
                   "shotsOffTarget": {"type": "number"},
-                  "shotsBlocked": {"type": "number"}
+                  "shotsBlocked": {"type": "number"},
+                  "recoveries": {"type": "number"},
+                  "turnovers": {"type": "number"}
               }
             },
             "2H": {
@@ -163,7 +165,9 @@
                   "fouls": {"type": "number"},
                   "shotsOnTarget": {"type": "number"},
                   "shotsOffTarget": {"type": "number"},
-                  "shotsBlocked": {"type": "number"}
+                  "shotsBlocked": {"type": "number"},
+                  "recoveries": {"type": "number"},
+                  "turnovers": {"type": "number"}
               }
             }
           }

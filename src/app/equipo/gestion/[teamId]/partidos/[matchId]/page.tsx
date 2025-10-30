@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Futbol, ShieldAlert, Crosshair, Target, Repeat, Shuffle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -46,6 +46,8 @@ interface OpponentStats {
   shotsOnTarget: number;
   shotsOffTarget: number;
   shotsBlocked: number;
+  recoveries: number;
+  turnovers: number;
 }
 
 interface Match {
@@ -378,10 +380,10 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     );
 };
 
-const OpponentStatsTable = ({ teamName, match, onUpdate, period }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void, period: Period }) => {
+const OpponentStatsGrid = ({ teamName, match, onUpdate, period }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void, period: Period }) => {
 
     const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
-        const opponentStats = _.get(match.opponentStats, period, { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 });
+        const opponentStats = _.get(match.opponentStats, period, { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 });
         let currentVal = opponentStats[stat] || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
 
@@ -389,28 +391,38 @@ const OpponentStatsTable = ({ teamName, match, onUpdate, period }: { teamName: s
         _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
-        const scoreField = 'visitorScore';
-
+        
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
+             const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
              batchUpdate[scoreField] = goals1H + goals2H;
         }
 
         onUpdate(batchUpdate);
     };
+    
+    const opponentStatItems = [
+        { label: "Goles", stat: "goals" as keyof OpponentStats, icon: Futbol },
+        { label: "Tiros a Puerta", stat: "shotsOnTarget" as keyof OpponentStats, icon: Crosshair },
+        { label: "Tiros Fuera", stat: "shotsOffTarget" as keyof OpponentStats, icon: Target },
+        { label: "Faltas", stat: "fouls" as keyof OpponentStats, icon: ShieldAlert },
+        { label: "Recuperaciones", stat: "recoveries" as keyof OpponentStats, icon: Repeat },
+        { label: "Pérdidas", stat: "turnovers" as keyof OpponentStats, icon: Shuffle },
+    ]
 
-    const StatRow = ({ label, stat }: { label: string, stat: keyof OpponentStats }) => (
-         <TableRow>
-            <TableCell className="font-medium">{label}</TableCell>
-            <TableCell className="text-right">
-                <div className="flex items-center gap-1 justify-end">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, false)}><Minus className="h-4 w-4"/></Button>
-                    <span className="w-6 text-center tabular-nums">{_.get(match.opponentStats, `${period}.${stat}`, 0)}</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, true)}><Plus className="h-4 w-4"/></Button>
-                </div>
-            </TableCell>
-        </TableRow>
+    const StatCounter = ({ label, stat, icon: Icon }: { label: string, stat: keyof OpponentStats, icon: React.ElementType }) => (
+        <div className="flex items-center justify-between rounded-lg border bg-card text-card-foreground shadow-sm p-3">
+             <div className="flex items-center gap-3">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+                <span className="font-medium">{label}</span>
+             </div>
+             <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, false)}><Minus className="h-4 w-4"/></Button>
+                <span className="w-6 text-center tabular-nums font-bold text-lg">{_.get(match.opponentStats, `${period}.${stat}`, 0)}</span>
+                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, true)}><Plus className="h-4 w-4"/></Button>
+            </div>
+        </div>
     );
 
     return (
@@ -418,16 +430,10 @@ const OpponentStatsTable = ({ teamName, match, onUpdate, period }: { teamName: s
             <CardHeader>
                 <CardTitle>Estadísticas del Rival - {teamName} ({period === '1H' ? '1ª Parte' : '2ª Parte'})</CardTitle>
             </CardHeader>
-            <CardContent>
-                 <Table>
-                    <TableBody>
-                        <StatRow label="Goles" stat="goals" />
-                        <StatRow label="Faltas" stat="fouls" />
-                        <StatRow label="Tiros a Puerta" stat="shotsOnTarget" />
-                        <StatRow label="Tiros Fuera" stat="shotsOffTarget" />
-                        <StatRow label="Tiros Bloqueados" stat="shotsBlocked" />
-                    </TableBody>
-                </Table>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                 {opponentStatItems.map(item => (
+                    <StatCounter key={item.stat} label={item.label} stat={item.stat} icon={item.icon} />
+                 ))}
             </CardContent>
         </Card>
     )
@@ -573,7 +579,8 @@ export default function MatchStatsPage() {
   }
   
   const myTeamName = team.name;
-  const opponentTeamName = localMatchData.localTeam === myTeamName ? localMatchData.visitorTeam : localMatchData.localTeam;
+  const isMyTeamLocal = localMatchData.localTeam === myTeamName;
+  const opponentTeamName = isMyTeamLocal ? localMatchData.visitorTeam : localMatchData.localTeam;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
@@ -606,8 +613,8 @@ export default function MatchStatsPage() {
         onTimeout={handleTimeout}
         period={period}
         setPeriod={handlePeriodChange}
-        localFouls={localFouls}
-        visitorFouls={visitorFouls}
+        localFouls={isMyTeamLocal ? localFouls : visitorFouls}
+        visitorFouls={isMyTeamLocal ? visitorFouls : localFouls}
       />
 
       <Tabs defaultValue="myTeam" className="w-full">
@@ -628,7 +635,7 @@ export default function MatchStatsPage() {
             />
         </TabsContent>
         <TabsContent value="opponent">
-             <OpponentStatsTable 
+             <OpponentStatsGrid
                 teamName={opponentTeamName}
                 match={localMatchData}
                 onUpdate={handleUpdate}
