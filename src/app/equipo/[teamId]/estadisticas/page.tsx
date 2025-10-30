@@ -74,16 +74,16 @@ export default function StatsPage() {
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(finishedMatchesQuery);
   const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersQuery);
 
-  let teamStats = { wins: 0, losses: 0, draws: 0, total: 0 };
-  if(matches) {
-    teamStats = matches.reduce((acc, match) => {
+  const teamStats = useMemo(() => {
+    if (!matches) return { wins: 0, losses: 0, draws: 0, total: 0 };
+    return matches.reduce((acc, match) => {
         if (match.localScore > match.visitorScore) acc.wins++;
         else if (match.localScore < match.visitorScore) acc.losses++;
         else acc.draws++;
         acc.total++;
         return acc;
     }, { wins: 0, losses: 0, draws: 0, total: 0 });
-  }
+  }, [matches]);
 
   const chartData = [
       { type: 'Victorias', value: teamStats.wins, fill: 'var(--color-victorias)' },

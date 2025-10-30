@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   collection,
   query,
@@ -13,7 +13,6 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import {isEqual} from 'lodash';
 
 /** Utility type to add an 'id' field to a given type T. */
 type WithId<T> = T & { id: string };
@@ -55,8 +54,6 @@ export function useCollection<T = any>(
   const [data, setData] = useState<StateDataType>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
-  const dataRef = useRef<StateDataType>(null);
-
 
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
@@ -74,12 +71,7 @@ export function useCollection<T = any>(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
         const docs = snapshot.docs.map(doc => ({ ...(doc.data() as T), id: doc.id }));
-        
-        if (!isEqual(docs, dataRef.current)) {
-            dataRef.current = docs;
-            setData(docs);
-        }
-
+        setData(docs);
         setError(null);
         setIsLoading(false);
       },
