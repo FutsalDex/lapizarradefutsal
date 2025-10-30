@@ -64,6 +64,9 @@ export default function ExerciseDetailPage() {
       </div>
     );
   }
+  
+  const edadArray = exercise.edad ? Object.keys(exercise.edad).filter(k => exercise.edad[k]) : [];
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -80,7 +83,7 @@ export default function ExerciseDetailPage() {
                 <CardContent className="p-0">
                     <div className="relative aspect-[4/3] w-full bg-black/5 rounded-t-lg">
                         <Image
-                            src={exercise.imageUrl || 'https://picsum.photos/seed/placeholder/800/600'}
+                            src={exercise.image || 'https://picsum.photos/seed/placeholder/800/600'}
                             alt={`Imagen de ${exercise.name}`}
                             fill
                             className="object-contain p-2"
@@ -93,9 +96,8 @@ export default function ExerciseDetailPage() {
         <div className="lg:col-span-2">
             <h1 className="font-headline text-3xl font-bold text-primary mb-2">{exercise.name}</h1>
              <div className="flex flex-wrap gap-2 mb-6">
-                <Badge variant="secondary">{exercise.fase}</Badge>
-                <Badge variant="secondary">{exercise.category}</Badge>
-                {exercise.edad?.map(age => <Badge key={age} variant="outline">{age}</Badge>)}
+                {exercise.category && <Badge variant="secondary">{exercise.category}</Badge>}
+                {edadArray.map(age => <Badge key={age} variant="outline" className="capitalize">{age}</Badge>)}
             </div>
           
             <div className="space-y-6">
@@ -125,7 +127,6 @@ export default function ExerciseDetailPage() {
                         <CardContent className="space-y-3">
                             <p className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise.numberOfPlayers}</span></p>
                              <p className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise.duration} min</span></p>
-                             <p className='flex items-center text-sm'><Recycle className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Material:</strong><span className='ml-2 text-muted-foreground'>{exercise.spaceAndMaterials}</span></p>
                         </CardContent>
                     </Card>
                     <Card>

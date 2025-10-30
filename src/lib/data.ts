@@ -8,17 +8,18 @@ export type Exercise = {
   name: string;
   description: string;
   category: string;
-  fase: string;
-  edad: string[];
+  fase?: string; // Not in user schema
+  edad: { [key: string]: boolean };
   objectives: string;
-  duration: number;
+  duration: string;
   numberOfPlayers: string;
-  spaceAndMaterials: string;
-  consejos: string;
   variations: string;
-  imageUrl: string;
-  imageHint: string;
+  consejos: string;
+  image: string;
+  aiHint?: string;
   visible: boolean;
+  userId?: string;
+  createdAt?: any;
 };
 
 export const exercises: Exercise[] = [
@@ -30,15 +31,14 @@ export const exercises: Exercise[] = [
     description: 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
     category: 'Técnica',
     fase: 'Fase Principal',
-    edad: ['infantil', 'cadete', 'juvenil', 'senior'],
+    edad: { infantil: true, cadete: true, juvenil: true, senior: true },
     objectives: 'Mejorar el pase y la presión.',
-    duration: 10,
+    duration: "10",
     numberOfPlayers: '5',
-    spaceAndMaterials: 'Conos, balón',
     consejos: 'Pases rápidos y movimiento constante.',
     variations: 'Añadir un segundo defensor.',
-    imageUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
-    imageHint: exerciseImages[0]?.imageHint || 'futsal drill',
+    image: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
+    aiHint: exerciseImages[0]?.imageHint || 'futsal drill',
     visible: true,
   },
   {
@@ -47,15 +47,14 @@ export const exercises: Exercise[] = [
     description: 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
     category: 'Táctica',
     fase: 'Fase Principal',
-    edad: ['cadete', 'juvenil', 'senior'],
+    edad: { cadete: true, juvenil: true, senior: true },
     objectives: 'Mejorar la toma de decisiones en ataque.',
-    duration: 15,
+    duration: "15",
     numberOfPlayers: '3 + Portero',
-    spaceAndMaterials: 'Portería, balón',
     consejos: 'Atraer al defensor antes de pasar.',
     variations: 'Limitar el número de toques.',
-    imageUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
-    imageHint: exerciseImages[1]?.imageHint || 'futsal attack',
+    image: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
+    aiHint: exerciseImages[1]?.imageHint || 'futsal attack',
     visible: true,
   },
   // Add other mock exercises if needed

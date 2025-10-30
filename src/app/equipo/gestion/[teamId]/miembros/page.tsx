@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -48,7 +48,7 @@ interface Team {
 
 interface TeamInvitation {
   id: string;
-  userEmail: string;
+  invitedUserEmail: string;
   role: 'technical_staff' | 'player';
   status: 'pending' | 'accepted' | 'rejected';
 }
@@ -66,12 +66,13 @@ function InviteMemberForm({ team }: { team: Team }) {
   const onSubmit = async (values: InviteValues) => {
     setIsSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'teamInvitations'), {
+      await addDoc(collection(firestore, 'invitations'), {
         teamId: team.id,
         teamName: team.name,
-        userEmail: values.email.toLowerCase(),
+        invitedUserEmail: values.email.toLowerCase(),
         role: values.role,
         status: 'pending',
+        createdAt: serverTimestamp(),
       });
       toast({ title: 'Invitación enviada', description: `Se ha invitado a ${values.email} a unirse al equipo.` });
       form.reset();
@@ -145,7 +146,7 @@ function MembersList({ teamId }: { teamId: string }) {
   const invitationsQuery = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return query(
-      collection(firestore, 'teamInvitations'),
+      collection(firestore, 'invitations'),
       where('teamId', '==', teamId),
       where('status', 'in', ['pending', 'accepted'])
     );
@@ -188,7 +189,7 @@ function MembersList({ teamId }: { teamId: string }) {
             {invitations.map(invitation => (
               <li key={invitation.id} className="flex items-center justify-between rounded-lg border p-3">
                 <div>
-                  <p className="font-semibold">{invitation.userEmail}</p>
+                  <p className="font-semibold">{invitation.invitedUserEmail}</p>
                   <p className="text-sm text-muted-foreground">{getRoleText(invitation.role)}</p>
                 </div>
                 <div className="flex items-center gap-4">

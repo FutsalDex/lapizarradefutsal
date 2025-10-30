@@ -2,118 +2,85 @@
 {
   "entities": {
     "Exercise": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Exercise",
       "type": "object",
       "description": "Represents a futsal exercise or drill.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Exercise entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the exercise."
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the exercise."
-        },
-        "skillCategory": {
-          "type": "string",
-          "description": "Category of skill the exercise targets (e.g., passing, shooting, defending)."
-        },
-        "intensityLevel": {
-          "type": "string",
-          "description": "Intensity level of the exercise (e.g., low, medium, high)."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to an image or video demonstrating the exercise.",
-          "format": "uri"
+        "name": {"type": "string"},
+        "image": {"type": "string", "format": "uri"},
+        "number": {"type": "string"},
+        "numberOfPlayers": {"type": "string"},
+        "objectives": {"type": "string"},
+        "variations": {"type": "string"},
+        "visible": {"type": "boolean"},
+        "aiHint": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time"},
+        "userId": {"type": "string"},
+        "description": {"type": "string"},
+        "duration": {"type": "string"},
+        "category": {"type": "string"},
+        "consejos": {"type": "string"},
+        "edad": {
+            "type": "object",
+            "properties": {
+                "infantil": {"type": "boolean"},
+                "cadete": {"type": "boolean"},
+                "juvenil": {"type": "boolean"},
+                "senior": {"type": "boolean"}
+            }
         }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "skillCategory",
-        "intensityLevel"
-      ]
+      "required": ["name", "description", "category", "visible"]
     },
     "Session": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Session",
       "type": "object",
       "description": "Represents a training session composed of multiple exercises.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Session entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the training session."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the training session.",
-          "format": "date-time"
-        },
-        "exerciseIds": {
-          "type": "array",
-          "description": "References to Exercises. (Relationship: Session 1:N Exercise)",
-          "items": {
-            "type": "string"
-          }
-        }
+        "createdAt": {"type": "string", "format": "date-time"},
+        "date": {"type": "string", "format": "date-time"},
+        "finalExercise": {"type": "string"},
+        "initialExercise": {"type": "string"},
+        "initialExercises": {"type": "array", "items": {"type": "string"}},
+        "mainExercises": {"type": "array", "items": {"type": "string"}},
+        "microcycle": {"type": "string"},
+        "objectives": {"type": "string"},
+        "players": {"type": "number"},
+        "sessionNumber": {"type": "string"},
+        "space": {"type": "string"},
+        "updatedAt": {"type": "string", "format": "date-time"},
+        "userId": {"type": "string"}
       },
-      "required": [
-        "id",
-        "name",
-        "date",
-        "exerciseIds"
-      ]
+      "required": ["date", "userId"]
     },
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
       "description": "Represents a user of the application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the user."
-        }
+        "createdAt": {"type": "string", "format": "date-time"},
+        "displayName": {"type": "string"},
+        "email": {"type": "string", "format": "email"},
+        "favorites": {"type": "array", "items": {"type": "string"}},
+        "photoURL": {"type": "string", "format": "uri"},
+        "role": {"type": "string"},
+        "subscription": {"type": "string"},
+        "subscriptionEndDate": {"type": "string", "format": "date-time"},
+        "subscriptionStartDate": {"type": "string", "format": "date-time"}
       },
-      "required": [
-        "id",
-        "email"
-      ]
+      "required": ["email", "createdAt"]
     },
      "Team": {
       "title": "Team",
       "type": "object",
       "description": "Represents a futsal team.",
       "properties": {
-        "id": {"type": "string"},
-        "name": {"type": "string"},
         "club": {"type": "string"},
-        "season": {"type": "string"},
-        "ownerId": {"type": "string", "description": "The UID of the user who owns the team."}
+        "competition": {"type": "string"},
+        "createdAt": {"type": "string", "format": "date-time"},
+        "name": {"type": "string"},
+        "ownerId": {"type": "string"},
+        "season": {"type": "string"}
       },
       "required": ["name", "ownerId"]
     },
@@ -122,14 +89,15 @@
         "type": "object",
         "description": "Represents an invitation for a user to join a team's staff.",
         "properties": {
-            "id": {"type": "string"},
-            "teamId": {"type": "string"},
-            "teamName": {"type": "string"},
-            "userEmail": {"type": "string", "format": "email"},
+            "createdAt": {"type": "string", "format": "date-time"},
+            "invitedUserEmail": {"type": "string", "format": "email"},
+            "name": {"type": "string"},
+            "role": {"type": "string", "enum": ["technical_staff", "player"]},
             "status": {"type": "string", "enum": ["pending", "accepted", "rejected"]},
-            "role": {"type": "string", "enum": ["technical_staff", "player"]}
+            "teamId": {"type": "string"},
+            "teamName": {"type": "string"}
         },
-        "required": ["teamId", "teamName", "userEmail", "status", "role"]
+        "required": ["teamId", "teamName", "invitedUserEmail", "status", "role"]
     }
   },
   "auth": {
@@ -170,7 +138,7 @@
         "schema": { "$ref": "#/entities/Team" },
         "description": "Stores team information."
     },
-    "/teamInvitations/{invitationId}": {
+    "/invitations/{invitationId}": {
         "schema": { "$ref": "#/entities/TeamInvitation" },
         "description": "Stores invitations for users to join teams."
     }

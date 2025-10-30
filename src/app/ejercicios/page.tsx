@@ -59,7 +59,7 @@ export default function EjerciciosPage() {
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
       const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || exercise.edad?.includes(ageFilter.toLowerCase());
+      const matchesAge = ageFilter === 'Todas' || (exercise.edad && typeof exercise.edad === 'object' && !Array.isArray(exercise.edad) && exercise.edad[ageFilter.toLowerCase()]);
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
@@ -127,7 +127,7 @@ export default function EjerciciosPage() {
             </Select>
         </div>
         {!isLoading && exercises && (
-            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {exercises.length} ejercicios.</p>
+            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {exercises.filter(e => e.visible).length} ejercicios.</p>
         )}
       </div>
       
@@ -158,12 +158,12 @@ export default function EjerciciosPage() {
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
                 <div className="relative h-56 w-full">
                   <Image
-                    src={exercise.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
+                    src={exercise.image || 'https://picsum.photos/seed/placeholder/600/400'}
                     alt={exercise.name}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-contain p-2"
-                    data-ai-hint={exercise.imageHint}
+                    data-ai-hint={exercise.aiHint}
                   />
                 </div>
                 <CardContent className="p-4 flex-grow">

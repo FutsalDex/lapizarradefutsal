@@ -39,7 +39,7 @@ interface TeamInvitation {
   id: string;
   teamId: string;
   teamName: string;
-  userEmail: string;
+  invitedUserEmail: string;
   status: 'pending' | 'accepted' | 'rejected';
 }
 
@@ -63,7 +63,9 @@ function CreateTeamForm() {
     setIsSubmitting(true);
     try {
       await addDoc(collection(firestore, 'teams'), {
-        ...values,
+        name: values.name,
+        club: values.club,
+        season: values.season,
         ownerId: user.uid,
         createdAt: serverTimestamp(),
       });
@@ -147,8 +149,8 @@ function TeamList() {
   const acceptedInvitationsQuery = useMemoFirebase(() => {
     if (!user || !user.email || !firestore) return null;
     return query(
-      collection(firestore, 'teamInvitations'),
-      where('userEmail', '==', user.email),
+      collection(firestore, 'invitations'),
+      where('invitedUserEmail', '==', user.email),
       where('status', '==', 'accepted')
     );
   }, [firestore, user]);
