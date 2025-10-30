@@ -388,7 +388,7 @@ export default function MatchesPage() {
     return query(
         collection(firestore, `matches`), 
         where('teamId', '==', teamId), 
-        orderBy('date', 'desc')
+        orderBy('date', 'asc')
     );
   }, [firestore, teamId]);
 
