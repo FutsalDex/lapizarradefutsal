@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -35,6 +35,7 @@ interface PlayerStats {
   saves: number;
   goalsConceded: number;
   minutesPlayed: number;
+  unoVsUno?: number;
 }
 type Player = Omit<PlayerStats, 'id'> & { id: string };
 
@@ -314,6 +315,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             <TableHead className="text-center px-1">GC</TableHead>
             <TableHead className="text-center px-1">TA</TableHead>
             <TableHead className="text-center px-1">TR</TableHead>
+            <TableHead className="text-center px-1">1vs1</TableHead>
         </TableRow>
     );
 
@@ -351,11 +353,12 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                         <TableCell className="py-1 px-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="unoVsUno" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
                                 <TableRow>
-                                    <TableCell colSpan={13} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={14} className="text-center h-24 text-muted-foreground">
                                         {isMyTeam ? "No hay jugadores convocados." : "Las estadísticas del rival no están disponibles."}
                                     </TableCell>
                                 </TableRow>
@@ -376,6 +379,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 <TableCell className="text-center px-1">{totals.goalsConceded}</TableCell>
                                 <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
                                 <TableCell className="text-center px-1">{totals.redCards}</TableCell>
+                                <TableCell className="text-center px-1">{_.sumBy(Object.values(match.playerStats?.[period] || {}), 'unoVsUno') || 0}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -398,6 +402,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                           <div><b>Perdidas:</b> Perdidas</div>
                           <div><b>Paradas:</b> Paradas</div>
                           <div><b>GC:</b> Goles en Contra</div>
+                          <div><b>1vs1:</b> Duelos 1vs1 ganados</div>
                       </div>
                   </div>
                 </CardFooter>

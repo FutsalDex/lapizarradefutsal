@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection } from '@/firebase';
@@ -20,6 +20,12 @@ import Link from 'next/link';
 // TYPES
 // ====================
 type Period = '1H' | '2H';
+
+interface PlayerStats {
+    goals?: number; assists?: number; yellowCards?: number; redCards?: number; fouls?: number;
+    shotsOnTarget?: number; shotsOffTarget?: number; recoveries?: number; turnovers?: number;
+    saves?: number; goalsConceded?: number; minutesPlayed?: number; unoVsUno?: number;
+}
 
 interface MatchEvent {
   type: 'goal' | 'yellowCard' | 'redCard';
@@ -42,12 +48,31 @@ interface Match {
   date: any; // Firestore timestamp
   squad?: string[];
   events?: MatchEvent[];
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
 }
 
+interface Player {
+    id: string;
+    name: string;
+    number: string;
+}
+
+
 // ====================
-// GOAL CHRONOLOGY COMPONENT
+// HELPER FUNCTIONS
 // ====================
-const GoalChronology = ({ events, teamName, isLocal }: { events: MatchEvent[], teamName: string, isLocal: boolean }) => {
+const formatStatTime = (totalSeconds: number) => {
+    if (!totalSeconds || totalSeconds < 0) return '00:00';
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+// ====================
+// SUB-COMPONENTS
+// ====================
+
+const GoalChronology = ({ events, isLocal }: { events: MatchEvent[], isLocal: boolean }) => {
     const teamGoals = events
         .filter(e => e.type === 'goal' && (isLocal ? e.team === 'local' : e.team === 'visitor'))
         .sort((a, b) => a.minute - b.minute);
@@ -57,24 +82,109 @@ const GoalChronology = ({ events, teamName, isLocal }: { events: MatchEvent[], t
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-xl">Cronología de Goles</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    {teamGoals.map((goal, index) => (
-                        <div key={index} className="flex justify-between items-center border-b pb-2">
-                            <span className="font-medium">{goal.playerName}</span>
-                            <span className="text-muted-foreground font-semibold">{goal.minute}'</span>
-                        </div>
-                    ))}
+        <div className="space-y-4">
+            {teamGoals.map((goal, index) => (
+                <div key={index} className="flex justify-between items-center border-b pb-2">
+                    <span className="font-medium">{goal.playerName}</span>
+                    <span className="text-muted-foreground font-semibold">{goal.minute}'</span>
                 </div>
-            </CardContent>
-        </Card>
+            ))}
+        </div>
     )
 }
 
+const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) => {
+    const firestore = useFirestore();
+
+    const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
+    const { data: allPlayers, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
+    
+    const squadPlayers = useMemo(() => {
+        if (!allPlayers || !match.squad) return [];
+        const squadIds = new Set(match.squad);
+        return allPlayers.filter(p => squadIds.has(p.id));
+    }, [allPlayers, match.squad]);
+
+    const aggregatedStats = useMemo(() => {
+        const stats: { [playerId: string]: PlayerStats & { name: string, number: string } } = {};
+
+        squadPlayers.forEach(player => {
+            const stats1H = _.get(match.playerStats, `1H.${player.id}`, {});
+            const stats2H = _.get(match.playerStats, `2H.${player.id}`, {});
+            
+            stats[player.id] = {
+                name: player.name,
+                number: player.number,
+                minutesPlayed: (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0),
+                goals: (stats1H.goals || 0) + (stats2H.goals || 0),
+                assists: (stats1H.assists || 0) + (stats2H.assists || 0),
+                yellowCards: (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0),
+                redCards: (stats1H.redCards || 0) + (stats2H.redCards || 0),
+                fouls: (stats1H.fouls || 0) + (stats2H.fouls || 0),
+                saves: (stats1H.saves || 0) + (stats2H.saves || 0),
+                goalsConceded: (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0),
+                unoVsUno: (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0),
+            };
+        });
+
+        return Object.values(stats).sort((a,b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+
+    }, [match.playerStats, squadPlayers]);
+
+    if (isLoadingPlayers) {
+        return <Skeleton className="h-40 w-full" />;
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Estadísticas de Jugadores</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[50px]">#</TableHead>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead>Min.</TableHead>
+                                <TableHead>G</TableHead>
+                                <TableHead>As</TableHead>
+                                <TableHead>TA</TableHead>
+                                <TableHead>TR</TableHead>
+                                <TableHead>F</TableHead>
+                                <TableHead>Par.</TableHead>
+                                <TableHead>GC</TableHead>
+                                <TableHead>1vs1</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {aggregatedStats.length > 0 ? aggregatedStats.map(player => (
+                                <TableRow key={player.number}>
+                                    <TableCell className="font-medium">{player.number}</TableCell>
+                                    <TableCell>{player.name}</TableCell>
+                                    <TableCell>{formatStatTime(player.minutesPlayed || 0)}</TableCell>
+                                    <TableCell>{player.goals || 0}</TableCell>
+                                    <TableCell>{player.assists || 0}</TableCell>
+                                    <TableCell>{player.yellowCards || 0}</TableCell>
+                                    <TableCell>{player.redCards || 0}</TableCell>
+                                    <TableCell>{player.fouls || 0}</TableCell>
+                                    <TableCell>{player.saves || 0}</TableCell>
+                                    <TableCell>{player.goalsConceded || 0}</TableCell>
+                                    <TableCell>{player.unoVsUno || 0}</TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={11} className="text-center h-24">No hay datos de jugadores para este partido.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 // ====================
 // MAIN PAGE COMPONENT
@@ -116,9 +226,7 @@ export default function MatchDetailsPage() {
     );
   }
 
-  const myTeamName = team.name;
-  const isMyTeamLocal = match.localTeam === myTeamName;
-  const opponentTeamName = isMyTeamLocal ? match.visitorTeam : match.localTeam;
+  const isMyTeamLocal = match.localTeam === team.name;
 
   const formattedDate = match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida';
 
@@ -153,20 +261,32 @@ export default function MatchDetailsPage() {
             </CardHeader>
        </Card>
 
-        <Tabs defaultValue="local" className="w-full">
+        <Tabs defaultValue="chronology" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="local">{match.localTeam}</TabsTrigger>
-                <TabsTrigger value="visitor">{match.visitorTeam}</TabsTrigger>
+                <TabsTrigger value="chronology">Cronología de Goles</TabsTrigger>
+                <TabsTrigger value="stats">Estadísticas de Jugadores</TabsTrigger>
             </TabsList>
-            <TabsContent value="local">
-                <div className="mt-4">
-                    <GoalChronology events={goalEvents} teamName={match.localTeam} isLocal={true} />
-                </div>
+            <TabsContent value="chronology">
+                <Card className="mt-4">
+                    <CardHeader>
+                        <CardTitle className="text-xl">Cronología de Goles</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                        <div>
+                           <h3 className="font-semibold mb-2 text-center">{match.localTeam}</h3>
+                           <GoalChronology events={goalEvents} isLocal={true} />
+                        </div>
+                         <div>
+                           <h3 className="font-semibold mb-2 text-center">{match.visitorTeam}</h3>
+                           <GoalChronology events={goalEvents} isLocal={false} />
+                        </div>
+                    </CardContent>
+                </Card>
             </TabsContent>
-            <TabsContent value="visitor">
+            <TabsContent value="stats">
                  <div className="mt-4">
-                    <GoalChronology events={goalEvents} teamName={match.visitorTeam} isLocal={false} />
-                </div>
+                    <PlayerStatsTable match={match} teamId={teamId}/>
+                 </div>
             </TabsContent>
         </Tabs>
     </div>

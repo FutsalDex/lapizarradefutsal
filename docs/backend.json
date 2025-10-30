@@ -124,6 +124,26 @@
         },
         "required": ["type", "team", "period", "minute"]
     },
+    "PlayerStats": {
+        "title": "Player Stats",
+        "type": "object",
+        "description": "Represents the statistics for a single player in a match period.",
+        "properties": {
+            "goals": {"type": "number"},
+            "assists": {"type": "number"},
+            "yellowCards": {"type": "number"},
+            "redCards": {"type": "number"},
+            "fouls": {"type": "number"},
+            "shotsOnTarget": {"type": "number"},
+            "shotsOffTarget": {"type": "number"},
+            "recoveries": {"type": "number"},
+            "turnovers": {"type": "number"},
+            "saves": {"type": "number"},
+            "goalsConceded": {"type": "number"},
+            "minutesPlayed": {"type": "number"},
+            "unoVsUno": {"type": "number"}
+        }
+    },
     "Match": {
       "title": "Match",
       "type": "object",
@@ -152,11 +172,11 @@
           "properties": {
             "1H": {
               "type": "object",
-              "patternProperties": { ".*": { "$ref": "#/entities/Player" } }
+              "patternProperties": { ".*": { "$ref": "#/entities/PlayerStats" } }
             },
             "2H": {
               "type": "object",
-              "patternProperties": { ".*": { "$ref": "#/entities/Player" } }
+              "patternProperties": { ".*": { "$ref": "#/entities/PlayerStats" } }
             }
           }
         },
