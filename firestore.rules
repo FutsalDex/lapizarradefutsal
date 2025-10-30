@@ -2,25 +2,111 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Solo usuarios autenticados pueden acceder a Firestore
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // =============================
+    // 🔒 UTILIDADES
+    // =============================
+    function isAuth() {
+      return request.auth != null;
     }
 
-    // Equipos: solo el propietario puede modificarlos
+    function authEmail() {
+      return isAuth() ? request.auth.token.email : null;
+    }
+
+    function isTeamOwner(teamId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    }
+
+    function isTeamMember(teamId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds != null &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds.hasAny([request.auth.uid]);
+    }
+
+    // Comprueba si el usuario tiene una invitación aceptada al equipo
+    function isAcceptedInvite(teamId) {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/invitations/$(request.auth.uid + "_" + teamId));
+    }
+
+    // Permite acceso si es propietario, miembro o invitado aceptado
+    function canAccessTeam(teamId) {
+      return isTeamOwner(teamId) || isTeamMember(teamId) || isAcceptedInvite(teamId);
+    }
+
+    // =============================
+    // 🧩 TEAMS
+    // =============================
     match /teams/{teamId} {
-      allow read: if request.auth != null;  // cualquiera autenticado puede ver
-      allow write: if request.auth != null && (
-        // el usuario que crea el doc es el dueño
-        request.auth.uid == request.resource.data.ownerId ||
-        // o ya es el propietario actual
-        request.auth.uid == resource.data.ownerId
-      );
+      // Leer el documento del equipo
+      allow get: if canAccessTeam(teamId);
+
+      // Listar equipos (solo usuarios autenticados)
+      allow list: if isAuth();
+
+      // Crear un equipo (solo el propietario)
+      allow create: if isAuth()
+        && request.resource.data.ownerId == request.auth.uid
+        && (request.resource.data.memberIds is list)
+        && request.resource.data.memberIds.hasAny([request.auth.uid]);
+
+      // Actualizar o eliminar un equipo (solo propietario)
+      allow update, delete: if isTeamOwner(teamId);
     }
 
-    // Invitaciones: solo usuarios autenticados pueden crear y leer
-    match /invitations/{invitationId} {
-      allow read, create, delete: if request.auth != null;
+    // =============================
+    // 🧑‍🤝‍🧑 SUBCOLECCIONES DE TEAMS
+    // =============================
+    match /teams/{teamId}/{subcollection}/{docId} {
+      allow read, write: if canAccessTeam(teamId);
+    }
+
+    // =============================
+    // ✉️ INVITATIONS
+    // =============================
+    match /invitations/{invId} {
+      // Crear invitación
+      allow create: if isAuth();
+
+      // Leer una invitación
+      allow get: if isAuth() && (
+        isTeamOwner(resource.data.teamId) ||
+        resource.data.invitedUserEmail == authEmail()
+      );
+
+      // Listar invitaciones (el cliente filtra por email)
+      allow list: if isAuth();
+
+      // Actualizar invitación
+      allow update: if isAuth() && (
+        resource.data.invitedUserEmail == authEmail() ||
+        isTeamOwner(resource.data.teamId)
+      );
+
+      // Borrar invitación
+      allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
+    }
+
+    // =============================
+    // 🧍 USERS
+    // =============================
+    match /users/{userId} {
+      allow get, update, delete: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow list: if false;
+    }
+
+    match /users/{userId}/{subcollection}/{docId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // =============================
+    // 🏋️ EXERCISES (lectura pública)
+    // =============================
+    match /exercises/{exerciseId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
   }
 }

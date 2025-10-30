@@ -21,6 +21,7 @@ interface Team {
   id: string;
   name: string;
   ownerId: string;
+  memberIds?: string[];
 }
 
 const menuItems = [
@@ -55,7 +56,7 @@ const menuItems = [
 
 export default function TeamDashboardPage() {
   const params = useParams();
-  const teamId = typeof params.teamId === 'string' ? params.teamId : undefined;
+  const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
   const { user } = useUser();
 
@@ -95,11 +96,9 @@ export default function TeamDashboardPage() {
     );
   }
 
-  // Comprobar si el usuario actual es el propietario o un miembro invitado.
-  // Esta lógica se podría expandir para comprobar una colección `teamMembers`
   const isOwner = user?.uid === team.ownerId;
-  // const isMember = ...;
-  const canView = isOwner; // || isMember;
+  const isMember = team.memberIds?.includes(user?.uid ?? '');
+  const canView = isOwner || isMember;
 
   if (!canView) {
      return (
@@ -156,7 +155,7 @@ export default function TeamDashboardPage() {
             </CardContent>
             <div className="p-6 pt-0">
               <Button asChild className="w-full" disabled={item.disabled}>
-                <Link href={`/equipo/gestion/${teamId}${item.href}`}>
+                <Link href={`/equipo/${teamId}${item.href}`}>
                   {item.disabled ? 'Próximamente' : `Acceder a ${item.title}`}
                   {!item.disabled && <ChevronRight className="w-4 h-4 ml-2" />}
                 </Link>

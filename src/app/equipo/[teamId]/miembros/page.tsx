@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,18 +12,17 @@ import {
   addDoc,
   doc,
   deleteDoc,
-  serverTimestamp
+  serverTimestamp,
 } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,22 +31,31 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
 } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import {
   Mail,
   UserPlus,
   Trash2,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,17 +68,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-// ---------------------------
-// VALIDACIÓN CON ZOD
-// ---------------------------
+// ====================
+// TIPOS DE DATOS
+// ====================
 const inviteSchema = z.object({
   email: z.string().email('El correo electrónico no es válido.'),
   role: z.enum(['technical_staff', 'player'], {
-    required_error: 'Debes seleccionar un rol.'
-  })
+    required_error: 'Debes seleccionar un rol.',
+  }),
 });
 
 type InviteValues = z.infer<typeof inviteSchema>;
@@ -79,6 +87,7 @@ interface Team {
   id: string;
   name: string;
   ownerId: string;
+  memberIds?: string[];
 }
 
 interface TeamInvitation {
@@ -86,11 +95,20 @@ interface TeamInvitation {
   invitedUserEmail: string;
   role: 'technical_staff' | 'player';
   status: 'pending' | 'accepted' | 'rejected';
+  teamId: string;
 }
 
-// ---------------------------
-// FORMULARIO DE INVITACIÓN
-// ---------------------------
+interface UserProfile {
+  id: string;
+  displayName: string;
+  email: string;
+  photoURL?: string;
+}
+
+// ====================
+// COMPONENTES
+// ====================
+
 function InviteMemberForm({ team }: { team: Team }) {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -98,7 +116,7 @@ function InviteMemberForm({ team }: { team: Team }) {
 
   const form = useForm<InviteValues>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { email: '', role: undefined }
+    defaultValues: { email: '', role: 'player' },
   });
 
   const onSubmit = async (values: InviteValues) => {
@@ -110,11 +128,11 @@ function InviteMemberForm({ team }: { team: Team }) {
         invitedUserEmail: values.email.toLowerCase(),
         role: values.role,
         status: 'pending',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       });
       toast({
         title: 'Invitación enviada',
-        description: `Se ha invitado a ${values.email} a unirse al equipo.`
+        description: `Se ha invitado a ${values.email} a unirse al equipo.`,
       });
       form.reset();
     } catch (error) {
@@ -122,7 +140,7 @@ function InviteMemberForm({ team }: { team: Team }) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo enviar la invitación.'
+        description: 'No se pudo enviar la invitación.',
       });
     } finally {
       setIsSubmitting(false);
@@ -137,7 +155,7 @@ function InviteMemberForm({ team }: { team: Team }) {
           Invitar Miembro
         </CardTitle>
         <CardDescription>
-          Envía una invitación por correo electrónico para unirse a tu equipo.
+          Envía una invitación para unirse a tu equipo.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -195,77 +213,48 @@ function InviteMemberForm({ team }: { team: Team }) {
   );
 }
 
-// ---------------------------
-// LISTA DE MIEMBROS E INVITACIONES
-// ---------------------------
-function MembersList({ teamId }: { teamId: string }) {
+function PendingInvitations({ teamId }: { teamId: string }) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const invitationsQuery = useMemoFirebase(() => {
+  const pendingInvitationsQuery = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return query(
       collection(firestore, 'invitations'),
       where('teamId', '==', teamId),
-      where('status', 'in', ['pending', 'accepted'])
+      where('status', '==', 'pending')
     );
   }, [firestore, teamId]);
 
-  const { data: invitations, isLoading } = useCollection<TeamInvitation>(invitationsQuery);
+  const { data: invitations, isLoading } =
+    useCollection<TeamInvitation>(pendingInvitationsQuery);
 
   const handleDelete = async (invitationId: string) => {
     try {
       await deleteDoc(doc(firestore, 'invitations', invitationId));
       toast({ title: 'Invitación eliminada correctamente' });
     } catch (error) {
-      console.error('Error eliminando invitación:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo eliminar la invitación.'
+        description: 'No se pudo eliminar la invitación.',
       });
     }
   };
 
-  const getStatusChip = (status: TeamInvitation['status']) => {
-    switch (status) {
-      case 'pending':
-        return (
-          <span className="text-xs font-medium text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-            Pendiente
-          </span>
-        );
-      case 'accepted':
-        return (
-          <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
-            Aceptado
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const getRoleText = (role: TeamInvitation['role']) =>
-    role === 'technical_staff' ? 'Cuerpo Técnico' : 'Jugador';
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Miembros del Equipo</CardTitle>
-        <CardDescription>Lista de miembros e invitaciones activas.</CardDescription>
+        <CardTitle>Invitaciones Pendientes</CardTitle>
+        <CardDescription>
+          Invitaciones que todavía no han sido aceptadas.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading && (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        )}
+        {isLoading && <Skeleton className="h-16 w-full" />}
         {!isLoading && (!invitations || invitations.length === 0) && (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Aún no has invitado a nadie a tu equipo.
+            No hay invitaciones pendientes.
           </p>
         )}
         {!isLoading && invitations && invitations.length > 0 && (
@@ -278,41 +267,40 @@ function MembersList({ teamId }: { teamId: string }) {
                 <div>
                   <p className="font-semibold">{invitation.invitedUserEmail}</p>
                   <p className="text-sm text-muted-foreground">
-                    {getRoleText(invitation.role)}
+                    {invitation.role === 'technical_staff'
+                      ? 'Cuerpo Técnico'
+                      : 'Jugador'}
                   </p>
                 </div>
-                <div className="flex items-center gap-4">
-                  {getStatusChip(invitation.status)}
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer y eliminará la
+                        invitación permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(invitation.id)}
+                        className="bg-destructive hover:bg-destructive/90"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción no se puede deshacer. Se eliminará la invitación
-                          y si el usuario la había aceptado, se le revocará el acceso.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(invitation.id)}
-                          className="bg-destructive hover:bg-destructive/90"
-                        >
-                          Eliminar
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </li>
             ))}
           </ul>
@@ -322,13 +310,69 @@ function MembersList({ teamId }: { teamId: string }) {
   );
 }
 
-// ---------------------------
+function RosterTable({ memberIds }: { memberIds: string[] }) {
+  const firestore = useFirestore();
+
+  const membersQuery = useMemoFirebase(() => {
+    if (!firestore || memberIds.length === 0) return null;
+    // Firestore 'in' query is limited to 30 items
+    return query(
+      collection(firestore, 'users'),
+      where('__name__', 'in', memberIds.slice(0, 30))
+    );
+  }, [firestore, memberIds]);
+
+  const { data: members, isLoading } = useCollection<UserProfile>(membersQuery);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Users className="mr-2 h-5 w-5" />
+          Plantilla del Equipo
+        </CardTitle>
+        <CardDescription>
+          Miembros actuales que han aceptado la invitación.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <Skeleton className="h-40 w-full" />}
+        {!isLoading && (!members || members.length === 0) && (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            La plantilla está vacía. ¡Invita a miembros para empezar!
+          </p>
+        )}
+        {!isLoading && members && members.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Email</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell className="font-medium">
+                    {member.displayName}
+                  </TableCell>
+                  <TableCell>{member.email}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ====================
 // PÁGINA PRINCIPAL
-// ---------------------------
+// ====================
 export default function MembersPage() {
   const params = useParams();
-  const router = useRouter();
-  const teamId = typeof params.teamId === 'string' ? params.teamId : undefined;
+  const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
   const { user } = useUser();
 
@@ -339,24 +383,28 @@ export default function MembersPage() {
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
-  // Redirección si el usuario no es el propietario
-  if (!isLoadingTeam && team && user && user.uid !== team.ownerId) {
-    router.push('/equipo/gestion');
-    return null;
-  }
-
+  const isOwner = user && team && user.uid === team.ownerId;
   const isLoading = isLoadingTeam;
+
+  const memberIds = useMemo(() => {
+      const ids = new Set<string>();
+      if(team?.ownerId) ids.add(team.ownerId);
+      if(team?.memberIds) team.memberIds.forEach(id => ids.add(id));
+      return Array.from(ids);
+  }, [team]);
+
 
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
         <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-4">
             <Skeleton className="h-64 w-full" />
           </div>
-          <div className="md:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4">
             <Skeleton className="h-48 w-full" />
+             <Skeleton className="h-64 w-full" />
           </div>
         </div>
       </div>
@@ -376,33 +424,47 @@ export default function MembersPage() {
       </div>
     );
   }
+  
+  const canManage = isOwner; // || team.memberIds?.includes(user?.uid) etc.
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <Button asChild variant="outline" className="mb-4">
-          <Link href="/equipo/gestion">
+          <Link href={`/equipo/gestion/${teamId}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Mis Equipos
+            Volver al Panel del Equipo
           </Link>
         </Button>
         <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
           <ShieldCheck className="mr-3 h-10 w-10" />
-          Gestionar: {team.name}
+          Gestionar Plantilla: {team.name}
         </h1>
         <p className="text-lg text-muted-foreground mt-2">
-          Invita y gestiona los miembros de tu equipo.
+          Visualiza la plantilla, invita nuevos miembros y gestiona las invitaciones pendientes.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        <div className="md:col-span-2">
-          {teamId && <MembersList teamId={teamId} />}
+       {!canManage && (
+         <Card className="text-center py-16 max-w-lg mx-auto">
+            <CardHeader>
+                <CardTitle>Acceso Denegado</CardTitle>
+                <CardDescription>No tienes permisos para gestionar la plantilla de este equipo.</CardDescription>
+            </CardHeader>
+         </Card>
+      )}
+
+      {canManage && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="lg:col-span-2">
+              <RosterTable memberIds={memberIds} />
+            </div>
+            <div className="lg:col-span-1 space-y-8">
+              {isOwner && <InviteMemberForm team={team} />}
+              <PendingInvitations teamId={teamId} />
+            </div>
         </div>
-        <div className="md:col-span-1">
-          <InviteMemberForm team={team} />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
