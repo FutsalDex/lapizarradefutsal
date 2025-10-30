@@ -102,8 +102,6 @@ const Scoreboard = ({
   const [time, setTime] = useState(20 * 60);
   const [period, setPeriod] = useState<Period>('1H');
   
-  const { toast } = useToast();
-
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
     if (isTimerActive && time > 0) {
@@ -135,7 +133,6 @@ const Scoreboard = ({
     const currentVal = match[field] || 0;
     if (currentVal < 1) { // Futsal has 1 timeout per half
         onUpdate({ [field]: currentVal + 1 });
-        setTime(prev => Math.min(20 * 60, prev + 60)); // Add 60s, but don't exceed max time
     }
   };
   
@@ -144,7 +141,6 @@ const Scoreboard = ({
     setTime(20 * 60);
     setIsTimerActive(false);
     onUpdate({ localFouls: 0, visitorFouls: 0, localTimeouts: 0, visitorTimeouts: 0 });
-    toast({ title: `Iniciada ${newPeriod === '1H' ? '1ª Parte' : '2ª Parte'}`})
   }
 
   const PeriodButton = ({ value, children }: { value: Period; children: React.ReactNode }) => (
@@ -289,8 +285,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         <TableRow>
             <TableHead className="w-[150px] px-2">Jugador</TableHead>
             <TableHead className="text-center px-1">Min</TableHead>
-            <TableHead className="text-center px-1">Goles</TableHead>
-            <TableHead className="text-center px-1">Asist</TableHead>
+            <TableHead className="text-center px-1">G</TableHead>
+            <TableHead className="text-center px-1">A</TableHead>
             <TableHead className="text-center px-1">Faltas</TableHead>
             <TableHead className="text-center px-1">T. Puerta</TableHead>
             <TableHead className="text-center px-1">T. Fuera</TableHead>
@@ -373,8 +369,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                       <b className="block mb-2">Leyenda:</b>
                       <div className="grid grid-cols-3 gap-x-4 gap-y-1">
                           <div><b>Min:</b> Minutos</div>
-                          <div><b>Goles:</b> Goles</div>
-                          <div><b>Asist:</b> Asistencias</div>
+                          <div><b>G:</b> Goles</div>
+                          <div><b>A:</b> Asistencias</div>
                           <div><b>TA:</b> T. Amarilla</div>
                           <div><b>TR:</b> T. Roja</div>
                           <div><b>Faltas:</b> Faltas</div>
@@ -402,8 +398,8 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
         const updatedStats = { ...opponentStats, [stat]: newVal };
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
-        const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
-        const foulField = match.localTeam === teamName ? 'localFouls' : 'visitorFouls';
+        const scoreField = 'visitorScore';
+        const foulField = 'visitorFouls';
 
         if (stat === 'goals') {
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
@@ -504,22 +500,22 @@ export default function MatchStatsPage() {
   };
 
   const handleMinuteTick = useCallback(() => {
-    if (localMatchData?.isFinished || activePlayerIds.length === 0 || !isTimerActive) return;
-
-    const newLocalData = _.cloneDeep(localMatchData);
-
-    activePlayerIds.forEach(playerId => {
+    if (!isTimerActive || localMatchData?.isFinished || activePlayerIds.length === 0) return;
+  
+    setLocalMatchData(prevData => {
+      if (!prevData) return null;
+  
+      const newLocalData = _.cloneDeep(prevData);
+  
+      activePlayerIds.forEach(playerId => {
         const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
         _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
       });
-    
-    // We only update the local state for immediate feedback
-    setLocalMatchData(newLocalData);
-
-    // And then we call the debounced update to save to Firestore later
-    debouncedUpdate({ playerStats: newLocalData.playerStats });
-    
-  }, [activePlayerIds, localMatchData, isTimerActive, debouncedUpdate]);
+  
+      debouncedUpdate({ playerStats: newLocalData.playerStats });
+      return newLocalData;
+    });
+  }, [activePlayerIds, isTimerActive, localMatchData?.isFinished, debouncedUpdate]);
 
 
   const toggleMatchFinished = async () => {
