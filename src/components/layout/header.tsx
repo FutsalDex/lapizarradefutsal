@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -36,18 +37,24 @@ const adminLink = { href: "/admin", label: "Panel Admin", icon: <Shield classNam
 
 
 export function Header() {
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  
-  const isAdmin = user?.email === 'futsaldex@gmail.com';
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSignOut = () => {
     signOut(auth);
   };
+  
+  const isAdmin = user?.email === 'futsaldex@gmail.com';
+  const allNavLinks = isAdmin ? [...navLinks.filter(l => l.href !== '/admin'), adminLink] : navLinks;
 
   const renderUserAuthDesktop = () => {
-    if (isUserLoading) {
+    if (isUserLoading || !isMounted) {
       return <div className="h-10 w-28 animate-pulse rounded-md bg-primary-foreground/10" />;
     }
     if (user) {
@@ -76,8 +83,21 @@ export function Header() {
       </Button>
     );
   };
-
-  const allNavLinks = isAdmin ? [...navLinks.filter(l => l.href !== '/admin'), adminLink] : navLinks;
+  
+  if (!isMounted) {
+     return (
+        <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
+            <div className="container flex h-16 items-center">
+                <Link href="/" className="mr-6 flex items-center space-x-2">
+                    <span className="font-bold text-lg sm:inline-block font-headline">
+                    LaPizarra
+                    </span>
+                </Link>
+                <div className="flex-1" />
+            </div>
+        </header>
+     );
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
