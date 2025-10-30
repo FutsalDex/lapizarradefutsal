@@ -278,60 +278,63 @@ function AddMatchDialog({
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-                 <FormField
-                    control={form.control}
-                    name="matchType"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Tipo</FormLabel>
-                        <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                        >
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un tipo" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            <SelectItem value="Liga">Liga</SelectItem>
-                            <SelectItem value="Copa">Copa</SelectItem>
-                            <SelectItem value="Torneo">Torneo</SelectItem>
-                            <SelectItem value="Amistoso">Amistoso</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                <FormField
-                    control={form.control}
-                    name="matchday"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Jornada</FormLabel>
-                            <FormControl>
-                                <Input type="number" placeholder="Ej: 5" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
+            
             <FormField
                 control={form.control}
-                name="competition"
+                name="matchType"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Competición</FormLabel>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                    >
                         <FormControl>
-                            <Input placeholder="Ej: 1ª División Nacional" {...field} />
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
+                        <SelectContent>
+                        <SelectItem value="Liga">Liga</SelectItem>
+                        <SelectItem value="Copa">Copa</SelectItem>
+                        <SelectItem value="Torneo">Torneo</SelectItem>
+                        <SelectItem value="Amistoso">Amistoso</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
                     </FormItem>
                 )}
-                />
+            />
+            {matchType === 'Liga' && (
+                <>
+                    <FormField
+                        control={form.control}
+                        name="competition"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Competición</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Ej: 1ª División Nacional" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    <FormField
+                        control={form.control}
+                        name="matchday"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Jornada</FormLabel>
+                                <FormControl>
+                                    <Input type="number" placeholder="Ej: 5" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </>
+            )}
            
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>
