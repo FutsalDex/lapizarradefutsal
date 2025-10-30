@@ -98,6 +98,8 @@ interface Match {
   visitorScore?: number;
   isFinished: boolean;
   squad?: string[];
+  competition?: string;
+  matchday?: number;
 }
 
 const addMatchSchema = (teamName: string) => z.object({
@@ -530,8 +532,10 @@ function MatchCard({ match, team, isOwner }: { match: Match; team: Team, isOwner
                 <Users className="mr-1 h-4 w-4" /> {convocadosCount > 0 ? `${convocadosCount} Convocados` : 'Convocar'}
              </Button>
         )}
-        <Button variant="ghost" size="sm" className="text-xs" disabled>
-          <BarChart className="h-4 w-4" />
+        <Button asChild variant="ghost" size="sm" className="text-xs">
+          <Link href={`/equipo/gestion/${team.id}/partidos/${match.id}`}>
+            <BarChart className="h-4 w-4" />
+          </Link>
         </Button>
         <Button variant="ghost" size="sm" className="text-xs" disabled>
           <Eye className="h-4 w-4" />
@@ -665,3 +669,5 @@ export default function MatchesPage() {
     </div>
   );
 }
+
+    
