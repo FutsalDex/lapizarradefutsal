@@ -151,8 +151,7 @@ const Scoreboard = ({
         <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
-                <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
-                <FoulIndicator count={match.localFouls || 0} />
+                 <FoulIndicator count={match.localFouls || 0} />
             </div>
             
             <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
@@ -161,15 +160,16 @@ const Scoreboard = ({
 
             <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
-                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
                 <FoulIndicator count={match.visitorFouls || 0} />
             </div>
         </div>
         
         <div className="flex justify-center items-center gap-4 mb-4">
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16 mx-auto", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
         </div>
 
 
@@ -305,9 +305,23 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
             </CardContent>
             {isMyTeam && (
                 <CardFooter>
-                    <p className="text-xs text-muted-foreground">
-                        <b>Leyenda:</b> <b>Min:</b> Minutos, <b>Goles:</b> Goles, <b>Asist:</b> Asistencias, <b>TA:</b> T. Amarilla, <b>TR:</b> T. Roja, <b>Faltas:</b> Faltas, <b>T. Puerta:</b> Tiros a Puerta, <b>T. Fuera:</b> Tiros Fuera, <b>Recup:</b> Recuperaciones, <b>Perdidas:</b> Perdidas, <b>Paradas:</b> Paradas, <b>GC:</b> Goles en Contra.
-                    </p>
+                  <div className="w-full text-xs text-muted-foreground">
+                      <b className="block mb-2">Leyenda:</b>
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-1">
+                          <div><b>Min:</b> Minutos</div>
+                          <div><b>Goles:</b> Goles</div>
+                          <div><b>Asist:</b> Asistencias</div>
+                          <div><b>TA:</b> T. Amarilla</div>
+                          <div><b>TR:</b> T. Roja</div>
+                          <div><b>Faltas:</b> Faltas</div>
+                          <div><b>T. Puerta:</b> Tiros a Puerta</div>
+                          <div><b>T. Fuera:</b> Tiros Fuera</div>
+                          <div><b>Recup:</b> Recuperaciones</div>
+                          <div><b>Perdidas:</b> Perdidas</div>
+                          <div><b>Paradas:</b> Paradas</div>
+                          <div><b>GC:</b> Goles en Contra</div>
+                      </div>
+                  </div>
                 </CardFooter>
             )}
         </Card>
