@@ -37,6 +37,7 @@ interface Team {
   club?: string;
   competition?: string;
   ownerId: string;
+  ownerName?: string;
   memberIds?: string[];
 }
 
@@ -95,61 +96,66 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
     // 1. Check if user exists in 'users' collection
     const usersRef = collection(firestore, 'users');
     const userQuery = query(usersRef, where('email', '==', values.email));
-    const userSnapshot = await getDocs(userQuery);
-
-    if (userSnapshot.empty) {
-      toast({ variant: 'destructive', title: 'Usuario no encontrado', description: `No hay ningún usuario registrado con el email ${values.email}.` });
-      setIsSubmitting(false);
-      return;
-    }
     
-    const invitedUser = userSnapshot.docs[0].data();
+    try {
+        const userSnapshot = await getDocs(userQuery);
 
-    // 2. Check for existing invitation (pending or accepted)
-    const invitationsRef = collection(firestore, 'invitations');
-    const invitationQuery = query(invitationsRef, 
-      where('teamId', '==', team.id), 
-      where('invitedUserEmail', '==', values.email),
-      where('status', 'in', ['pending', 'accepted'])
-    );
-    const invitationSnapshot = await getDocs(invitationQuery);
+        if (userSnapshot.empty) {
+          toast({ variant: 'destructive', title: 'Usuario no encontrado', description: `No hay ningún usuario registrado con el email ${values.email}.` });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        const invitedUser = userSnapshot.docs[0].data();
 
-    if (!invitationSnapshot.empty) {
-      toast({ variant: 'destructive', title: 'Invitación ya existente', description: 'Este usuario ya ha sido invitado o ya es miembro del equipo.' });
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // 3. Create invitation
-    const invitationData = {
-      teamId: team.id,
-      teamName: team.name,
-      invitedUserEmail: values.email,
-      name: invitedUser.displayName || 'Usuario sin nombre',
-      role: values.role,
-      status: 'pending',
-      createdAt: serverTimestamp(),
-    };
+        // 2. Check for existing invitation (pending or accepted)
+        const invitationsRef = collection(firestore, 'invitations');
+        const invitationQuery = query(invitationsRef, 
+          where('teamId', '==', team.id), 
+          where('invitedUserEmail', '==', values.email),
+          where('status', 'in', ['pending', 'accepted'])
+        );
+        const invitationSnapshot = await getDocs(invitationQuery);
 
-    addDoc(invitationsRef, invitationData)
-      .then(() => {
-        toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${values.email}.` });
-        onInvitationSent(); // Callback to refetch data
-        setIsOpen(false);
-        form.reset();
-      })
-      .catch((error) => {
-        console.error("Original Firebase Error:", error);
-        const contextualError = new FirestorePermissionError({
-          operation: 'create',
-          path: 'invitations', // This is a collection path for addDoc
-          requestResourceData: invitationData,
-        });
-        errorEmitter.emit('permission-error', contextualError);
-      })
-      .finally(() => {
+        if (!invitationSnapshot.empty) {
+          toast({ variant: 'destructive', title: 'Invitación ya existente', description: 'Este usuario ya ha sido invitado o ya es miembro del equipo.' });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        // 3. Create invitation
+        const invitationData = {
+          teamId: team.id,
+          teamName: team.name,
+          invitedUserEmail: values.email,
+          name: invitedUser.displayName || 'Usuario sin nombre',
+          role: values.role,
+          status: 'pending',
+          createdAt: serverTimestamp(),
+        };
+
+        addDoc(invitationsRef, invitationData)
+          .then(() => {
+            toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${values.email}.` });
+            onInvitationSent(); // Callback to refetch data
+            setIsOpen(false);
+            form.reset();
+          })
+          .catch((error) => {
+            console.error("Original Firebase Error:", error);
+            const contextualError = new FirestorePermissionError({
+              operation: 'create',
+              path: `invitations/${Math.random().toString(36).substring(7)}`, // Approximate path
+              requestResourceData: invitationData,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+          });
+    } catch (error) {
+        console.error("Error querying user:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo verificar el usuario.' });
+    } finally {
         setIsSubmitting(false);
-      });
+    }
   };
 
   return (
@@ -377,12 +383,6 @@ export default function StaffPage() {
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
   const { data: invitations, isLoading: isLoadingInvitations } = useCollection(invitationsRef);
   
-  const ownerRef = useMemoFirebase(() => {
-    if (!firestore || !team?.ownerId) return null;
-    return doc(firestore, 'users', team.ownerId);
-  }, [firestore, team?.ownerId, key]);
-
-  const { data: ownerData, isLoading: isLoadingOwner } = useDoc<UserProfile>(ownerRef);
 
   const fetchMemberUsers = useCallback(async () => {
     if (!firestore || !invitations) {
@@ -403,7 +403,8 @@ export default function StaffPage() {
     setIsLoadingMembers(true);
     try {
       if (acceptedMemberEmails.length > 0) {
-        const q = query(collection(firestore, 'users'), where('email', 'in', acceptedMemberEmails));
+        // Firestore 'in' query supports up to 30 elements.
+        const q = query(collection(firestore, 'users'), where('email', 'in', acceptedMemberEmails.slice(0, 30)));
         const snapshot = await getDocs(q);
         const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
         setMemberUsers(usersData);
@@ -423,9 +424,20 @@ export default function StaffPage() {
       fetchMemberUsers();
     }
   }, [invitations, isLoadingInvitations, fetchMemberUsers]);
+  
+  const owner: TeamMember | null = useMemo(() => {
+    if (!team || !user) return null;
+    // The owner isn't in the members list, construct from team and user data
+    return {
+      id: team.ownerId,
+      displayName: team.ownerName || user.displayName,
+      email: user.email!, // Assuming owner is the current user
+      role: 'Propietario'
+    };
+  }, [team, user]);
 
   const teamMembers = useMemo(() => {
-    if (!invitations) return [];
+    if (!invitations || !owner) return [];
     
     return invitations.map(inv => {
       const userData = memberUsers?.find(u => u.email === inv.invitedUserEmail);
@@ -438,17 +450,11 @@ export default function StaffPage() {
         invitationId: inv.id,
         status: inv.status,
       }
-    }).filter(member => member.email !== ownerData?.email);
-  }, [invitations, memberUsers, ownerData]);
-
-
-  const owner: TeamMember | null = ownerData ? {
-      ...ownerData,
-      role: 'Propietario',
-  } : null;
+    }).filter(member => member.email !== owner.email);
+  }, [invitations, memberUsers, owner]);
 
   const isOwner = user && team && user.uid === team.ownerId;
-  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingOwner || isLoadingMembers;
+  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
 
   const handleDataChange = () => {
     setKey(prev => prev + 1); // Increment key to trigger refetch
