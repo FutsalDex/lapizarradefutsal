@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp, or_ } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, or } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -142,7 +142,7 @@ function TeamList() {
   const firestore = useFirestore();
 
   const acceptedInvitationsQuery = useMemoFirebase(() => {
-    if (!user?.email || !firestore) return null;
+    if (!firestore || !user?.email) return null;
     return query(
       collection(firestore, 'invitations'),
       where('invitedUserEmail', '==', user.email),
@@ -165,7 +165,7 @@ function TeamList() {
     if (memberTeamIds.length > 0) {
       return query(
         collection(firestore, 'teams'),
-        or_(
+        or(
           where('ownerId', '==', user.uid),
           where('__name__', 'in', memberTeamIds)
         )
@@ -294,5 +294,3 @@ export default function GestionPage() {
     </div>
   );
 }
-
-    
