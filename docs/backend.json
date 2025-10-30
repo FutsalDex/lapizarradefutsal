@@ -110,6 +110,20 @@
       },
       "required": ["name", "number", "position"]
     },
+    "MatchEvent": {
+        "title": "Match Event",
+        "type": "object",
+        "description": "Represents a single event that occurred during a match, like a goal.",
+        "properties": {
+            "type": { "type": "string", "enum": ["goal", "yellowCard", "redCard"] },
+            "team": { "type": "string", "enum": ["local", "visitor"] },
+            "period": { "type": "string", "enum": ["1H", "2H"] },
+            "minute": { "type": "number" },
+            "playerId": { "type": "string" },
+            "playerName": { "type": "string" }
+        },
+        "required": ["type", "team", "period", "minute"]
+    },
     "Match": {
       "title": "Match",
       "type": "object",
@@ -128,6 +142,10 @@
         "visitorScore": {"type": "number"},
         "visitorTeam": {"type": "string"},
         "squad": {"type": "array", "items": {"type": "string"}},
+        "events": {
+            "type": "array",
+            "items": { "$ref": "#/entities/MatchEvent" }
+        },
         "playerStats": {
           "type": "object",
           "description": "Stats for the players in the match, separated by half.",

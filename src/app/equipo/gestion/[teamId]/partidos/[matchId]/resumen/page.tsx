@@ -7,41 +7,27 @@ import { useDoc, useFirestore, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, BarChart2 } from 'lucide-react';
+import { ArrowLeft, BarChart2, CalendarDays, History } from 'lucide-react';
 import _ from 'lodash';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 // ====================
 // TYPES
 // ====================
 type Period = '1H' | '2H';
 
-interface PlayerStats {
-  id: string;
-  name: string;
-  number: string;
-  goals: number;
-  assists: number;
-  yellowCards: number;
-  redCards: number;
-  fouls: number;
-  shotsOnTarget: number;
-  shotsOffTarget: number;
-  recoveries: number;
-  turnovers: number;
-  saves: number;
-  goalsConceded: number;
-  minutesPlayed: number;
-}
-type Player = Omit<PlayerStats, 'id'> & { id: string };
-
-interface OpponentStats {
-  goals: number;
-  fouls: number;
-  shotsOnTarget: number;
-  shotsOffTarget: number;
-  shotsBlocked: number;
+interface MatchEvent {
+  type: 'goal' | 'yellowCard' | 'redCard';
+  team: 'local' | 'visitor';
+  period: Period;
+  minute: number;
+  playerId?: string;
+  playerName?: string;
 }
 
 interface Match {
@@ -52,24 +38,48 @@ interface Match {
   visitorScore: number;
   teamId: string;
   isFinished: boolean;
+  matchType: string;
+  date: any; // Firestore timestamp
   squad?: string[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
-  opponentStats?: { [key in Period]?: Partial<OpponentStats> };
+  events?: MatchEvent[];
 }
 
 // ====================
-// HELPER FUNCTIONS
+// GOAL CHRONOLOGY COMPONENT
 // ====================
-const formatStatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-};
+const GoalChronology = ({ events, teamName, isLocal }: { events: MatchEvent[], teamName: string, isLocal: boolean }) => {
+    const teamGoals = events
+        .filter(e => e.type === 'goal' && (isLocal ? e.team === 'local' : e.team === 'visitor'))
+        .sort((a, b) => a.minute - b.minute);
+
+    if (teamGoals.length === 0) {
+        return <p className="text-muted-foreground text-sm text-center py-4">No hubo goles para este equipo.</p>
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-xl">Cronología de Goles</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {teamGoals.map((goal, index) => (
+                        <div key={index} className="flex justify-between items-center border-b pb-2">
+                            <span className="font-medium">{goal.playerName}</span>
+                            <span className="text-muted-foreground font-semibold">{goal.minute}'</span>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 
 // ====================
 // MAIN PAGE COMPONENT
 // ====================
-export default function MatchSummaryPage() {
+export default function MatchDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
@@ -83,199 +93,82 @@ export default function MatchSummaryPage() {
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
 
-  const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
-  const { data: teamPlayers, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
-  
-  const squadPlayers = useMemo(() => {
-    if (!teamPlayers || !match?.squad) return [];
-    const squadIds = new Set(match.squad);
-    return teamPlayers.filter(p => squadIds.has(p.id)).sort((a, b) => {
-        const numA = parseInt(a.number, 10);
-        const numB = parseInt(b.number, 10);
-        if (isNaN(numA)) return 1;
-        if (isNaN(numB)) return -1;
-        return numA - numB;
-    });
-  }, [teamPlayers, match?.squad]);
-  
-  const aggregatedStats = useMemo(() => {
-    const initialPlayerStats: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
-        goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-        shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
-        saves: 0, goalsConceded: 0, minutesPlayed: 0
-    };
-    
-    if (!squadPlayers.length || !match?.playerStats) return { playerTotals: {}, teamTotals: initialPlayerStats, opponentTotals: {} };
+  const goalEvents = useMemo(() => {
+      if (!match?.events) return [];
+      return match.events.filter(e => e.type === 'goal');
+  }, [match]);
 
-    const playerTotals: { [playerId: string]: typeof initialPlayerStats } = {};
-
-    squadPlayers.forEach(player => {
-        const stats1H = _.get(match.playerStats, `1H.${player.id}`, {});
-        const stats2H = _.get(match.playerStats, `2H.${player.id}`, {});
-        playerTotals[player.id] = _.mergeWith({}, stats1H, stats2H, (objValue, srcValue) => {
-            if (_.isNumber(objValue)) {
-                return objValue + srcValue;
-            }
-        });
-    });
-
-    const teamTotals = _.reduce(playerTotals, (acc, stats) => {
-        return _.mergeWith(acc, stats, (objValue, srcValue) => {
-             if (_.isNumber(objValue)) {
-                return objValue + srcValue;
-            }
-        })
-    }, {});
-
-    const opponentStats1H = match.opponentStats?.['1H'] || {};
-    const opponentStats2H = match.opponentStats?.['2H'] || {};
-    const opponentTotals = _.mergeWith({}, opponentStats1H, opponentStats2H, (objValue, srcValue) => {
-        if (_.isNumber(objValue)) {
-            return objValue + srcValue;
-        }
-    });
-
-    return { playerTotals, teamTotals, opponentTotals };
-
-  }, [squadPlayers, match?.playerStats, match?.opponentStats]);
-
-
-  const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
+  const isLoading = isLoadingMatch || isLoadingTeam;
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8"><Skeleton className="h-screen w-full"/></div>;
   }
   
   if (!match || !team) {
-    return <div className="container mx-auto px-4 py-8 text-center">No se encontraron datos del partido o del equipo.</div>;
-  }
-  
-  if (!match.isFinished) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Partido no finalizado</h2>
-        <p className="text-muted-foreground mb-4">Las estadísticas de resumen solo están disponibles para partidos finalizados.</p>
-        <Button onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Volver
-        </Button>
+        <div className="container mx-auto px-4 py-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Partido no encontrado</h2>
+            <p className="text-muted-foreground mb-4">No pudimos encontrar los detalles del partido que estás buscando.</p>
+            <Button onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Partidos
+            </Button>
       </div>
     );
   }
 
   const myTeamName = team.name;
+  const isMyTeamLocal = match.localTeam === myTeamName;
+  const opponentTeamName = isMyTeamLocal ? match.visitorTeam : match.localTeam;
+
+  const formattedDate = match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida';
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
        <div className="flex justify-between items-center">
-        <div>
-            <h1 className="text-3xl font-bold font-headline text-primary flex items-center gap-3">
-                <BarChart2 /> Resumen del Partido
-            </h1>
-            <p className="text-muted-foreground">{`${match.localTeam} vs ${match.visitorTeam}`}</p>
+        <div className="flex items-center gap-4">
+            <History className="h-8 w-8 text-primary"/>
+            <div>
+                <h1 className="text-2xl font-bold font-headline">
+                    Detalles del Partido
+                </h1>
+                <p className="text-muted-foreground">{formattedDate} - {match.matchType}</p>
+            </div>
         </div>
-        <Button variant="outline" onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
-            <ArrowLeft className="mr-2 h-4 w-4"/> Volver a Partidos
-        </Button>
+        <div className='flex gap-2'>
+            <Button variant="outline" onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
+                <ArrowLeft className="mr-2 h-4 w-4"/> Volver
+            </Button>
+            <Button asChild>
+                <Link href={`/equipo/gestion/${teamId}/partidos/${matchId}`}>
+                    <BarChart2 className="mr-2 h-4 w-4"/> Gestionar
+                </Link>
+            </Button>
+        </div>
       </div>
 
        <Card>
-            <CardHeader>
-                <CardTitle className="text-center text-4xl font-bold">{`${match.localScore} - ${match.visitorScore}`}</CardTitle>
-                <CardDescription className="text-center">{match.localTeam === myTeamName ? '(Local)' : '(Visitante)'} vs {match.visitorTeam}</CardDescription>
+            <CardHeader className="text-center items-center">
+                <CardTitle className="text-3xl font-bold">{`${match.localTeam} vs ${match.visitorTeam}`}</CardTitle>
+                <CardDescription className="text-6xl font-bold text-primary pt-2">{`${match.localScore} - ${match.visitorScore}`}</CardDescription>
             </CardHeader>
        </Card>
 
-      <Card>
-        <CardHeader>
-            <CardTitle>Estadísticas Totales de {myTeamName}</CardTitle>
-        </CardHeader>
-        <CardContent>
-             <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[150px] px-2">Jugador</TableHead>
-                                <TableHead className="text-center px-1">Min</TableHead>
-                                <TableHead className="text-center px-1">G</TableHead>
-                                <TableHead className="text-center px-1">A</TableHead>
-                                <TableHead className="text-center px-1">T. Puerta</TableHead>
-                                <TableHead className="text-center px-1">T. Fuera</TableHead>
-                                <TableHead className="text-center px-1">Recup.</TableHead>
-                                <TableHead className="text-center px-1">Perdidas</TableHead>
-                                <TableHead className="text-center px-1">Paradas</TableHead>
-                                <TableHead className="text-center px-1">GC</TableHead>
-                                <TableHead className="text-center px-1">TA</TableHead>
-                                <TableHead className="text-center px-1">TR</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {squadPlayers.map(player => {
-                                const stats = aggregatedStats.playerTotals[player.id] || {};
-                                return (
-                                    <TableRow key={player.id}>
-                                        <TableCell className="font-medium py-2 px-2">{player.number}. {player.name}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.goals || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.assists || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.shotsOnTarget || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.shotsOffTarget || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.recoveries || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.turnovers || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.saves || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.goalsConceded || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.yellowCards || 0}</TableCell>
-                                        <TableCell className="text-center tabular-nums py-2 px-1">{stats.redCards || 0}</TableCell>
-                                    </TableRow>
-                                );
-                            })}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow className="bg-muted/50 font-bold">
-                                <TableCell className="px-2">Total Equipo</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1"></TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.goals || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.assists || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.shotsOnTarget || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.shotsOffTarget || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.recoveries || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.turnovers || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.saves || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.goalsConceded || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.yellowCards || 0}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.redCards || 0}</TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
+        <Tabs defaultValue="local" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="local">{match.localTeam}</TabsTrigger>
+                <TabsTrigger value="visitor">{match.visitorTeam}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="local">
+                <div className="mt-4">
+                    <GoalChronology events={goalEvents} teamName={match.localTeam} isLocal={true} />
                 </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Estadísticas Totales del Rival</CardTitle>
-          <CardDescription>{match.visitorTeam === myTeamName ? match.localTeam : match.visitorTeam}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <dt className="text-sm text-muted-foreground">Goles</dt>
-              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.goals || 0}</dd>
-            </div>
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <dt className="text-sm text-muted-foreground">Tiros a Puerta</dt>
-              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.shotsOnTarget || 0}</dd>
-            </div>
-             <div className="bg-muted/50 p-4 rounded-lg">
-              <dt className="text-sm text-muted-foreground">Tiros Fuera</dt>
-              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.shotsOffTarget || 0}</dd>
-            </div>
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <dt className="text-sm text-muted-foreground">Faltas</dt>
-              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.fouls || 0}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+            </TabsContent>
+            <TabsContent value="visitor">
+                 <div className="mt-4">
+                    <GoalChronology events={goalEvents} teamName={match.visitorTeam} isLocal={false} />
+                </div>
+            </TabsContent>
+        </Tabs>
     </div>
   );
 }

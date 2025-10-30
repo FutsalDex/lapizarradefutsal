@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, updateDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, collection, arrayUnion } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Futbol, ShieldAlert, Crosshair, Target, Repeat, Shuffle } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -50,6 +50,15 @@ interface OpponentStats {
   turnovers: number;
 }
 
+interface MatchEvent {
+  type: 'goal' | 'yellowCard' | 'redCard';
+  team: 'local' | 'visitor';
+  period: Period;
+  minute: number;
+  playerId?: string;
+  playerName?: string;
+}
+
 interface Match {
   id: string;
   localTeam: string;
@@ -63,6 +72,7 @@ interface Match {
   opponentStats?: { [key in Period]?: Partial<OpponentStats> };
   fouls?: { local: number; visitor: number };
   timeouts?: { local: number; visitor: number };
+  events?: MatchEvent[];
 }
 
 
@@ -175,10 +185,13 @@ const Scoreboard = ({
 // ====================
 // STATS TABLE COMPONENT
 // ====================
-const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds, period }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[], period: Period }) => {
+const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds, period, time }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[], period: Period, time: number }) => {
     const { toast } = useToast();
 
     const handleStatChange = (playerId: string, stat: keyof PlayerStats, increment: boolean) => {
+        const player = players.find(p => p.id === playerId);
+        if (!player) return;
+
         const playerStats = _.get(match.playerStats, `${period}.${playerId}`, {});
         let currentVal = (playerStats[stat] as number) || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
@@ -188,21 +201,34 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
         const isLocalTeam = match.localTeam === teamName;
-        const scoreField = isLocalTeam ? 'localScore' : 'visitorScore';
         
         if (stat === 'goals' && isMyTeam) {
-             const oldGoals1H = _.get(match.playerStats, `1H.${playerId}.goals`, 0);
-             const oldGoals2H = _.get(match.playerStats, `2H.${playerId}.goals`, 0);
-             const newGoals1H = _.get(updatedStats, `1H.${playerId}.goals`, 0);
-             const newGoals2H = _.get(updatedStats, `2H.${playerId}.goals`, 0);
-
-             const scoreDiff = (newGoals1H + newGoals2H) - (oldGoals1H + oldGoals2H);
-             
              const currentLocalScore = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0) + _.get(updatedStats, `2H.${p.id}.goals`, 0));
              const currentVisitorScore = (_.get(match.opponentStats, '1H.goals', 0) + _.get(match.opponentStats, '2H.goals', 0));
              
-             batchUpdate.localScore = currentLocalScore;
-             batchUpdate.visitorScore = currentVisitorScore;
+             if(isLocalTeam) {
+                 batchUpdate.localScore = currentLocalScore;
+                 batchUpdate.visitorScore = currentVisitorScore;
+             } else {
+                 batchUpdate.localScore = currentVisitorScore;
+                 batchUpdate.visitorScore = currentLocalScore;
+             }
+
+             // Add or remove goal event
+             if (increment) {
+                 const newEvent: MatchEvent = {
+                     type: 'goal',
+                     team: isLocalTeam ? 'local' : 'visitor',
+                     period: period,
+                     minute: Math.floor(time / 60),
+                     playerId: player.id,
+                     playerName: player.name
+                 };
+                 batchUpdate.events = arrayUnion(newEvent) as any;
+             } else {
+                // This is complex. For now, we don't support removing events easily.
+                // A better implementation would be to give events unique IDs.
+             }
         }
 
         onUpdate(batchUpdate);
@@ -380,7 +406,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     );
 };
 
-const OpponentStatsGrid = ({ teamName, match, onUpdate, period }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void, period: Period }) => {
+const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void, period: Period, time: number }) => {
 
     const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
         const opponentStats = _.get(match.opponentStats, period, { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 });
@@ -395,15 +421,33 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period }: { teamName: st
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
-             const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
-             batchUpdate[scoreField] = goals1H + goals2H;
+
+             const isOpponentLocal = match.localTeam === teamName;
+
+             if(isOpponentLocal) {
+                batchUpdate.localScore = goals1H + goals2H;
+             } else {
+                batchUpdate.visitorScore = goals1H + goals2H;
+             }
+
+             // Add or remove goal event
+             if (increment) {
+                 const newEvent: MatchEvent = {
+                     type: 'goal',
+                     team: isOpponentLocal ? 'local' : 'visitor',
+                     period: period,
+                     minute: Math.floor(time / 60),
+                     playerName: 'Rival'
+                 };
+                 batchUpdate.events = arrayUnion(newEvent) as any;
+             }
         }
 
         onUpdate(batchUpdate);
     };
     
     const opponentStatItems = [
-        { label: "Goles", stat: "goals" as keyof OpponentStats, icon: Futbol },
+        { label: "Goles", stat: "goals" as keyof OpponentStats, icon: Goal },
         { label: "Tiros a Puerta", stat: "shotsOnTarget" as keyof OpponentStats, icon: Crosshair },
         { label: "Tiros Fuera", stat: "shotsOffTarget" as keyof OpponentStats, icon: Target },
         { label: "Faltas", stat: "fouls" as keyof OpponentStats, icon: ShieldAlert },
@@ -487,7 +531,12 @@ export default function MatchStatsPage() {
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
     setLocalMatchData(prevData => {
-        const newState = _.merge({}, prevData, data);
+        const newState = _.mergeWith({}, prevData, data, (objValue, srcValue) => {
+            if (_.isArray(objValue)) {
+                // For arrayUnion, we need to merge arrays manually
+                return _.union(objValue, srcValue);
+            }
+        });
         debouncedUpdate(newState);
         return newState as Match;
     });
@@ -565,8 +614,26 @@ export default function MatchStatsPage() {
     }
   };
 
-  const localFouls = useMemo(() => _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0)), [squadPlayers, localMatchData, period]);
-  const visitorFouls = useMemo(() => _.get(localMatchData?.opponentStats, `${period}.fouls`, 0), [localMatchData, period]);
+  const localFouls = useMemo(() => {
+    if (!localMatchData) return 0;
+    const teamName = team?.name;
+    const isMyTeamLocal = localMatchData.localTeam === teamName;
+    if (isMyTeamLocal) {
+      return _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0));
+    }
+    return _.get(localMatchData?.opponentStats, `${period}.fouls`, 0);
+  }, [squadPlayers, localMatchData, period, team]);
+
+  const visitorFouls = useMemo(() => {
+    if (!localMatchData) return 0;
+    const teamName = team?.name;
+    const isMyTeamLocal = localMatchData.localTeam === teamName;
+    if (!isMyTeamLocal) {
+      return _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0));
+    }
+    return _.get(localMatchData?.opponentStats, `${period}.fouls`, 0);
+  }, [squadPlayers, localMatchData, period, team]);
+
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -613,8 +680,8 @@ export default function MatchStatsPage() {
         onTimeout={handleTimeout}
         period={period}
         setPeriod={handlePeriodChange}
-        localFouls={isMyTeamLocal ? localFouls : visitorFouls}
-        visitorFouls={isMyTeamLocal ? visitorFouls : localFouls}
+        localFouls={localFouls}
+        visitorFouls={visitorFouls}
       />
 
       <Tabs defaultValue="myTeam" className="w-full">
@@ -632,6 +699,7 @@ export default function MatchStatsPage() {
                 onActivePlayersChange={setActivePlayerIds}
                 activePlayerIds={activePlayerIds}
                 period={period}
+                time={time}
             />
         </TabsContent>
         <TabsContent value="opponent">
@@ -640,6 +708,7 @@ export default function MatchStatsPage() {
                 match={localMatchData}
                 onUpdate={handleUpdate}
                 period={period}
+                time={time}
             />
         </TabsContent>
       </Tabs>
