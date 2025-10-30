@@ -6,7 +6,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
@@ -26,9 +26,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 // ====================
 
 const playerSchema = z.object({
-  dorsal: z.string().min(1, 'Requerido'),
-  nombre: z.string().min(3, 'Mín. 3 caracteres'),
-  posicion: z.string().min(1, 'Requerido'),
+  number: z.string().min(1, 'Requerido'),
+  name: z.string().min(3, 'Mín. 3 caracteres'),
+  position: z.string().min(1, 'Requerido'),
 });
 
 const teamRosterSchema = z.object({
@@ -38,9 +38,10 @@ const teamRosterSchema = z.object({
 type TeamRosterValues = z.infer<typeof teamRosterSchema>;
 
 interface Player {
-  dorsal: string;
-  nombre: string;
-  posicion: string;
+    id: string;
+    number: string;
+    name: string;
+    position: string;
 }
 
 interface Team {
@@ -49,7 +50,6 @@ interface Team {
   club?: string;
   competition?: string;
   ownerId: string;
-  players?: Player[];
 }
 
 interface UserProfile {
@@ -94,47 +94,35 @@ function InfoCard({ team, owner }: { team: Team, owner?: UserProfile | null }) {
     );
 }
 
-function RosterForm({ team }: { team: Team }) {
-  const firestore = useFirestore();
+function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: Player[] | null, isLoadingPlayers: boolean }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<TeamRosterValues>({
     resolver: zodResolver(teamRosterSchema),
     defaultValues: {
-      players: team.players || [],
+      players: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'players',
-  });
-
-  useEffect(() => {
-    form.reset({ players: team.players || [] });
-  }, [team.players, form.reset]);
+   useEffect(() => {
+    if (players) {
+        const formattedPlayers = players.map(p => ({
+            number: p.number || '',
+            name: p.name || '',
+            position: p.position || '',
+        }));
+      form.reset({ players: formattedPlayers });
+    }
+  }, [players, form.reset]);
   
 
   const onSubmit = async (values: TeamRosterValues) => {
-    setIsSubmitting(true);
-    const teamRef = doc(firestore, 'teams', team.id);
-    try {
-      await updateDoc(teamRef, { players: values.players });
-      toast({
-        title: 'Plantilla guardada',
-        description: 'Los datos de los jugadores han sido actualizados.',
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
+     toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo guardar la plantilla.',
+        title: 'Funcionalidad no implementada',
+        description: 'La edición de jugadores se añadirá próximamente.',
       });
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -142,7 +130,7 @@ function RosterForm({ team }: { team: Team }) {
       <CardHeader>
         <CardTitle>Plantilla del Equipo</CardTitle>
         <CardDescription>
-          Introduce los datos de tus jugadores. Máximo 20. Todos los jugadores estarán disponibles para la convocatoria.
+          Esta es la plantilla de tu equipo almacenada en la base de datos. La funcionalidad de edición está en desarrollo.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -159,56 +147,41 @@ function RosterForm({ team }: { team: Team }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {fields.map((field, index) => (
-                    <TableRow key={field.id}>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`players.${index}.dorsal`}
-                          render={({ field }) => (
-                            <Input {...field} placeholder="#" className="text-center"/>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`players.${index}.nombre`}
-                          render={({ field }) => (
-                            <Input {...field} placeholder="Nombre del jugador"/>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <FormField
-                          control={form.control}
-                          name={`players.${index}.posicion`}
-                          render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleccionar" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Portero">Portero</SelectItem>
-                                    <SelectItem value="Cierre">Cierre</SelectItem>
-                                    <SelectItem value="Ala">Ala</SelectItem>
-                                    <SelectItem value="Pivot">Pívot</SelectItem>
-                                    <SelectItem value="Ala-Pivot">Ala-Pívot</SelectItem>
-                                    <SelectItem value="Universal">Universal</SelectItem>
-                                </SelectContent>
-                            </Select>
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                  {isLoadingPlayers ? (
+                    [...Array(5)].map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                            <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                        </TableRow>
+                    ))
+                  ) : players && players.length > 0 ? (
+                    players.map((player, index) => (
+                      <TableRow key={player.id}>
+                        <TableCell>
+                          <Input value={player.number} readOnly placeholder="#" className="text-center bg-muted/50"/>
+                        </TableCell>
+                        <TableCell>
+                          <Input value={player.name} readOnly placeholder="Nombre del jugador" className="bg-muted/50"/>
+                        </TableCell>
+                        <TableCell>
+                           <Input value={player.position} readOnly placeholder="Posición" className="bg-muted/50"/>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button type="button" variant="ghost" size="icon" disabled className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No hay jugadores en este equipo.
+                        </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -217,15 +190,14 @@ function RosterForm({ team }: { team: Team }) {
                 <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => append({ dorsal: '', nombre: '', posicion: '' })}
-                    disabled={fields.length >= 20 || isSubmitting}
+                    disabled
                 >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Añadir Jugador
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled>
                     <Save className="mr-2 h-4 w-4" />
-                    {isSubmitting ? 'Guardando...' : 'Guardar Plantilla'}
+                    Guardar Plantilla
                 </Button>
             </div>
              {form.formState.errors.players && (
@@ -254,7 +226,13 @@ export default function MembersPage() {
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId]);
 
+  const playersRef = useMemoFirebase(() => {
+    if(!firestore || !teamId) return null;
+    return collection(firestore, `teams/${teamId}/players`);
+  }, [firestore, teamId]);
+
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
+  const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
 
   const ownerRef = useMemoFirebase(() => {
     if (!firestore || !team?.ownerId) return null;
@@ -328,7 +306,7 @@ export default function MembersPage() {
 
        <div className="space-y-8">
          <InfoCard team={team} owner={owner}/>
-         <RosterForm team={team} />
+         <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
        </div>
     </div>
   );

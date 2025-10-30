@@ -79,22 +79,30 @@
         "competition": {"type": "string"},
         "createdAt": {"type": "string", "format": "date-time"},
         "name": {"type": "string"},
-        "ownerId": {"type": "string"},
-        "season": {"type": "string"},
-        "players": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "dorsal": {"type": "string"},
-                    "nombre": {"type": "string"},
-                    "posicion": {"type": "string"}
-                },
-                "required": ["dorsal", "nombre", "posicion"]
-            }
-        }
+        "ownerId": {"type": "string"}
       },
       "required": ["name", "ownerId"]
+    },
+    "Player": {
+      "title": "Player",
+      "type": "object",
+      "description": "Represents a player in a team.",
+      "properties": {
+        "active": { "type": "boolean" },
+        "assists": { "type": "number" },
+        "faltas": { "type": "number" },
+        "gRec": { "type": "number" },
+        "goals": { "type": "number" },
+        "minutosJugados": { "type": "number" },
+        "name": { "type": "string" },
+        "number": { "type": "string" },
+        "paradas": { "type": "number" },
+        "perdidas": { "type": "number" },
+        "pj": { "type": "number" },
+        "position": { "type": "string" },
+        "recuperaciones": { "type": "number" }
+      },
+      "required": ["name", "number", "position"]
     },
     "TeamInvitation": {
         "title": "Team Invitation",
@@ -149,6 +157,10 @@
     "/teams/{teamId}": {
         "schema": { "$ref": "#/entities/Team" },
         "description": "Stores team information."
+    },
+    "/teams/{teamId}/players/{playerId}": {
+        "schema": { "$ref": "#/entities/Player" },
+        "description": "Stores the players for a specific team."
     },
     "/invitations/{invitationId}": {
         "schema": { "$ref": "#/entities/TeamInvitation" },
