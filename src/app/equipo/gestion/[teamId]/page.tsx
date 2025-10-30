@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Trophy,
   Briefcase,
+  UserCheck,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ const menuItems = [
     description: 'Gestiona los jugadores del equipo.',
     icon: <Users className="w-8 h-8 text-primary" />,
     href: '/miembros',
+    disabled: false,
   },
   {
     title: 'Cuerpo Técnico',
@@ -48,11 +50,11 @@ const menuItems = [
     disabled: false,
   },
   {
-    title: 'Mis Asistencias',
+    title: 'Control de Asistencia',
     description: 'Controla la asistencia a los entrenamientos.',
-    icon: <ClipboardList className="w-8 h-8 text-primary" />,
+    icon: <UserCheck className="w-8 h-8 text-primary" />,
     href: '/asistencias',
-    disabled: true,
+    disabled: false,
   },
   {
     title: 'Mis Estadísticas',

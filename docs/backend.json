@@ -251,6 +251,24 @@
             "teamName": {"type": "string"}
         },
         "required": ["teamId", "teamName", "invitedUserEmail", "status", "role"]
+    },
+    "AttendanceRecord": {
+      "title": "Attendance Record",
+      "type": "object",
+      "description": "Represents the attendance for a single training session.",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "teamId": { "type": "string" },
+        "userId": { "type": "string" },
+        "playerStatus": {
+          "type": "object",
+          "description": "A map where keys are player IDs and values are their attendance status.",
+          "patternProperties": {
+            ".*": { "type": "string", "enum": ["Presente", "Ausente", "Justificado", "Lesionado"] }
+          }
+        }
+      },
+      "required": ["date", "teamId", "userId", "playerStatus"]
     }
   },
   "auth": {
@@ -302,6 +320,10 @@
     "/invitations/{invitationId}": {
         "schema": { "$ref": "#/entities/TeamInvitation" },
         "description": "Stores invitations for users to join teams."
+    },
+    "/teams/{teamId}/attendance/{attendanceId}": {
+        "schema": { "$ref": "#/entities/AttendanceRecord" },
+        "description": "Stores attendance records for a team. The document ID is typically the date in YYYY-MM-DD format."
     }
   }
 }
