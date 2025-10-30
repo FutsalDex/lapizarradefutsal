@@ -12,9 +12,9 @@ export function FirebaseErrorListener() {
   useEffect(() => {
     // The callback now expects a strongly-typed error, matching the event payload.
     const handleError = (error: FirestorePermissionError) => {
-      // Log the error to the console instead of throwing it.
-      // This prevents the Next.js error overlay from appearing.
-      console.error('Firebase Permission Error (suppressed from UI):', error);
+      // Log the error to the console as a warning.
+      // This prevents the Next.js red error badge from appearing.
+      console.warn('Firebase Permission Error (suppressed from UI):', error);
     };
 
     // The typed emitter will enforce that the callback for 'permission-error'
