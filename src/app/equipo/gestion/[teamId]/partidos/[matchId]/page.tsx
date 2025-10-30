@@ -6,7 +6,7 @@ import { doc, updateDoc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -123,30 +123,31 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
     <Card>
       <CardContent className="p-4 md:p-6">
         <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
-            <div className="space-y-4">
+            <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
                 <FoulIndicator count={match.localFouls || 0} />
-                <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn((match.localTimeouts || 0) >= 1 && "bg-green-500 hover:bg-green-600 text-white")}>TM</Button>
             </div>
             
-            <div className="flex flex-col items-center">
-                 <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
-                    {match.localScore} - {match.visitorScore}
-                </div>
-                <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2 my-4">
-                    {formatTime(time)}
-                </div>
+            <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
+                {match.localScore} - {match.visitorScore}
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
                 <FoulIndicator count={match.visitorFouls || 0} />
-                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn((match.visitorTimeouts || 0) >= 1 && "bg-green-500 hover:bg-green-600 text-white")}>TM</Button>
             </div>
         </div>
 
+        <div className="flex justify-center items-center gap-4 mb-4">
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn("w-16", (match.localTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+            <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
+                {formatTime(time)}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn("w-16", (match.visitorTimeouts || 0) >= 1 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>TM</Button>
+        </div>
+
         <div className="flex justify-center items-center gap-4">
-            <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm" className={cn(isActive ? "bg-red-500" : "bg-green-500 hover:bg-green-600")}>
+            <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm" className={cn(!isActive && "bg-primary hover:bg-primary/90")}>
                 {isActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                 {isActive ? 'Pausar' : 'Iniciar'}
             </Button>
@@ -230,7 +231,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                                 return (
                                     <TableRow key={player.id} className={cn(activePlayerId === player.id && "bg-primary/10")}>
                                         <TableCell>
-                                            <Button variant="link" className="p-0 text-left h-auto" onClick={() => toggleActivePlayer(player.id)}>
+                                            <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>{player.name}
                                             </Button>
                                         </TableCell>
@@ -254,6 +255,13 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
                     </Table>
                 </div>
             </CardContent>
+            {isMyTeam && (
+                <CardFooter>
+                    <p className="text-xs text-muted-foreground">
+                        <b>Leyenda:</b> <b>Min:</b> Minutos Jugados, <b>G:</b> Goles, <b>A:</b> Asistencias, <b>FC:</b> Faltas Cometidas, <b>FR:</b> Faltas Recibidas, <b>TA:</b> Tarjetas Amarillas, <b>TR:</b> Tarjetas Rojas.
+                    </p>
+                </CardFooter>
+            )}
         </Card>
     );
 };
@@ -319,7 +327,18 @@ export default function MatchStatsPage() {
   const squadPlayers = useMemo(() => {
     if (!teamPlayers || !localMatchData?.squad) return [];
     const squadIds = new Set(localMatchData.squad);
-    return teamPlayers.filter(p => squadIds.has(p.id));
+    const filteredPlayers = teamPlayers.filter(p => squadIds.has(p.id));
+    
+    // Sort players by dorsal number (ascending)
+    return filteredPlayers.sort((a, b) => {
+        const numA = parseInt(a.number, 10);
+        const numB = parseInt(b.number, 10);
+
+        if (isNaN(numA)) return 1;
+        if (isNaN(numB)) return -1;
+        
+        return numA - numB;
+    });
   }, [teamPlayers, localMatchData?.squad]);
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
