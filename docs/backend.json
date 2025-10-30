@@ -121,7 +121,8 @@
         "teamId": {"type": "string"},
         "userId": {"type": "string"},
         "visitorScore": {"type": "number"},
-        "visitorTeam": {"type": "string"}
+        "visitorTeam": {"type": "string"},
+        "squad": {"type": "array", "items": {"type": "string"}}
       },
       "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
     },

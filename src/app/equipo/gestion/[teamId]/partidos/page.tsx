@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, forwardRef } from 'react';
 import { useParams } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { addDoc, collection, query, where, orderBy, doc, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, query, where, orderBy, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -28,6 +28,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -53,6 +54,8 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -65,6 +68,7 @@ import {
   Edit,
   BarChart,
   CalendarIcon,
+  Save,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -79,6 +83,12 @@ interface Team {
   competition?: string;
 }
 
+interface Player {
+  id: string;
+  number: string;
+  name: string;
+}
+
 interface Match {
   id: string;
   visitorTeam: string;
@@ -88,6 +98,7 @@ interface Match {
   localScore?: number;
   visitorScore?: number;
   isFinished: boolean;
+  squad?: string[];
 }
 
 const addMatchSchema = (teamName: string) => z.object({
@@ -337,17 +348,105 @@ function AddMatchDialog({
   );
 }
 
+// ====================
+// DIÁLOGO CONVOCATORIA
+// ====================
+
+const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: Match, children: React.ReactNode }>(({ teamId, match, children }, ref) => {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(match.squad || []);
+
+  const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
+  const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
+
+  useEffect(() => {
+    // Sync state if match data changes from parent
+    setSelectedPlayers(match.squad || []);
+  }, [match.squad]);
+
+  const handlePlayerToggle = (playerId: string) => {
+    setSelectedPlayers(prev => 
+      prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
+    );
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      const matchRef = doc(firestore, 'matches', match.id);
+      await updateDoc(matchRef, { squad: selectedPlayers });
+      toast({ title: "Convocatoria guardada", description: `Se han guardado ${selectedPlayers.length} jugadores.` });
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error saving squad:", error);
+      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la convocatoria." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-md" ref={ref}>
+        <DialogHeader>
+          <DialogTitle>Convocar Jugadores</DialogTitle>
+          <DialogDescription>Selecciona los jugadores convocados para este partido.</DialogDescription>
+        </DialogHeader>
+        <div className="py-4">
+          <ScrollArea className="h-72 w-full rounded-md border">
+            <div className="p-4">
+              {isLoadingPlayers ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                </div>
+              ) : players && players.length > 0 ? (
+                players.map(player => (
+                  <div key={player.id} className="flex items-center space-x-3 py-2">
+                    <Checkbox
+                      id={`player-${player.id}`}
+                      checked={selectedPlayers.includes(player.id)}
+                      onCheckedChange={() => handlePlayerToggle(player.id)}
+                    />
+                    <label htmlFor={`player-${player.id}`} className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      <span className="font-bold w-8 inline-block">{player.number}.</span>
+                      {player.name}
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center">No hay jugadores en la plantilla. Añádelos desde la sección "Mi Plantilla".</p>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
+          <Button type="button" onClick={handleSave} disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            {isSubmitting ? "Guardando..." : "Guardar Convocatoria"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+});
+ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
+
 
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
-  const { isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date } = match;
+function MatchCard({ match, team, isOwner }: { match: Match; team: Team, isOwner: boolean }) {
+  const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
 
   const getResultClasses = () => {
     if (!isFinished) return 'text-muted-foreground';
 
-    const isUserTeamLocal = localTeam === teamName;
+    const isUserTeamLocal = localTeam === team.name;
     const userTeamScore = isUserTeamLocal ? localScore : visitorScore;
     const opponentScore = isUserTeamLocal ? visitorScore : localScore;
 
@@ -367,6 +466,7 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
     return format(dateObj, 'dd/MM/yyyy', { locale: es });
   };
 
+  const convocadosCount = squad?.length || 0;
 
   return (
     <Card className="flex flex-col">
@@ -385,19 +485,28 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
         </Badge>
       </CardContent>
       <CardFooter className="bg-muted/50 p-2 flex justify-around">
-        <Button variant="ghost" size="sm" className="text-xs" disabled>
-          <Users className="mr-1 h-4 w-4" /> Convocar
-        </Button>
+        {isOwner ? (
+            <ConvocatoriaDialog teamId={team.id} match={match}>
+                <Button variant="ghost" size="sm" className={cn("text-xs", convocadosCount > 0 && "font-bold text-primary")}>
+                    <Users className="mr-1 h-4 w-4" /> 
+                    {convocadosCount > 0 ? `${convocadosCount} Convocados` : 'Convocar'}
+                </Button>
+            </ConvocatoriaDialog>
+        ) : (
+             <Button variant="ghost" size="sm" className="text-xs" disabled>
+                <Users className="mr-1 h-4 w-4" /> {convocadosCount > 0 ? `${convocadosCount} Convocados` : 'Convocar'}
+             </Button>
+        )}
         <Button variant="ghost" size="sm" className="text-xs" disabled>
           <BarChart className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="sm" className="text-xs" disabled>
           <Eye className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="text-xs" disabled>
+        <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
           <Edit className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive" disabled>
+        <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive" disabled={!isOwner}>
           <Trash2 className="h-4 w-4" />
         </Button>
       </CardFooter>
@@ -512,7 +621,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} teamName={team.name} />
+            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} />
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">
