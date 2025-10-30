@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, or } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayRemove } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -34,6 +34,7 @@ interface Team {
   club?: string;
   competition?: string;
   ownerId: string;
+  memberIds?: string[];
 }
 
 interface TeamMember extends UserProfile {
@@ -227,17 +228,15 @@ function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { membe
         try {
             const batch = writeBatch(firestore);
 
-            // Delete invitation
             const invitationRef = doc(firestore, 'invitations', member.invitationId);
             batch.delete(invitationRef);
 
-            // Remove from team memberIds if accepted
             if (member.status === 'accepted') {
                 const teamRef = doc(firestore, 'teams', team.id);
                 const userSnapshot = await getDocs(query(collection(firestore, 'users'), where('email', '==', member.email)));
                 if (!userSnapshot.empty) {
                     const userId = userSnapshot.docs[0].id;
-                    batch.update(teamRef, { memberIds: firestore.FieldValue.arrayRemove(userId) });
+                    batch.update(teamRef, { memberIds: arrayRemove(userId) });
                 }
             }
 
@@ -281,6 +280,8 @@ function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { membe
                                         <TableCell>
                                             {member.role === 'Propietario' ? (
                                                 <Input value="Propietario" disabled />
+                                            ) : member.status === 'pending' ? (
+                                                <div className="text-sm text-muted-foreground italic">Invitación pendiente</div>
                                             ) : (
                                                 <Select 
                                                     defaultValue={member.role}
@@ -349,6 +350,8 @@ export default function StaffPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [key, setKey] = useState(0); // Used to force refetch
+  const [memberUsers, setMemberUsers] = useState<UserProfile[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -370,14 +373,41 @@ export default function StaffPage() {
 
   const { data: ownerData, isLoading: isLoadingOwner } = useDoc<UserProfile>(ownerRef);
 
-  const acceptedMemberEmails = useMemo(() => invitations?.filter(inv => inv.status === 'accepted').map(inv => inv.invitedUserEmail) || [], [invitations]);
-  
-  const memberUsersQuery = useMemoFirebase(() => {
-    if (!firestore || acceptedMemberEmails.length === 0) return null;
-    return query(collection(firestore, 'users'), where('email', 'in', acceptedMemberEmails));
-  }, [firestore, acceptedMemberEmails, key]);
-  
-  const { data: memberUsers, isLoading: isLoadingMembers } = useCollection<UserProfile>(memberUsersQuery);
+  const fetchMemberUsers = useCallback(async () => {
+    if (!firestore || !invitations) {
+      setIsLoadingMembers(false);
+      return;
+    }
+    
+    const acceptedMemberEmails = invitations
+      .filter(inv => inv.status === 'accepted')
+      .map(inv => inv.invitedUserEmail);
+      
+    if (acceptedMemberEmails.length === 0) {
+      setMemberUsers([]);
+      setIsLoadingMembers(false);
+      return;
+    }
+    
+    setIsLoadingMembers(true);
+    try {
+      const q = query(collection(firestore, 'users'), where('email', 'in', acceptedMemberEmails));
+      const snapshot = await getDocs(q);
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+      setMemberUsers(usersData);
+    } catch (error) {
+      console.error("Error fetching member users:", error);
+      setMemberUsers([]);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [firestore, invitations]);
+
+  useEffect(() => {
+    if (!isLoadingInvitations && invitations) {
+      fetchMemberUsers();
+    }
+  }, [invitations, isLoadingInvitations, fetchMemberUsers]);
 
   const teamMembers = useMemo(() => {
     if (!invitations) return [];
