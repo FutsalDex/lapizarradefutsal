@@ -58,16 +58,8 @@ service cloud.firestore {
       // 🧍‍♂️ SUBCOLECCIÓN: PLAYERS
       // =============================
       match /players/{playerId} {
-        // Leer jugadores → propietario, miembros o invitados aceptados
         allow get, list: if canAccessTeam(teamId);
-
-        // Crear jugadores → propietario o miembros aceptados
-        allow create: if isTeamOwner(teamId) || isTeamMember(teamId);
-
-        // Actualizar jugadores → propietario o miembros aceptados
-        allow update: if isTeamOwner(teamId) || isTeamMember(teamId);
-
-        // Eliminar jugadores → solo el propietario
+        allow create, update: if isTeamOwner(teamId) || isTeamMember(teamId);
         allow delete: if isTeamOwner(teamId);
       }
 
@@ -80,28 +72,39 @@ service cloud.firestore {
     }
 
     // =============================
+    // ⚽ MATCHES (PARTIDOS)
+    // =============================
+    match /matches/{matchId} {
+      // ✅ FIX: list ya no usa resource, que no existe en consultas
+      allow get: if isAuth() && canAccessTeam(resource.data.teamId);
+      allow list: if isAuth(); // El cliente debe filtrar por teamId
+
+      allow create: if isAuth()
+        && canAccessTeam(request.resource.data.teamId)
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAuth() && canAccessTeam(resource.data.teamId);
+      allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
+    }
+
+    // =============================
     // ✉️ INVITATIONS
     // =============================
     match /invitations/{invId} {
-      // Crear invitación
       allow create: if isAuth();
 
-      // Leer una invitación
       allow get: if isAuth() && (
         isTeamOwner(resource.data.teamId) ||
         resource.data.invitedUserEmail == authEmail()
       );
 
-      // Listar invitaciones (el cliente filtra por email)
       allow list: if isAuth();
 
-      // Actualizar invitación
       allow update: if isAuth() && (
         resource.data.invitedUserEmail == authEmail() ||
         isTeamOwner(resource.data.teamId)
       );
 
-      // Borrar invitación
       allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
     }
 

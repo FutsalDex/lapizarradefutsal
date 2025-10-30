@@ -266,7 +266,7 @@ function AddMatchDialog({
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Juegas en casa o fuera?" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Casa">Casa</SelectItem>
@@ -364,7 +364,11 @@ export default function MatchesPage() {
 
   const matchesQuery = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
-    return query(collection(firestore, `matches`), where('teamId', '==', teamId), orderBy('date', 'desc'));
+    return query(
+        collection(firestore, `matches`), 
+        where('teamId', '==', teamId), 
+        orderBy('date', 'desc')
+    );
   }, [firestore, teamId]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
