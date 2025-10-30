@@ -15,6 +15,8 @@ import _ from 'lodash';
 // ====================
 // TYPES
 // ====================
+type Period = '1H' | '2H';
+
 interface PlayerStats {
   id: string;
   name: string;
@@ -51,8 +53,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: { [playerId: string]: Partial<PlayerStats> };
-  opponentStats?: Partial<OpponentStats>;
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
+  opponentStats?: { [key in Period]?: Partial<OpponentStats> };
 }
 
 // ====================
@@ -95,24 +97,48 @@ export default function MatchSummaryPage() {
         return numA - numB;
     });
   }, [teamPlayers, match?.squad]);
-
-  const totals = useMemo(() => {
-    const initialTotals: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
+  
+  const aggregatedStats = useMemo(() => {
+    const initialPlayerStats: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
         goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
         shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
         saves: 0, goalsConceded: 0, minutesPlayed: 0
     };
-    if (!squadPlayers.length || !match?.playerStats) return initialTotals;
+    
+    if (!squadPlayers.length || !match?.playerStats) return { playerTotals: {}, teamTotals: initialPlayerStats, opponentTotals: {} };
 
-    return squadPlayers.reduce((acc, player) => {
-        const stats = match.playerStats![player.id] || {};
-        Object.keys(stats).forEach(key => {
-          const statKey = key as keyof PlayerStats;
-          acc[statKey] = (acc[statKey] as number || 0) + (stats[statKey] as number || 0);
+    const playerTotals: { [playerId: string]: typeof initialPlayerStats } = {};
+
+    squadPlayers.forEach(player => {
+        const stats1H = _.get(match.playerStats, `1H.${player.id}`, {});
+        const stats2H = _.get(match.playerStats, `2H.${player.id}`, {});
+        playerTotals[player.id] = _.mergeWith({}, stats1H, stats2H, (objValue, srcValue) => {
+            if (_.isNumber(objValue)) {
+                return objValue + srcValue;
+            }
         });
-        return acc;
-    }, initialTotals);
-  }, [squadPlayers, match?.playerStats]);
+    });
+
+    const teamTotals = _.reduce(playerTotals, (acc, stats) => {
+        return _.mergeWith(acc, stats, (objValue, srcValue) => {
+             if (_.isNumber(objValue)) {
+                return objValue + srcValue;
+            }
+        })
+    }, {});
+
+    const opponentStats1H = match.opponentStats?.['1H'] || {};
+    const opponentStats2H = match.opponentStats?.['2H'] || {};
+    const opponentTotals = _.mergeWith({}, opponentStats1H, opponentStats2H, (objValue, srcValue) => {
+        if (_.isNumber(objValue)) {
+            return objValue + srcValue;
+        }
+    });
+
+    return { playerTotals, teamTotals, opponentTotals };
+
+  }, [squadPlayers, match?.playerStats, match?.opponentStats]);
+
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -184,7 +210,7 @@ export default function MatchSummaryPage() {
                         </TableHeader>
                         <TableBody>
                             {squadPlayers.map(player => {
-                                const stats = match.playerStats?.[player.id] || {};
+                                const stats = aggregatedStats.playerTotals[player.id] || {};
                                 return (
                                     <TableRow key={player.id}>
                                         <TableCell className="font-medium py-2 px-2">{player.number}. {player.name}</TableCell>
@@ -206,17 +232,17 @@ export default function MatchSummaryPage() {
                         <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell className="px-2">Total Equipo</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{formatStatTime(totals.minutesPlayed)}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.goals}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.assists}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.shotsOnTarget}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.shotsOffTarget}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.recoveries}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.turnovers}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.saves}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.goalsConceded}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.yellowCards}</TableCell>
-                                <TableCell className="text-center tabular-nums py-2 px-1">{totals.redCards}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1"></TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.goals || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.assists || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.shotsOnTarget || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.shotsOffTarget || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.recoveries || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.turnovers || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.saves || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.goalsConceded || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.yellowCards || 0}</TableCell>
+                                <TableCell className="text-center tabular-nums py-2 px-1">{aggregatedStats.teamTotals.redCards || 0}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -233,19 +259,19 @@ export default function MatchSummaryPage() {
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Goles</dt>
-              <dd className="text-2xl font-bold">{match.opponentStats?.goals || 0}</dd>
+              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.goals || 0}</dd>
             </div>
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Tiros a Puerta</dt>
-              <dd className="text-2xl font-bold">{match.opponentStats?.shotsOnTarget || 0}</dd>
+              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.shotsOnTarget || 0}</dd>
             </div>
              <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Tiros Fuera</dt>
-              <dd className="text-2xl font-bold">{match.opponentStats?.shotsOffTarget || 0}</dd>
+              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.shotsOffTarget || 0}</dd>
             </div>
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Faltas</dt>
-              <dd className="text-2xl font-bold">{match.opponentStats?.fouls || 0}</dd>
+              <dd className="text-2xl font-bold">{aggregatedStats.opponentTotals.fouls || 0}</dd>
             </div>
           </dl>
         </CardContent>

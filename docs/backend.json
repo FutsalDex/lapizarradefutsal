@@ -130,20 +130,42 @@
         "squad": {"type": "array", "items": {"type": "string"}},
         "playerStats": {
           "type": "object",
-          "description": "Stats for the players in the match",
-          "patternProperties": {
-            ".*": { "$ref": "#/entities/Player" }
+          "description": "Stats for the players in the match, separated by half.",
+          "properties": {
+            "1H": {
+              "type": "object",
+              "patternProperties": { ".*": { "$ref": "#/entities/Player" } }
+            },
+            "2H": {
+              "type": "object",
+              "patternProperties": { ".*": { "$ref": "#/entities/Player" } }
+            }
           }
         },
         "opponentStats": {
           "type": "object",
-          "description": "Opponent stats for the match",
+          "description": "Opponent stats for the match, separated by half.",
           "properties": {
-              "goals": {"type": "number"},
-              "fouls": {"type": "number"},
-              "shotsOnTarget": {"type": "number"},
-              "shotsOffTarget": {"type": "number"},
-              "shotsBlocked": {"type": "number"}
+            "1H": {
+              "type": "object",
+              "properties": {
+                  "goals": {"type": "number"},
+                  "fouls": {"type": "number"},
+                  "shotsOnTarget": {"type": "number"},
+                  "shotsOffTarget": {"type": "number"},
+                  "shotsBlocked": {"type": "number"}
+              }
+            },
+            "2H": {
+              "type": "object",
+              "properties": {
+                  "goals": {"type": "number"},
+                  "fouls": {"type": "number"},
+                  "shotsOnTarget": {"type": "number"},
+                  "shotsOffTarget": {"type": "number"},
+                  "shotsBlocked": {"type": "number"}
+              }
+            }
           }
         },
         "fouls": {

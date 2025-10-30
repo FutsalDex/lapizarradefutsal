@@ -38,6 +38,7 @@ interface PlayerStats {
 }
 type Player = Omit<PlayerStats, 'id'> & { id: string };
 
+type Period = '1H' | '2H';
 
 interface OpponentStats {
   goals: number;
@@ -56,8 +57,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: { [playerId: string]: Partial<PlayerStats> };
-  opponentStats?: Partial<OpponentStats>;
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
+  opponentStats?: { [key in Period]?: Partial<OpponentStats> };
   fouls?: { local: number; visitor: number };
   timeouts?: { local: number; visitor: number };
 }
@@ -90,7 +91,11 @@ const Scoreboard = ({
   isTimerActive,
   onTimerToggle,
   onTimeReset,
-  onTimeout
+  onTimeout,
+  period,
+  setPeriod,
+  localFouls,
+  visitorFouls,
 }: {
   match: Match;
   time: number;
@@ -98,7 +103,10 @@ const Scoreboard = ({
   onTimerToggle: () => void;
   onTimeReset: () => void;
   onTimeout: (team: 'local' | 'visitor') => void;
-
+  period: Period;
+  setPeriod: (period: Period) => void;
+  localFouls: number;
+  visitorFouls: number;
 }) => {
 
   const formatTime = (seconds: number) => {
@@ -107,8 +115,6 @@ const Scoreboard = ({
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
   
-  const localFouls = match.fouls?.local ?? 0;
-  const visitorFouls = match.fouls?.visitor ?? 0;
   const localTimeouts = match.timeouts?.local ?? 0;
   const visitorTimeouts = match.timeouts?.visitor ?? 0;
 
@@ -153,6 +159,10 @@ const Scoreboard = ({
             <Button onClick={onTimeReset} variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
             </Button>
+             <div className="flex rounded-md border p-1">
+                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
+                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
+            </div>
         </div>
       </CardContent>
     </Card>
@@ -163,35 +173,34 @@ const Scoreboard = ({
 // ====================
 // STATS TABLE COMPONENT
 // ====================
-const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[] }) => {
+const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlayersChange, activePlayerIds, period }: { teamName: string, players: Player[], match: Match, onUpdate: (data: Partial<Match>) => void, isMyTeam: boolean, onActivePlayersChange: (ids: string[]) => void, activePlayerIds: string[], period: Period }) => {
     const { toast } = useToast();
 
     const handleStatChange = (playerId: string, stat: keyof PlayerStats, increment: boolean) => {
-        const playerStats = match.playerStats?.[playerId] || {};
+        const playerStats = _.get(match.playerStats, `${period}.${playerId}`, {});
         let currentVal = (playerStats[stat] as number) || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
         
         const updatedStats = _.cloneDeep(match.playerStats || {});
-        _.set(updatedStats, `${playerId}.${stat}`, newVal);
+        _.set(updatedStats, `${period}.${playerId}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
         const isLocalTeam = match.localTeam === teamName;
         const scoreField = isLocalTeam ? 'localScore' : 'visitorScore';
         
         if (stat === 'goals' && isMyTeam) {
-             const scoreDiff = newVal - currentVal;
-             const newScore = (match[scoreField] || 0) + scoreDiff;
-             batchUpdate[scoreField] = newScore;
-        }
+             const oldGoals1H = _.get(match.playerStats, `1H.${playerId}.goals`, 0);
+             const oldGoals2H = _.get(match.playerStats, `2H.${playerId}.goals`, 0);
+             const newGoals1H = _.get(updatedStats, `1H.${playerId}.goals`, 0);
+             const newGoals2H = _.get(updatedStats, `2H.${playerId}.goals`, 0);
 
-        if (stat === 'fouls' && isMyTeam) {
-             const foulDiff = newVal - currentVal;
-             const currentFouls = match.fouls?.[isLocalTeam ? 'local' : 'visitor'] ?? 0;
-             const newFouls = currentFouls + foulDiff;
+             const scoreDiff = (newGoals1H + newGoals2H) - (oldGoals1H + oldGoals2H);
              
-             const updatedFouls = _.cloneDeep(match.fouls || {});
-             _.set(updatedFouls, isLocalTeam ? 'local' : 'visitor', newFouls);
-             batchUpdate.fouls = updatedFouls;
+             const currentLocalScore = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0) + _.get(updatedStats, `2H.${p.id}.goals`, 0));
+             const currentVisitorScore = (_.get(match.opponentStats, '1H.goals', 0) + _.get(match.opponentStats, '2H.goals', 0));
+             
+             batchUpdate.localScore = currentLocalScore;
+             batchUpdate.visitorScore = currentVisitorScore;
         }
 
         onUpdate(batchUpdate);
@@ -214,15 +223,15 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     }
 
      const totals = useMemo(() => {
-        const initialTotals: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
+        const initialTotals: Omit<PlayerStats, 'id' | 'name' | 'number' | 'minutesPlayed'> & {minutesPlayed: number} = {
             goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
             shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
             saves: 0, goalsConceded: 0, minutesPlayed: 0
         };
-        if (!players || !match.playerStats) return initialTotals;
+        if (!players || !match.playerStats || !match.playerStats[period]) return initialTotals;
         
         return players.reduce((acc, player) => {
-            const stats = match.playerStats![player.id] || {};
+            const stats = match.playerStats![period]![player.id] || {};
             acc.goals += stats.goals || 0;
             acc.assists += stats.assists || 0;
             acc.yellowCards += stats.yellowCards || 0;
@@ -237,12 +246,27 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             acc.minutesPlayed += stats.minutesPlayed || 0;
             return acc;
         }, initialTotals);
+    }, [players, match.playerStats, period]);
+    
+    const minutesPlayedTotals = useMemo(() => {
+        const totalMinutes: { [playerId: string]: number } = {};
+        if (!players || !match.playerStats) return totalMinutes;
+
+        players.forEach(player => {
+            const min1H = _.get(match.playerStats, `1H.${player.id}.minutesPlayed`, 0);
+            const min2H = _.get(match.playerStats, `2H.${player.id}.minutesPlayed`, 0);
+            totalMinutes[player.id] = min1H + min2H;
+        });
+
+        return totalMinutes;
+
     }, [players, match.playerStats]);
+
 
     const StatButton = ({ stat, playerId }: { stat: keyof PlayerStats, playerId: string }) => (
         <div className="flex items-center gap-1 justify-center">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, false)}><Minus className="h-4 w-4"/></Button>
-            <span className="w-4 text-center tabular-nums">{((match.playerStats?.[playerId] as any)?.[stat] || 0)}</span>
+            <span className="w-4 text-center tabular-nums">{((_.get(match.playerStats, `${period}.${playerId}`) as any)?.[stat] || 0)}</span>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, true)}><Plus className="h-4 w-4"/></Button>
         </div>
     );
@@ -268,7 +292,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     return (
         <Card>
             <CardHeader>
-                <CardTitle>{teamName} - Estadísticas</CardTitle>
+                <CardTitle>{teamName} - Estadísticas {period === '1H' ? '1ª Parte' : '2ª Parte'}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="overflow-x-auto">
@@ -278,7 +302,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                         </TableHeader>
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
-                                const stats = match.playerStats?.[player.id] || {};
+                                const stats = _.get(match.playerStats, `${period}.${player.id}`, {});
                                 return (
                                     <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20 border-2 border-primary")}>
                                         <TableCell className="py-1 px-2">
@@ -287,7 +311,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                                 <span className='text-black'>{player.name}</span>
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
@@ -311,8 +335,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                         </TableBody>
                          <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
-                                <TableCell className="px-2">Total</TableCell>
-                                <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(totals.minutesPlayed)}</TableCell>
+                                <TableCell className="px-2">Total {period === '1H' ? '1ª Parte' : '2ª Parte'}</TableCell>
+                                <TableCell className="text-center tabular-nums py-1 px-1"></TableCell>
                                 <TableCell className="text-center px-1">{totals.goals}</TableCell>
                                 <TableCell className="text-center px-1">{totals.assists}</TableCell>
                                 <TableCell className="text-center px-1">{totals.fouls}</TableCell>
@@ -334,7 +358,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                   <div className="w-full text-xs text-muted-foreground">
                       <b className="block mb-2">Leyenda:</b>
                       <div className="grid grid-cols-3 gap-x-4 gap-y-1">
-                          <div><b>Min:</b> Minutos</div>
+                          <div><b>Min:</b> Minutos (Total Partido)</div>
                           <div><b>G:</b> Goles</div>
                           <div><b>A:</b> Asistencias</div>
                           <div><b>TA:</b> T. Amarilla</div>
@@ -354,33 +378,23 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     );
 };
 
-const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void }) => {
+const OpponentStatsTable = ({ teamName, match, onUpdate, period }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void, period: Period }) => {
 
     const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
-        const opponentStats = match.opponentStats || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 };
+        const opponentStats = _.get(match.opponentStats, period, { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 });
         let currentVal = opponentStats[stat] || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
 
         const updatedStats = _.cloneDeep(match.opponentStats || {});
-         _.set(updatedStats, stat, newVal);
+        _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
         const scoreField = 'visitorScore';
 
         if (stat === 'goals') {
-             const scoreDiff = newVal - currentVal;
-             const newScore = (match[scoreField] || 0) + scoreDiff;
-             batchUpdate[scoreField] = newScore;
-        }
-
-        if (stat === 'fouls') {
-             const foulDiff = newVal - currentVal;
-             const currentFouls = match.fouls?.visitor ?? 0;
-             const newFouls = currentFouls + foulDiff;
-
-             const updatedFouls = _.cloneDeep(match.fouls || {});
-             _.set(updatedFouls, `visitor`, newFouls);
-             batchUpdate.fouls = updatedFouls;
+             const goals1H = _.get(updatedStats, '1H.goals', 0);
+             const goals2H = _.get(updatedStats, '2H.goals', 0);
+             batchUpdate[scoreField] = goals1H + goals2H;
         }
 
         onUpdate(batchUpdate);
@@ -392,7 +406,7 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
             <TableCell className="text-right">
                 <div className="flex items-center gap-1 justify-end">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, false)}><Minus className="h-4 w-4"/></Button>
-                    <span className="w-6 text-center tabular-nums">{match.opponentStats?.[stat] || 0}</span>
+                    <span className="w-6 text-center tabular-nums">{_.get(match.opponentStats, `${period}.${stat}`, 0)}</span>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(stat, true)}><Plus className="h-4 w-4"/></Button>
                 </div>
             </TableCell>
@@ -402,7 +416,7 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Estadísticas del Rival - {teamName}</CardTitle>
+                <CardTitle>Estadísticas del Rival - {teamName} ({period === '1H' ? '1ª Parte' : '2ª Parte'})</CardTitle>
             </CardHeader>
             <CardContent>
                  <Table>
@@ -437,6 +451,7 @@ export default function MatchStatsPage() {
   
   const [time, setTime] = useState(0); 
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [period, setPeriod] = useState<Period>('1H');
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
   const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
@@ -472,7 +487,7 @@ export default function MatchStatsPage() {
     });
   };
   
-    const maxTime = 50 * 60;
+    const maxTime = 25 * 60;
     
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -484,8 +499,8 @@ export default function MatchStatsPage() {
                         if (!prevData) return null;
                         const newLocalData = _.cloneDeep(prevData);
                         activePlayerIds.forEach(playerId => {
-                            const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
-                            _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
+                            const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
+                            _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, currentMinutes + 1);
                         });
                         debouncedUpdate({ playerStats: newLocalData.playerStats });
                         return newLocalData;
@@ -499,7 +514,7 @@ export default function MatchStatsPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerActive, time, maxTime, activePlayerIds, debouncedUpdate]);
+    }, [isTimerActive, time, maxTime, activePlayerIds, debouncedUpdate, period]);
 
 
   const toggleMatchFinished = async () => {
@@ -513,6 +528,14 @@ export default function MatchStatsPage() {
         description: `Las estadísticas ${newStatus ? 'finales han sido guardadas' : 'pueden ser editadas de nuevo'}.`
     });
   }
+  
+  const handlePeriodChange = (newPeriod: Period) => {
+    if (period !== newPeriod) {
+        setIsTimerActive(false);
+        setTime(0);
+        setPeriod(newPeriod);
+    }
+  };
 
   const squadPlayers = useMemo(() => {
     if (!teamPlayers || !localMatchData?.squad) return [];
@@ -535,6 +558,9 @@ export default function MatchStatsPage() {
         handleUpdate({ timeouts: updatedTimeouts });
     }
   };
+
+  const localFouls = useMemo(() => _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0)), [squadPlayers, localMatchData, period]);
+  const visitorFouls = useMemo(() => _.get(localMatchData?.opponentStats, `${period}.fouls`, 0), [localMatchData, period]);
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -578,6 +604,10 @@ export default function MatchStatsPage() {
         onTimerToggle={() => setIsTimerActive(!isTimerActive)}
         onTimeReset={() => setTime(0)}
         onTimeout={handleTimeout}
+        period={period}
+        setPeriod={handlePeriodChange}
+        localFouls={localFouls}
+        visitorFouls={visitorFouls}
       />
 
       <Tabs defaultValue="myTeam" className="w-full">
@@ -594,6 +624,7 @@ export default function MatchStatsPage() {
                 isMyTeam={true}
                 onActivePlayersChange={setActivePlayerIds}
                 activePlayerIds={activePlayerIds}
+                period={period}
             />
         </TabsContent>
         <TabsContent value="opponent">
@@ -601,6 +632,7 @@ export default function MatchStatsPage() {
                 teamName={opponentTeamName}
                 match={localMatchData}
                 onUpdate={handleUpdate}
+                period={period}
             />
         </TabsContent>
       </Tabs>
