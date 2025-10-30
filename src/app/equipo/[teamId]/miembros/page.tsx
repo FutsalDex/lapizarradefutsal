@@ -114,7 +114,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
         }));
       form.reset({ players: formattedPlayers });
     }
-  }, [players, form.reset]);
+  }, [players, form]);
   
 
   const onSubmit = async (values: TeamRosterValues) => {
