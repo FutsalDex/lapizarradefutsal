@@ -140,8 +140,7 @@
               "fouls": {"type": "number"},
               "shotsOnTarget": {"type": "number"},
               "shotsOffTarget": {"type": "number"},
-              "shotsBlocked": {"type": "number"},
-              "timeouts": {"type": "number"}
+              "shotsBlocked": {"type": "number"}
           }
         }
       },

@@ -43,7 +43,6 @@ interface OpponentStats {
   shotsOnTarget: number;
   shotsOffTarget: number;
   shotsBlocked: number;
-  timeouts: number;
 }
 
 interface Match {
@@ -358,7 +357,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
 const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, match: Match, onUpdate: (data: Partial<Match>) => void }) => {
 
     const handleStatChange = (stat: keyof OpponentStats, increment: boolean) => {
-        const opponentStats = match.opponentStats || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, timeouts: 0 };
+        const opponentStats = match.opponentStats || { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0 };
         let currentVal = opponentStats[stat] || 0;
         let newVal = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
 
@@ -366,7 +365,6 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
         const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
-        const foulField = match.localTeam === teamName ? 'localFoul' : 'visitorFoul'; // This might be wrong logic, visitor foul is easier
 
         if (stat === 'goals') {
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
@@ -406,7 +404,6 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
                         <StatRow label="Tiros a Puerta" stat="shotsOnTarget" />
                         <StatRow label="Tiros Fuera" stat="shotsOffTarget" />
                         <StatRow label="Tiros Bloqueados" stat="shotsBlocked" />
-                        <StatRow label="Tiempos Muertos" stat="timeouts" />
                     </TableBody>
                 </Table>
             </CardContent>
