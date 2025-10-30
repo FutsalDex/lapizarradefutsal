@@ -570,12 +570,9 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
              </Button>
         )}
         <Button asChild variant="ghost" size="sm" className="text-xs">
-          <Link href={`/equipo/gestion/${team.id}/partidos/${match.id}`}>
-            <BarChart className="h-4 w-4" />
+          <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
+            <Eye className="h-4 w-4" />
           </Link>
-        </Button>
-        <Button variant="ghost" size="sm" className="text-xs" disabled>
-          <Eye className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="sm" className="text-xs" onClick={onEdit} disabled={!isOwner}>
           <Edit className="h-4 w-4" />
