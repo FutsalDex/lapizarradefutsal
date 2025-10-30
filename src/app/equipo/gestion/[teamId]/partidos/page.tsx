@@ -118,21 +118,27 @@ const addMatchSchema = (teamName: string) => z.object({
 type AddMatchValues = z.infer<ReturnType<typeof addMatchSchema>>;
 
 // ====================
-// FORMULARIO AÑADIR PARTIDO
+// FORMULARIO AÑADIR/EDITAR PARTIDO
 // ====================
-function AddMatchDialog({
+function MatchFormDialog({
   team,
   isOpen,
   setIsOpen,
+  matchToEdit,
+  onFinished,
 }: {
   team: Team;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  matchToEdit?: Match;
+  onFinished: () => void;
 }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const isEditMode = !!matchToEdit;
 
   const currentMatchSchema = useMemo(() => addMatchSchema(team.name), [team.name]);
 
@@ -147,20 +153,35 @@ function AddMatchDialog({
     },
   });
 
-  const matchType = form.watch('matchType');
-
   useEffect(() => {
-    if (matchType === 'Liga' && team.competition) {
-        form.setValue('competition', team.competition);
+    if (isEditMode && matchToEdit) {
+      form.reset({
+        localTeam: matchToEdit.localTeam,
+        visitorTeam: matchToEdit.visitorTeam,
+        date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
+        matchType: matchToEdit.matchType,
+        competition: matchToEdit.competition || '',
+        matchday: matchToEdit.matchday?.toString() || '',
+      });
+    } else {
+      form.reset({
+        localTeam: '',
+        visitorTeam: '',
+        date: undefined,
+        matchType: 'Amistoso',
+        competition: team.competition || '',
+        matchday: ''
+      });
     }
-  }, [matchType, team.competition, form]);
+  }, [isOpen, isEditMode, matchToEdit, form, team.competition]);
 
+
+  const matchType = form.watch('matchType');
 
   const onSubmit = async (values: AddMatchValues) => {
     if (!team || !user) return;
     setIsSubmitting(true);
     try {
-      const matchesCollection = collection(firestore, `matches`);
       
       const matchData = {
         date: values.date,
@@ -169,28 +190,42 @@ function AddMatchDialog({
         visitorTeam: values.visitorTeam,
         competition: values.competition,
         matchday: values.matchday ? Number(values.matchday) : undefined,
-        localScore: 0,
-        visitorScore: 0,
-        isFinished: false,
-        teamId: team.id,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
       };
 
-      await addDoc(matchesCollection, matchData);
+      if (isEditMode && matchToEdit) {
+        const matchRef = doc(firestore, 'matches', matchToEdit.id);
+        await updateDoc(matchRef, matchData);
+         toast({
+            title: 'Partido actualizado',
+            description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido modificado.`,
+        });
+      } else {
+        const matchesCollection = collection(firestore, `matches`);
+        await addDoc(matchesCollection, {
+            ...matchData,
+            localScore: 0,
+            visitorScore: 0,
+            isFinished: false,
+            teamId: team.id,
+            userId: user.uid,
+            createdAt: serverTimestamp(),
+        });
+        toast({
+            title: 'Partido añadido',
+            description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido creado.`,
+        });
+      }
 
-      toast({
-        title: 'Partido añadido',
-        description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido creado.`,
-      });
       form.reset();
       setIsOpen(false);
+      onFinished();
+
     } catch (error) {
-      console.error('Error adding match:', error);
+      console.error('Error saving match:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo añadir el partido.',
+        description: 'No se pudo guardar el partido.',
       });
     } finally {
       setIsSubmitting(false);
@@ -201,9 +236,9 @@ function AddMatchDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Añadir Nuevo Partido</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Editar Partido' : 'Añadir Nuevo Partido'}</DialogTitle>
           <DialogDescription>
-            Introduce los datos básicos del partido. Podrás añadir las estadísticas más tarde.
+            {isEditMode ? 'Modifica los datos del partido.' : 'Introduce los datos básicos del partido. Podrás añadir las estadísticas más tarde.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -342,7 +377,8 @@ function AddMatchDialog({
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Guardando...' : 'Guardar Partido'}
+                <Save className="mr-2 h-4 w-4" />
+                {isSubmitting ? 'Guardando...' : (isEditMode ? 'Guardar Cambios' : 'Crear Partido')}
               </Button>
             </DialogFooter>
           </form>
@@ -351,6 +387,7 @@ function AddMatchDialog({
     </Dialog>
   );
 }
+
 
 // ====================
 // DIÁLOGO CONVOCATORIA
@@ -475,7 +512,7 @@ ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, team, isOwner }: { match: Match; team: Team, isOwner: boolean }) {
+function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team, isOwner: boolean, onEdit: () => void; }) {
   const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
 
   const getResultClasses = () => {
@@ -540,7 +577,7 @@ function MatchCard({ match, team, isOwner }: { match: Match; team: Team, isOwner
         <Button variant="ghost" size="sm" className="text-xs" disabled>
           <Eye className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
+        <Button variant="ghost" size="sm" className="text-xs" onClick={onEdit} disabled={!isOwner}>
           <Edit className="h-4 w-4" />
         </Button>
         <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive" disabled={!isOwner}>
@@ -560,7 +597,9 @@ export default function MatchesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [filter, setFilter] = useState('Todos');
-  const [isAddMatchOpen, setAddMatchOpen] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [matchToEdit, setMatchToEdit] = useState<Match | undefined>(undefined);
+  const [key, setKey] = useState(0);
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -576,7 +615,7 @@ export default function MatchesPage() {
         where('teamId', '==', teamId), 
         orderBy('date', 'asc')
     );
-  }, [firestore, teamId]);
+  }, [firestore, teamId, key]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
@@ -588,6 +627,16 @@ export default function MatchesPage() {
 
   const isOwner = user && team && user.uid === team.ownerId;
   const isLoading = isLoadingTeam || isLoadingMatches;
+  
+  const handleOpenForm = (match?: Match) => {
+    setMatchToEdit(match);
+    setFormOpen(true);
+  };
+  
+  const handleFormFinished = () => {
+    setKey(k => k + 1); // Force refetch of matches
+  };
+
 
   if (isLoading) {
     return (
@@ -636,14 +685,14 @@ export default function MatchesPage() {
           </div>
         </div>
         {isOwner && (
-            <Button onClick={() => setAddMatchOpen(true)}>
+            <Button onClick={() => handleOpenForm()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Añadir Partido
             </Button>
         )}
       </div>
 
-       {team && <AddMatchDialog team={team} isOpen={isAddMatchOpen} setIsOpen={setAddMatchOpen} />}
+       {team && <MatchFormDialog team={team} isOpen={isFormOpen} setIsOpen={setFormOpen} matchToEdit={matchToEdit} onFinished={handleFormFinished} />}
 
       <Tabs value={filter} onValueChange={setFilter} className="mb-6">
         <TabsList>
@@ -658,7 +707,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} />
+            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={() => handleOpenForm(match)}/>
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">
@@ -669,5 +718,3 @@ export default function MatchesPage() {
     </div>
   );
 }
-
-    
