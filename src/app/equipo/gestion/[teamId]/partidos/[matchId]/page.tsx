@@ -136,7 +136,6 @@ const Scoreboard = ({
     if (currentVal < 1) { // Futsal has 1 timeout per half
         onUpdate({ [field]: currentVal + 1 });
         setTime(prev => Math.min(20 * 60, prev + 60)); // Add 60s, but don't exceed max time
-        toast({title: `Tiempo muerto para ${team === 'local' ? match.localTeam : match.visitorTeam}`});
     }
   };
   
@@ -412,7 +411,8 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
         }
 
         if (stat === 'fouls') {
-            batchUpdate.visitorFouls = newVal;
+             const newFouls = increment ? (match.visitorFouls || 0) + 1 : Math.max(0, (match.visitorFouls || 0) - 1);
+            batchUpdate.visitorFouls = newFouls;
         }
 
         onUpdate(batchUpdate);
@@ -506,21 +506,20 @@ export default function MatchStatsPage() {
   const handleMinuteTick = useCallback(() => {
     if (localMatchData?.isFinished || activePlayerIds.length === 0 || !isTimerActive) return;
 
-    setLocalMatchData(prev => {
-      if (!prev) return null;
-      const playerStatsUpdate = _.cloneDeep(prev.playerStats) || {};
-      activePlayerIds.forEach(playerId => {
-        const currentMinutes = _.get(playerStatsUpdate, `${playerId}.minutesPlayed`, 0);
-        _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
+    const newLocalData = _.cloneDeep(localMatchData);
+
+    activePlayerIds.forEach(playerId => {
+        const currentMinutes = _.get(newLocalData, `playerStats.${playerId}.minutesPlayed`, 0);
+        _.set(newLocalData, `playerStats.${playerId}.minutesPlayed`, currentMinutes + 1);
       });
-      const newState = { ...prev, playerStats: playerStatsUpdate };
-       
-      if (matchRef) {
-          updateDoc(matchRef, { playerStats: newState.playerStats });
-      }
-      return newState;
-    });
-  }, [activePlayerIds, localMatchData?.isFinished, isTimerActive, matchRef]);
+    
+    // We only update the local state for immediate feedback
+    setLocalMatchData(newLocalData);
+
+    // And then we call the debounced update to save to Firestore later
+    debouncedUpdate({ playerStats: newLocalData.playerStats });
+    
+  }, [activePlayerIds, localMatchData, isTimerActive, debouncedUpdate]);
 
 
   const toggleMatchFinished = async () => {
