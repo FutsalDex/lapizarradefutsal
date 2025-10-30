@@ -321,8 +321,7 @@ function MatchCard({ match, teamName }: { match: Match; teamName: string }) {
     const dateObj = date.toDate ? date.toDate() : new Date(date);
     
     if (isNaN(dateObj.getTime())) {
-      // If parsing fails, try to return the original string if it exists
-      return typeof date === 'string' ? date.split('T')[0] : 'Fecha inválida';
+      return 'Fecha inválida';
     }
 
     return format(dateObj, 'dd/MM/yyyy', { locale: es });
@@ -458,7 +457,7 @@ export default function MatchesPage() {
         )}
       </div>
 
-       <AddMatchDialog team={team} isOpen={isAddMatchOpen} setIsOpen={setAddMatchOpen} />
+       {team && <AddMatchDialog team={team} isOpen={isAddMatchOpen} setIsOpen={setAddMatchOpen} />}
 
       <Tabs value={filter} onValueChange={setFilter} className="mb-6">
         <TabsList>
