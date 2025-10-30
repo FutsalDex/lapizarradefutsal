@@ -7,7 +7,7 @@ import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -110,8 +110,8 @@ const Scoreboard = ({
       interval = setInterval(() => {
         setTime((prevTime) => {
             const newTime = prevTime - 1;
-            if (newTime % 1 === 0) { // Call every second
-                onMinuteTick();
+            if (newTime >= 0) {
+              onMinuteTick();
             }
             return newTime;
         });
@@ -253,6 +253,31 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         onActivePlayersChange(newActiveIds);
     }
 
+     const totals = useMemo(() => {
+        const initialTotals = {
+            goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
+            shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
+            saves: 0, goalsConceded: 0,
+        };
+        if (!players || !match.playerStats) return initialTotals;
+
+        return players.reduce((acc, player) => {
+            const stats = match.playerStats?.[player.id] || {};
+            acc.goals += stats.goals || 0;
+            acc.assists += stats.assists || 0;
+            acc.yellowCards += stats.yellowCards || 0;
+            acc.redCards += stats.redCards || 0;
+            acc.fouls += stats.fouls || 0;
+            acc.shotsOnTarget += stats.shotsOnTarget || 0;
+            acc.shotsOffTarget += stats.shotsOffTarget || 0;
+            acc.recoveries += stats.recoveries || 0;
+            acc.turnovers += stats.turnovers || 0;
+            acc.saves += stats.saves || 0;
+            acc.goalsConceded += stats.goalsConceded || 0;
+            return acc;
+        }, initialTotals);
+    }, [players, match.playerStats]);
+
     const StatButton = ({ stat, playerId }: { stat: keyof Player, playerId: string }) => (
         <div className="flex items-center gap-1 justify-center">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, false)}><Minus className="h-4 w-4"/></Button>
@@ -294,7 +319,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                              {players.length > 0 ? players.map(player => {
                                 const stats = match.playerStats?.[player.id] || {};
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "border-2 border-primary bg-primary/20")}>
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20 border-2 border-primary")}>
                                         <TableCell className="py-1 px-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
@@ -323,9 +348,23 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 </TableRow>
                             )}
                         </TableBody>
-                        <TableHeader>
-                            {tableHeaders}
-                        </TableHeader>
+                         <TableFooter>
+                            <TableRow className="bg-muted/50 font-bold">
+                                <TableCell className="px-2">Total</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-center px-1">{totals.goals}</TableCell>
+                                <TableCell className="text-center px-1">{totals.assists}</TableCell>
+                                <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
+                                <TableCell className="text-center px-1">{totals.redCards}</TableCell>
+                                <TableCell className="text-center px-1">{totals.fouls}</TableCell>
+                                <TableCell className="text-center px-1">{totals.shotsOnTarget}</TableCell>
+                                <TableCell className="text-center px-1">{totals.shotsOffTarget}</TableCell>
+                                <TableCell className="text-center px-1">{totals.recoveries}</TableCell>
+                                <TableCell className="text-center px-1">{totals.turnovers}</TableCell>
+                                <TableCell className="text-center px-1">{totals.saves}</TableCell>
+                                <TableCell className="text-center px-1">{totals.goalsConceded}</TableCell>
+                            </TableRow>
+                        </TableFooter>
                     </Table>
                 </div>
             </CardContent>
@@ -365,6 +404,7 @@ const OpponentStatsTable = ({ teamName, match, onUpdate }: { teamName: string, m
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
         const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
+        const foulField = match.localTeam === teamName ? 'localFouls' : 'visitorFouls';
 
         if (stat === 'goals') {
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
@@ -425,7 +465,7 @@ export default function MatchStatsPage() {
   const { toast } = useToast();
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
-  const [activePlayers, setActivePlayers] = useState<string[]>([]);
+  const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
   const [isTimerActive, setIsTimerActive] = useState(false);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
@@ -439,44 +479,48 @@ export default function MatchStatsPage() {
   
   useEffect(() => {
     if (remoteMatchData) {
-      setLocalMatchData(remoteMatchData);
+      setLocalMatchData(prevLocal => {
+        if (_.isEqual(prevLocal, remoteMatchData)) {
+            return prevLocal;
+        }
+        return remoteMatchData;
+      });
     }
   }, [remoteMatchData]);
 
   const debouncedUpdate = useCallback(_.debounce((data: Partial<Match>) => {
     if (!matchRef || remoteMatchData?.isFinished) return;
     updateDoc(matchRef, data);
-    toast({title: "Autoguardado", description: "Cambios guardados."});
-  }, 5000), [matchRef, toast, remoteMatchData?.isFinished]);
+  }, 5000), [matchRef, remoteMatchData?.isFinished]);
 
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
     setLocalMatchData(prev => {
         if (!prev) return null;
-        const newState = { ...prev, ...data };
+        const newState = _.merge({}, prev, data);
         debouncedUpdate(newState);
         return newState;
     });
   };
 
   const handleMinuteTick = useCallback(() => {
-    if (localMatchData?.isFinished || activePlayers.length === 0 || !isTimerActive) return;
+    if (localMatchData?.isFinished || activePlayerIds.length === 0 || !isTimerActive) return;
 
     setLocalMatchData(prev => {
       if (!prev) return null;
       const playerStatsUpdate = _.cloneDeep(prev.playerStats) || {};
-      activePlayers.forEach(playerId => {
+      activePlayerIds.forEach(playerId => {
         const currentMinutes = _.get(playerStatsUpdate, `${playerId}.minutesPlayed`, 0);
         _.set(playerStatsUpdate, `${playerId}.minutesPlayed`, currentMinutes + 1);
       });
       const newState = { ...prev, playerStats: playerStatsUpdate };
-       // Don't debounce minute updates for smoother UI, but still save them
+       
       if (matchRef) {
           updateDoc(matchRef, { playerStats: newState.playerStats });
       }
       return newState;
     });
-  }, [activePlayers, localMatchData?.isFinished, isTimerActive, matchRef]);
+  }, [activePlayerIds, localMatchData?.isFinished, isTimerActive, matchRef]);
 
 
   const toggleMatchFinished = async () => {
@@ -562,8 +606,8 @@ export default function MatchStatsPage() {
                 match={localMatchData}
                 onUpdate={handleUpdate}
                 isMyTeam={true}
-                onActivePlayersChange={setActivePlayers}
-                activePlayerIds={activePlayers}
+                onActivePlayersChange={setActivePlayerIds}
+                activePlayerIds={activePlayerIds}
             />
         </TabsContent>
         <TabsContent value="opponent">
