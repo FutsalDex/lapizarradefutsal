@@ -60,7 +60,7 @@ interface UserProfile {
 // COMPONENTES
 // ====================
 
-function InfoCard({ team, owner }: { team: Team, owner?: UserProfile | null }) {
+function InfoCard({ team, owner, isLoadingOwner }: { team: Team, owner?: UserProfile | null, isLoadingOwner: boolean }) {
     return (
         <Card>
             <CardHeader>
@@ -85,7 +85,11 @@ function InfoCard({ team, owner }: { team: Team, owner?: UserProfile | null }) {
                  <div>
                     <Label>Cuerpo Técnico</Label>
                     <div className="border rounded-md p-3 mt-1 flex items-center bg-muted/50">
-                       <span className='text-sm'>{owner?.displayName || 'Cargando entrenador...'}</span>
+                       {isLoadingOwner ? (
+                         <span className='text-sm'>Cargando entrenador...</span>
+                       ) : (
+                         <span className='text-sm'>{owner?.displayName || 'Nombre no disponible'}</span>
+                       )}
                        <span className='text-xs text-muted-foreground ml-2'>- Entrenador</span>
                     </div>
                 </div>
@@ -242,7 +246,7 @@ export default function MembersPage() {
   const { data: owner, isLoading: isLoadingOwner } = useDoc<UserProfile>(ownerRef);
 
   const isOwner = user && team && user.uid === team.ownerId;
-  const isLoading = isLoadingTeam || isLoadingOwner;
+  const isLoading = isLoadingTeam;
 
   if (isLoading) {
     return (
@@ -305,7 +309,7 @@ export default function MembersPage() {
       </div>
 
        <div className="space-y-8">
-         <InfoCard team={team} owner={owner}/>
+         <InfoCard team={team} owner={owner} isLoadingOwner={isLoadingOwner} />
          <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
        </div>
     </div>
