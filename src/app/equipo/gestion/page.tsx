@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, or_ } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -141,37 +141,45 @@ function TeamList() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
-  const ownedTeamsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
-  }, [firestore, user]);
-
   const acceptedInvitationsQuery = useMemoFirebase(() => {
-    if (!user || !user.email || !firestore) return null;
+    if (!user?.email || !firestore) return null;
     return query(
       collection(firestore, 'invitations'),
       where('invitedUserEmail', '==', user.email),
       where('status', '==', 'accepted')
     );
-  }, [firestore, user]);
+  }, [firestore, user?.email]);
 
-  const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
   const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
   
   const memberTeamIds = useMemo(() => {
-    return acceptedInvitations ? acceptedInvitations.map(inv => inv.teamId) : [];
+    return acceptedInvitations?.map(inv => inv.teamId) || [];
   }, [acceptedInvitations]);
 
-  const canFetchMemberTeams = !isLoadingInvites && memberTeamIds.length > 0;
+  const canFetchTeams = !isAuthLoading && !isLoadingInvites && user?.uid;
 
-  const memberTeamsQuery = useMemoFirebase(() => {
-    if (!firestore || !canFetchMemberTeams) return null;
-    return query(collection(firestore, 'teams'), where('__name__', 'in', memberTeamIds));
-  }, [firestore, canFetchMemberTeams, memberTeamIds]);
+  const teamsQuery = useMemoFirebase(() => {
+    if (!firestore || !canFetchTeams) return null;
 
-  const { data: memberTeams, isLoading: isLoadingMember } = useCollection<Team>(memberTeamsQuery);
+    // If the user is a member of some teams, we need a compound query
+    if (memberTeamIds.length > 0) {
+      return query(
+        collection(firestore, 'teams'),
+        or_(
+          where('ownerId', '==', user.uid),
+          where('__name__', 'in', memberTeamIds)
+        )
+      );
+    }
+    
+    // If the user is not a member of any team, just query for owned teams
+    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
+
+  }, [firestore, user?.uid, memberTeamIds, canFetchTeams]);
+
+  const { data: allTeams, isLoading: isLoadingTeams } = useCollection<Team>(teamsQuery);
   
-  const isLoading = isAuthLoading || isLoadingOwned || isLoadingInvites || (canFetchMemberTeams && isLoadingMember);
+  const isLoading = isAuthLoading || isLoadingInvites || isLoadingTeams;
   
   return (
     <Card>
@@ -187,19 +195,17 @@ function TeamList() {
           </div>
         ) : (
           <div className="space-y-4">
-            {(!ownedTeams || ownedTeams.length === 0) && (!memberTeams || memberTeams.length === 0) && (
+            {!allTeams || allTeams.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No has creado ningún equipo ni perteneces a ninguno.
               </p>
+            ) : (
+              <div className="space-y-2">
+                  {allTeams.map(team => (
+                    <TeamListItem key={team.id} team={team} isOwner={team.ownerId === user?.uid} />
+                  ))}
+              </div>
             )}
-            <div className="space-y-2">
-                {ownedTeams && ownedTeams.map(team => (
-                  <TeamListItem key={team.id} team={team} isOwner />
-                ))}
-                {memberTeams && memberTeams.map(team => (
-                  <TeamListItem key={team.id} team={team} />
-                ))}
-            </div>
           </div>
         )}
       </CardContent>
@@ -226,59 +232,46 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
     )
 }
 
-export default function GestionPage() {
+function AuthGuard({ children }: { children: React.ReactNode }) {
     const { user, isUserLoading } = useUser();
 
-  if (isUserLoading) {
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="mb-8 text-center">
-                <h1 className="text-4xl font-bold font-headline text-primary flex items-center justify-center">
-                    <Shield className="mr-3 h-10 w-10" />
-                    Gestión de Equipos
-                </h1>
-                <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
-            </div>
+    if (isUserLoading) {
+        return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 <div className="md:col-span-2">
-                <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
                 </div>
                 <div className="md:col-span-1">
-                <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-48 w-full" />
                 </div>
             </div>
-      </div>
-    );
-  }
+        );
+    }
 
-  if (!user) {
-    return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="mb-8 text-center">
-                 <h1 className="text-4xl font-bold font-headline text-primary flex items-center justify-center">
-                    <Shield className="mr-3 h-10 w-10" />
-                    Gestión de Equipos
-                </h1>
-                <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
-            </div>
+    if (!user) {
+        return (
             <Card className="text-center py-16 max-w-lg mx-auto">
                 <CardHeader>
-                <CardTitle>Acceso Requerido</CardTitle>
-                <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
+                    <CardTitle>Acceso Requerido</CardTitle>
+                    <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                <Button asChild>
-                    <Link href="/acceso">
-                    <Eye className="mr-2 h-4 w-4" />
-                    Iniciar Sesión o Registrarse
-                    </Link>
-                </Button>
+                    <Button asChild>
+                        <Link href="/acceso">
+                            <Eye className="mr-2 h-4 w-4" />
+                            Iniciar Sesión o Registrarse
+                        </Link>
+                    </Button>
                 </CardContent>
             </Card>
-      </div>
-    );
-  }
+        );
+    }
 
+    return <>{children}</>;
+}
+
+
+export default function GestionPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
@@ -288,7 +281,7 @@ export default function GestionPage() {
         </h1>
         <p className="text-lg text-muted-foreground mt-2">Crea equipos, gestiona tu plantilla y prepara tus partidos.</p>
       </div>
-
+      <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <div className="md:col-span-2">
               <TeamList />
@@ -297,6 +290,9 @@ export default function GestionPage() {
               <CreateTeamForm />
             </div>
         </div>
+      </AuthGuard>
     </div>
   );
 }
+
+    
