@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
 // ====================
@@ -35,15 +34,13 @@ interface PlayerStats {
 }
 type Player = Omit<PlayerStats, 'id'> & { id: string };
 
-interface OpponentPeriodStats {
+interface OpponentStats {
   goals: number;
   fouls: number;
   shotsOnTarget: number;
   shotsOffTarget: number;
   shotsBlocked: number;
 }
-
-type Period = '1H' | '2H';
 
 interface Match {
   id: string;
@@ -54,14 +51,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: {
-    '1H'?: { [playerId: string]: Partial<PlayerStats> };
-    '2H'?: { [playerId: string]: Partial<PlayerStats> };
-  };
-  opponentStats?: {
-    '1H'?: Partial<OpponentPeriodStats>;
-    '2H'?: Partial<OpponentPeriodStats>;
-  };
+  playerStats?: { [playerId: string]: Partial<PlayerStats> };
+  opponentStats?: Partial<OpponentStats>;
 }
 
 // ====================
@@ -71,44 +62,6 @@ const formatStatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-};
-
-const aggregatePlayerStats = (match: Match): { [playerId: string]: Partial<PlayerStats> } => {
-  if (!match.playerStats) return {};
-  const aggregated: { [playerId: string]: Partial<PlayerStats> } = {};
-  
-  for (const period of ['1H', '2H'] as const) {
-    const periodStats = match.playerStats[period];
-    if (!periodStats) continue;
-
-    for (const playerId in periodStats) {
-      if (!aggregated[playerId]) aggregated[playerId] = {};
-      const playerPeriodStats = periodStats[playerId];
-      for (const statKey in playerPeriodStats) {
-        const key = statKey as keyof PlayerStats;
-        const value = (playerPeriodStats[key] as number) || 0;
-        aggregated[playerId][key] = ((aggregated[playerId][key] as number) || 0) + value;
-      }
-    }
-  }
-  return aggregated;
-};
-
-const aggregateOpponentStats = (match: Match): Partial<OpponentPeriodStats> => {
-  if (!match.opponentStats) return {};
-  const aggregated: Partial<OpponentPeriodStats> = {};
-
-  for (const period of ['1H', '2H'] as const) {
-    const periodStats = match.opponentStats[period];
-    if (!periodStats) continue;
-
-    for (const statKey in periodStats) {
-      const key = statKey as keyof OpponentPeriodStats;
-      const value = periodStats[key] || 0;
-      aggregated[key] = (aggregated[key] || 0) + value;
-    }
-  }
-  return aggregated;
 };
 
 // ====================
@@ -143,26 +96,23 @@ export default function MatchSummaryPage() {
     });
   }, [teamPlayers, match?.squad]);
 
-  const aggregatedPlayerStats = useMemo(() => (match ? aggregatePlayerStats(match) : {}), [match]);
-  const aggregatedOpponentStats = useMemo(() => (match ? aggregateOpponentStats(match) : {}), [match]);
-
   const totals = useMemo(() => {
     const initialTotals: Omit<PlayerStats, 'id' | 'name' | 'number'> = {
         goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
         shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
         saves: 0, goalsConceded: 0, minutesPlayed: 0
     };
-    if (!squadPlayers.length) return initialTotals;
+    if (!squadPlayers.length || !match?.playerStats) return initialTotals;
 
     return squadPlayers.reduce((acc, player) => {
-        const stats = aggregatedPlayerStats[player.id] || {};
+        const stats = match.playerStats![player.id] || {};
         Object.keys(stats).forEach(key => {
           const statKey = key as keyof PlayerStats;
           acc[statKey] = (acc[statKey] as number || 0) + (stats[statKey] as number || 0);
         });
         return acc;
     }, initialTotals);
-  }, [squadPlayers, aggregatedPlayerStats]);
+  }, [squadPlayers, match?.playerStats]);
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -234,7 +184,7 @@ export default function MatchSummaryPage() {
                         </TableHeader>
                         <TableBody>
                             {squadPlayers.map(player => {
-                                const stats = aggregatedPlayerStats[player.id] || {};
+                                const stats = match.playerStats?.[player.id] || {};
                                 return (
                                     <TableRow key={player.id}>
                                         <TableCell className="font-medium py-2 px-2">{player.number}. {player.name}</TableCell>
@@ -283,19 +233,19 @@ export default function MatchSummaryPage() {
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Goles</dt>
-              <dd className="text-2xl font-bold">{aggregatedOpponentStats.goals || 0}</dd>
+              <dd className="text-2xl font-bold">{match.opponentStats?.goals || 0}</dd>
             </div>
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Tiros a Puerta</dt>
-              <dd className="text-2xl font-bold">{aggregatedOpponentStats.shotsOnTarget || 0}</dd>
+              <dd className="text-2xl font-bold">{match.opponentStats?.shotsOnTarget || 0}</dd>
             </div>
              <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Tiros Fuera</dt>
-              <dd className="text-2xl font-bold">{aggregatedOpponentStats.shotsOffTarget || 0}</dd>
+              <dd className="text-2xl font-bold">{match.opponentStats?.shotsOffTarget || 0}</dd>
             </div>
             <div className="bg-muted/50 p-4 rounded-lg">
               <dt className="text-sm text-muted-foreground">Faltas</dt>
-              <dd className="text-2xl font-bold">{aggregatedOpponentStats.fouls || 0}</dd>
+              <dd className="text-2xl font-bold">{match.opponentStats?.fouls || 0}</dd>
             </div>
           </dl>
         </CardContent>

@@ -130,49 +130,35 @@
         "squad": {"type": "array", "items": {"type": "string"}},
         "playerStats": {
           "type": "object",
-          "properties": {
-            "1H": {
-              "type": "object",
-              "description": "Stats for the first half",
-              "patternProperties": {
-                ".*": { "$ref": "#/entities/Player" }
-              }
-            },
-            "2H": {
-              "type": "object",
-              "description": "Stats for the second half",
-              "patternProperties": {
-                ".*": { "$ref": "#/entities/Player" }
-              }
-            }
+          "description": "Stats for the players in the match",
+          "patternProperties": {
+            ".*": { "$ref": "#/entities/Player" }
           }
         },
         "opponentStats": {
           "type": "object",
+          "description": "Opponent stats for the match",
           "properties": {
-            "1H": {
-              "type": "object",
-              "description": "Opponent stats for the first half",
-              "properties": {
-                  "goals": {"type": "number"},
-                  "fouls": {"type": "number"},
-                  "shotsOnTarget": {"type": "number"},
-                  "shotsOffTarget": {"type": "number"},
-                  "shotsBlocked": {"type": "number"}
-              }
-            },
-             "2H": {
-              "type": "object",
-              "description": "Opponent stats for the second half",
-              "properties": {
-                  "goals": {"type": "number"},
-                  "fouls": {"type": "number"},
-                  "shotsOnTarget": {"type": "number"},
-                  "shotsOffTarget": {"type": "number"},
-                  "shotsBlocked": {"type": "number"}
-              }
-            }
+              "goals": {"type": "number"},
+              "fouls": {"type": "number"},
+              "shotsOnTarget": {"type": "number"},
+              "shotsOffTarget": {"type": "number"},
+              "shotsBlocked": {"type": "number"}
           }
+        },
+        "fouls": {
+            "type": "object",
+            "properties": {
+                "local": {"type": "number"},
+                "visitor": {"type": "number"}
+            }
+        },
+        "timeouts": {
+            "type": "object",
+            "properties": {
+                "local": {"type": "number"},
+                "visitor": {"type": "number"}
+            }
         }
       },
       "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
