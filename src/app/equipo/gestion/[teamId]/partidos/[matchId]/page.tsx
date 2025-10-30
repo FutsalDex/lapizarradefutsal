@@ -291,8 +291,6 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             <TableHead className="text-center px-1">Min</TableHead>
             <TableHead className="text-center px-1">Goles</TableHead>
             <TableHead className="text-center px-1">Asist</TableHead>
-            <TableHead className="text-center px-1">TA</TableHead>
-            <TableHead className="text-center px-1">TR</TableHead>
             <TableHead className="text-center px-1">Faltas</TableHead>
             <TableHead className="text-center px-1">T. Puerta</TableHead>
             <TableHead className="text-center px-1">T. Fuera</TableHead>
@@ -300,6 +298,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             <TableHead className="text-center px-1">Perdidas</TableHead>
             <TableHead className="text-center px-1">Paradas</TableHead>
             <TableHead className="text-center px-1">GC</TableHead>
+            <TableHead className="text-center px-1">TA</TableHead>
+            <TableHead className="text-center px-1">TR</TableHead>
         </TableRow>
     );
 
@@ -328,8 +328,6 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                         <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(stats.minutesPlayed || 0)}</TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1 px-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1 px-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="shotsOnTarget" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="shotsOffTarget" playerId={player.id} /></TableCell>
@@ -337,6 +335,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                         <TableCell className="py-1 px-1"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="saves" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
@@ -353,8 +353,6 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 <TableCell></TableCell>
                                 <TableCell className="text-center px-1">{totals.goals}</TableCell>
                                 <TableCell className="text-center px-1">{totals.assists}</TableCell>
-                                <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
-                                <TableCell className="text-center px-1">{totals.redCards}</TableCell>
                                 <TableCell className="text-center px-1">{totals.fouls}</TableCell>
                                 <TableCell className="text-center px-1">{totals.shotsOnTarget}</TableCell>
                                 <TableCell className="text-center px-1">{totals.shotsOffTarget}</TableCell>
@@ -362,6 +360,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 <TableCell className="text-center px-1">{totals.turnovers}</TableCell>
                                 <TableCell className="text-center px-1">{totals.saves}</TableCell>
                                 <TableCell className="text-center px-1">{totals.goalsConceded}</TableCell>
+                                <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
+                                <TableCell className="text-center px-1">{totals.redCards}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
