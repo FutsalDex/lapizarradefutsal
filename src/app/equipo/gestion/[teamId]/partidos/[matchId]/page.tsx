@@ -99,14 +99,6 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
         toast({title: `Tiempo muerto para ${team === 'local' ? match.localTeam : match.visitorTeam}`});
     }
   };
-
-  const handleFoul = (team: 'local' | 'visitor') => {
-    const field = team === 'local' ? 'localFouls' : 'visitorFouls';
-    const currentVal = match[field] || 0;
-    if (currentVal < 5) {
-      onUpdate({ [field]: currentVal + 1 });
-    }
-  };
   
   const resetPeriod = (newPeriod: Period) => {
     setPeriod(newPeriod);
@@ -130,30 +122,31 @@ const Scoreboard = ({ match, onUpdate }: { match: Match; onUpdate: (data: Partia
   return (
     <Card>
       <CardContent className="p-4 md:p-6">
-        <div className="grid grid-cols-3 items-start text-center mb-4">
-            <div>
+        <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
+            <div className="space-y-4">
                 <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
                 <FoulIndicator count={match.localFouls || 0} />
+                <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1} className={cn((match.localTimeouts || 0) >= 1 && "bg-green-500 hover:bg-green-600 text-white")}>TM</Button>
             </div>
-            <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
-                {match.localScore} - {match.visitorScore}
+            
+            <div className="flex flex-col items-center">
+                 <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
+                    {match.localScore} - {match.visitorScore}
+                </div>
+                <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2 my-4">
+                    {formatTime(time)}
+                </div>
             </div>
-            <div>
-                <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
-                 <FoulIndicator count={match.visitorFouls || 0} />
-            </div>
-        </div>
 
-        <div className="flex justify-around items-center my-4">
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={(match.localTimeouts || 0) >= 1}>TM</Button>
-            <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
-              {formatTime(time)}
+            <div className="space-y-4">
+                <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
+                <FoulIndicator count={match.visitorFouls || 0} />
+                <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1} className={cn((match.visitorTimeouts || 0) >= 1 && "bg-green-500 hover:bg-green-600 text-white")}>TM</Button>
             </div>
-            <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={(match.visitorTimeouts || 0) >= 1}>TM</Button>
         </div>
 
         <div className="flex justify-center items-center gap-4">
-            <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm">
+            <Button onClick={() => setIsActive(!isActive)} variant={isActive ? "destructive" : "default"} size="sm" className={cn(isActive ? "bg-red-500" : "bg-green-500 hover:bg-green-600")}>
                 {isActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                 {isActive ? 'Pausar' : 'Iniciar'}
             </Button>
@@ -188,6 +181,10 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam }: { teamName
         let scoreUpdate: Partial<Match> = {};
         if (stat === 'goals' && isMyTeam) {
              const scoreField = match.localTeam === teamName ? 'localScore' : 'visitorScore';
+             const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
+             scoreUpdate[scoreField] = newScore;
+        } else if (stat === 'goals' && !isMyTeam) {
+             const scoreField = match.localTeam !== teamName ? 'localScore' : 'visitorScore';
              const newScore = increment ? (match[scoreField] || 0) + 1 : Math.max(0, (match[scoreField] || 0) - 1);
              scoreUpdate[scoreField] = newScore;
         }
