@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,6 +76,7 @@ interface Team {
   id: string;
   name: string;
   ownerId: string;
+  competition?: string;
 }
 
 interface Match {
@@ -129,10 +130,19 @@ function AddMatchDialog({
       localTeam: '',
       visitorTeam: '',
       matchType: 'Amistoso',
-      competition: '',
+      competition: team.competition || '',
       matchday: ''
     },
   });
+
+  const matchType = form.watch('matchType');
+
+  useEffect(() => {
+    if (matchType === 'Liga' && team.competition) {
+        form.setValue('competition', team.competition);
+    }
+  }, [matchType, team.competition, form]);
+
 
   const onSubmit = async (values: AddMatchValues) => {
     if (!team || !user) return;

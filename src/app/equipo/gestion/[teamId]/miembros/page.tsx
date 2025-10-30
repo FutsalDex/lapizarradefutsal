@@ -129,6 +129,12 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
 
   const onSubmit = async (values: TeamRosterValues) => {
     setIsSubmitting(true);
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'La base de datos no está disponible.' });
+        setIsSubmitting(false);
+        return;
+    }
+
     const batch = writeBatch(firestore);
     const teamPlayersRef = collection(firestore, `teams/${team.id}/players`);
 
@@ -145,7 +151,18 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
         batch.set(playerRef, {
             name: player.name,
             number: player.number,
-            position: player.position
+            position: player.position,
+            // default values for stats
+            active: true,
+            assists: 0,
+            faltas: 0,
+            gRec: 0,
+            goals: 0,
+            minutosJugados: 0,
+            pj: 0,
+            paradas: 0,
+            perdidas: 0,
+            recuperaciones: 0,
         }, { merge: true });
     });
 
