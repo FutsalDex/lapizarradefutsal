@@ -38,6 +38,7 @@
       "type": "object",
       "description": "Represents a training session composed of multiple exercises.",
       "properties": {
+        "name": {"type": "string"},
         "createdAt": {"type": "string", "format": "date-time"},
         "date": {"type": "string", "format": "date-time"},
         "finalExercise": {"type": "string"},
@@ -50,9 +51,10 @@
         "sessionNumber": {"type": "string"},
         "space": {"type": "string"},
         "updatedAt": {"type": "string", "format": "date-time"},
-        "userId": {"type": "string"}
+        "userId": {"type": "string"},
+        "exercises": {"type": "array", "items": {"type": "string"}}
       },
-      "required": ["date", "userId"]
+      "required": ["name", "date", "userId", "exercises"]
     },
     "UserProfile": {
       "title": "UserProfile",
@@ -269,6 +271,21 @@
         }
       },
       "required": ["date", "teamId", "userId", "playerStatus"]
+    },
+    "UserExercise": {
+        "title": "User Exercise",
+        "description": "A copy of an exercise submitted by a user, for their own management.",
+        "type": "object",
+        "properties": {
+            "originalExerciseId": {"type": "string"},
+            "userId": {"type": "string"},
+            "createdAt": {"type": "string", "format": "date-time"},
+            "status": {"type": "string", "enum": ["Público", "Pendiente", "Rechazado"]},
+            "name": {"type": "string"},
+            "category": {"type": "string"},
+            "fase": {"type": "string"}
+        },
+        "required": ["originalExerciseId", "userId", "createdAt", "status", "name"]
     }
   },
   "auth": {
@@ -324,6 +341,10 @@
     "/teams/{teamId}/attendance/{attendanceId}": {
         "schema": { "$ref": "#/entities/AttendanceRecord" },
         "description": "Stores attendance records for a team. The document ID is typically the date in YYYY-MM-DD format."
+    },
+    "/userExercises/{exerciseId}": {
+        "schema": { "$ref": "#/entities/UserExercise" },
+        "description": "Stores a user's submitted exercises for their own management."
     }
   }
 }
