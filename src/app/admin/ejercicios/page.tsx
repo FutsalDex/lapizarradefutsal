@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, getDocs, getDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,9 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, BookPlus, FileUp, Download } from 'lucide-react';
+import { ArrowLeft, BookPlus, FileUp, Download, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 const categories = [
@@ -275,7 +276,8 @@ function BatchUploadForm() {
                 const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
                 
                 const normalizedHeaders = headers.map(normalizeHeader);
-                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero', 'úmero'].includes(normalizeHeader(h)));
+                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero', 'úmero'].includes(h));
+
 
                 if (numeroIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
@@ -333,7 +335,6 @@ function BatchUploadForm() {
                         }
                     }
                     
-                    // Use the original header for query `where`
                     const q = query(exercisesCollection, where(numberHeader, '==', exerciseNumber));
                     const snapshot = await getDocs(q);
 
@@ -390,6 +391,99 @@ function BatchUploadForm() {
     );
 }
 
+function BatchDeleteCard() {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmationText, setConfirmationText] = useState('');
+
+    const handleDeleteAll = async () => {
+        setIsDeleting(true);
+        try {
+            const exercisesCollection = collection(firestore, 'exercises');
+            const snapshot = await getDocs(exercisesCollection);
+            
+            if (snapshot.empty) {
+                toast({ title: 'No hay nada que borrar', description: 'La biblioteca de ejercicios ya está vacía.' });
+                setIsDeleting(false);
+                return;
+            }
+
+            const totalDocs = snapshot.size;
+            // Firestore allows up to 500 operations per batch
+            const batchSize = 500;
+            const batches = [];
+
+            for (let i = 0; i < totalDocs; i += batchSize) {
+                const batch = writeBatch(firestore);
+                const chunk = snapshot.docs.slice(i, i + batchSize);
+                chunk.forEach(doc => batch.delete(doc.ref));
+                batches.push(batch.commit());
+            }
+
+            await Promise.all(batches);
+
+            toast({ title: 'Éxito', description: `Se han eliminado ${totalDocs} ejercicios de la biblioteca.` });
+        } catch (error: any) {
+            console.error("Error deleting all exercises:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudieron eliminar los ejercicios.' });
+        } finally {
+            setIsDeleting(false);
+            setConfirmationText('');
+        }
+    };
+
+    return (
+        <Card className="border-destructive">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive"><Trash2/>Zona de Peligro</CardTitle>
+                <CardDescription>Acciones destructivas que no se pueden deshacer.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div>
+                    <Label htmlFor="delete-all-input">Borrar todos los ejercicios</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                        Esta acción eliminará permanentemente todos los ejercicios de la biblioteca. Para confirmar, escribe "BORRAR" en el campo de abajo.
+                    </p>
+                    <Input 
+                        id="delete-all-input"
+                        value={confirmationText}
+                        onChange={(e) => setConfirmationText(e.target.value)}
+                        placeholder='Escribe BORRAR para confirmar'
+                    />
+                </div>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button 
+                            variant="destructive" 
+                            className="w-full"
+                            disabled={confirmationText !== 'BORRAR' || isDeleting}
+                        >
+                            {isDeleting ? 'Eliminando...' : 'Eliminar Todos los Ejercicios'}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción es irreversible. Se borrarán todos los ejercicios de la base de datos.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={handleDeleteAll}
+                                className="bg-destructive hover:bg-destructive/90"
+                            >
+                                Sí, eliminar todo
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardContent>
+        </Card>
+    );
+}
 
 export default function AdminExercisesPage() {
     const { user, isUserLoading } = useUser();
@@ -425,8 +519,9 @@ export default function AdminExercisesPage() {
                 <div className="lg:col-span-2">
                     <AddExerciseForm />
                 </div>
-                <div>
+                <div className="space-y-8">
                     <BatchUploadForm />
+                    <BatchDeleteCard />
                 </div>
             </div>
         </div>
