@@ -273,10 +273,11 @@ function BatchUploadForm() {
                 const headerRow = rows[0];
                 const headers = headerRow.split(';').map(cleanHeader);
                 
-                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '');
+                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '');
                 
                 const normalizedHeaders = headers.map(normalizeHeader);
-                const numeroIndex = normalizedHeaders.findIndex(h => h.includes('numero') || h.includes('número'));
+                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'número', 'úmero'].includes(h));
+
 
                 if (numeroIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
@@ -312,7 +313,7 @@ function BatchUploadForm() {
 
                     const edadValue = ex.Edad || ex.edad || '';
                     const edadArray = typeof edadValue === 'string' 
-                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '')) 
+                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
                         : [];
 
                     const data: { [key: string]: any } = {
