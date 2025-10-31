@@ -10,7 +10,7 @@ import { Exercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye } from 'lucide-react';
+import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,8 @@ export default function EjerciciosPage() {
   const [phaseFilter, setPhaseFilter] = useState('Todas');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [ageFilter, setAgeFilter] = useState('Todas');
+  const [currentPage, setCurrentPage] = useState(1);
+  const exercisesPerPage = 12;
   
   const firestore = useFirestore();
   const { user } = useUser();
@@ -87,11 +89,24 @@ export default function EjerciciosPage() {
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
       const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.includes(ageFilter.toLowerCase()));
+      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.map(e => e.toLowerCase()).includes(ageFilter.toLowerCase()));
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
   }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
+  
+  const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
+  const paginatedExercises = useMemo(() => {
+      const startIndex = (currentPage - 1) * exercisesPerPage;
+      const endIndex = startIndex + exercisesPerPage;
+      return filteredExercises.slice(startIndex, endIndex);
+  }, [filteredExercises, currentPage, exercisesPerPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+        setCurrentPage(newPage);
+    }
+  }
   
   const isLoading = isLoadingExercises || isLoadingFavorites;
   const totalVisibleExercises = useMemo(() => exercises.filter(e => e.visible).length, [exercises]);
@@ -156,15 +171,15 @@ export default function EjerciciosPage() {
             </Select>
         </div>
         {!isLoading && exercises && (
-            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {totalVisibleExercises} ejercicios.</p>
+            <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
       
       {isLoading && (
         <>
           <p className="text-sm text-muted-foreground text-center mb-6">Cargando ejercicios...</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
               <Card key={i} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm">
                 <Skeleton className="aspect-video w-full" />
                 <CardContent className="p-4 flex-grow space-y-2">
@@ -181,8 +196,8 @@ export default function EjerciciosPage() {
 
       {!isLoading && exercises && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredExercises.map((exercise) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
                 <div className="relative aspect-video w-full bg-muted">
                     {exercise.image ? (
@@ -231,8 +246,33 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
+           {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <Button 
+                        onClick={() => handlePageChange(currentPage - 1)} 
+                        disabled={currentPage === 1}
+                        variant="outline"
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4"/>
+                        Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                        Página {currentPage} de {totalPages}
+                    </span>
+                    <Button 
+                        onClick={() => handlePageChange(currentPage + 1)} 
+                        disabled={currentPage === totalPages}
+                        variant="outline"
+                    >
+                        Siguiente
+                        <ArrowRight className="ml-2 h-4 w-4"/>
+                    </Button>
+                </div>
+           )}
         </>
       )}
     </div>
   );
 }
+
+    
