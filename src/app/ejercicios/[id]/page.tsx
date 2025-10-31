@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { Exercise } from '@/lib/data';
+import { Exercise, mapExercise } from '@/lib/data';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -14,28 +14,6 @@ import { Users, Clock, Target, ClipboardList, Recycle, Brain, Info } from 'lucid
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-
-function mapExercise(doc: any): Exercise {
-    const data = doc;
-    return {
-        id: doc.id,
-        name: data['Ejercicio'] || 'Ejercicio sin nombre',
-        description: data['Descripción de la tarea'] || '',
-        category: data['Categoría'] || 'Sin categoría',
-        fase: data['Fase'] || 'Fase no especificada',
-        edad: data['Edad'] || [],
-        objectives: data['Objetivos'] || '',
-        duration: data['Duración (min)'] || '0',
-        numberOfPlayers: data['Número de jugadores'] || '',
-        variations: data['Variantes'] || '',
-        consejos: data['Consejos para el entrenador'] || '',
-        image: data['Imagen'] || 'https://picsum.photos/seed/placeholder/800/600',
-        aiHint: data['aiHint'] || '',
-        visible: data['Visible'] !== false,
-        ...data
-    };
-}
-
 
 export default function ExerciseDetailPage() {
   const params = useParams();

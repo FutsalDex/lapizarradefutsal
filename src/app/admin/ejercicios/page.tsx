@@ -291,7 +291,7 @@ function BatchUploadForm() {
                     const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                     const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
                          if (header) {
-                            obj[header] = values[index];
+                            obj[cleanHeader(header)] = values[index];
                          }
                         return obj;
                     }, {} as { [key: string]: any });
@@ -328,14 +328,14 @@ function BatchUploadForm() {
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
-                             if(data[key] !== undefined) {
+                             if(data[key] !== undefined && data[key] !== null) {
                                 const cleanKey = key.replace(/^"|"$/g, '').trim();
                                 finalData[cleanKey] = data[key];
                              }
                         }
                     }
                     
-                    const q = query(exercisesCollection, where(numberHeader, '==', exerciseNumber));
+                    const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
                     const snapshot = await getDocs(q);
 
                     if (snapshot.empty) {

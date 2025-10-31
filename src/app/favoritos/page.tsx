@@ -8,33 +8,12 @@ import Link from 'next/link';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
-import { Exercise } from '@/lib/data';
+import { Exercise, mapExercise } from '@/lib/data';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { FutsalCourt } from '@/components/futsal-court';
-
-function mapExercise(doc: any): Exercise {
-    const data = doc;
-    return {
-        id: doc.id,
-        name: data['Ejercicio'] || 'Ejercicio sin nombre',
-        description: data['Descripción de la tarea'] || '',
-        category: data['Categoría'] || 'Sin categoría',
-        fase: data['Fase'] || 'Fase no especificada',
-        edad: data['Edad'] || [],
-        objectives: data['Objetivos'] || '',
-        duration: data['Duración (min)'] || '0',
-        numberOfPlayers: data['Número de jugadores'] || '',
-        variations: data['Variantes'] || '',
-        consejos: data['Consejos para el entrenador'] || '',
-        image: data['Imagen'] || '',
-        aiHint: data['aiHint'] || '',
-        visible: data['Visible'] !== false,
-        ...data
-    };
-}
 
 
 export default function FavoritosPage() {

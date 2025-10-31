@@ -20,20 +20,28 @@ export type Exercise = {
   visible: boolean;
   userId?: string;
   createdAt?: any;
-
-  // Raw fields from Firestore
-  'Ejercicio'?: string;
-  'Descripción de la tarea'?: string;
-  'Categoría'?: string;
-  'Fase'?: string;
-  'Edad'?: string[];
-  'Objetivos'?: string;
-  'Duración (min)'?: string;
-  'Número de jugadores'?: string;
-  'Variantes'?: string;
-  'Consejos para el entrenador'?: string;
-  'Imagen'?: string;
 };
+
+export function mapExercise(doc: any): Exercise {
+    const data = doc;
+    return {
+        id: doc.id,
+        name: data['Ejercicio'] || 'Ejercicio sin nombre',
+        description: data['Descripción de la tarea'] || '',
+        category: data['Categoría'] || 'Sin categoría',
+        fase: data['Fase'] || 'Fase no especificada',
+        edad: data['Edad'] || [],
+        objectives: data['Objetivos'] || '',
+        duration: data['Duración (min)'] || '0',
+        numberOfPlayers: data['Número de jugadores'] || '',
+        variations: data['Variantes'] || '',
+        consejos: data['Consejos para el entrenador'] || '',
+        image: data['Imagen'] || '',
+        aiHint: data['aiHint'] || '',
+        visible: data['Visible'] !== false,
+        ...data
+    };
+}
 
 
 export const sessions: Session[] = [

@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { Exercise } from '@/lib/data';
+import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,28 +16,6 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { FutsalCourt } from '@/components/futsal-court';
 import Image from 'next/image';
-
-function mapExercise(doc: any): Exercise {
-    const data = doc;
-    return {
-        id: doc.id,
-        name: data['Ejercicio'] || 'Ejercicio sin nombre',
-        description: data['Descripción de la tarea'] || '',
-        category: data['Categoría'] || 'Sin categoría',
-        fase: data['Fase'] || 'Fase no especificada',
-        edad: data['Edad'] || [],
-        objectives: data['Objetivos'] || '',
-        duration: data['Duración (min)'] || '0',
-        numberOfPlayers: data['Número de jugadores'] || '',
-        variations: data['Variantes'] || '',
-        consejos: data['Consejos para el entrenador'] || '',
-        image: data['Imagen'] || '',
-        aiHint: data['aiHint'] || '',
-        visible: data['Visible'] !== false,
-        ...data
-    };
-}
-
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
