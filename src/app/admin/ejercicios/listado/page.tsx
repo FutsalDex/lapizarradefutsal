@@ -19,6 +19,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 export default function AdminExercisesListPage() {
   const [searchTerm, setSearchTerm] = useState('');
