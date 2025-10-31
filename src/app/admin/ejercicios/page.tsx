@@ -6,13 +6,13 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -265,8 +265,7 @@ function BatchUploadForm() {
                 const exercisesCollection = collection(firestore, 'exercises');
 
                 exercises.forEach(ex => {
-                    const docRef = addDoc(exercisesCollection, '').id; // Placeholder to get an ID
-                    const newDocRef = collection(firestore, 'exercises').doc(docRef);
+                    const docRef = doc(collection(firestore, 'exercises'));
 
                     const data: { [key: string]: any } = {
                         ...ex,
@@ -275,7 +274,17 @@ function BatchUploadForm() {
                         createdAt: serverTimestamp(),
                         userId: user.uid
                     };
-                    batch.set(newDocRef, data);
+
+                    // Clean up keys from CSV that might not match schema perfectly or have extra quotes
+                    const finalData: { [key: string]: any } = {};
+                    for (const key in data) {
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            const cleanKey = key.replace(/^"|"$/g, '');
+                            finalData[cleanKey] = data[key];
+                        }
+                    }
+
+                    batch.set(docRef, finalData);
                 });
 
                 await batch.commit();
@@ -359,4 +368,3 @@ export default function AdminExercisesPage() {
         </div>
     );
 }
-
