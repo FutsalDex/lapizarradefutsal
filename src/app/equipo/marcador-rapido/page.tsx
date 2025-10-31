@@ -35,7 +35,7 @@ const StatCounter = ({ label, value, onIncrement, onDecrement, icon: Icon }: { l
 const GeneralStats = ({ localStats, visitorStats, onStatChange, onResetAll }: { 
     localStats: any, 
     visitorStats: any, 
-    onStatChange: (team: 'local' | 'visitor', stat: string, increment: boolean) => void,
+    onStatChange: (team: 'local' | 'visitor', stat: keyof typeof localStats, increment: boolean) => void,
     onResetAll: () => void
 }) => {
     
@@ -221,21 +221,22 @@ export default function QuickScoreboardPage() {
         setIsSheetOpen(false);
     };
 
-    const handleGeneralStatChange = (team: 'local' | 'visitor', stat: string, increment: boolean) => {
+    const handleGeneralStatChange = (team: 'local' | 'visitor', stat: keyof typeof generalStats.local, increment: boolean) => {
         setGeneralStats(prev => {
-            const newStats = { ...prev };
-            const currentValue = newStats[team][stat as keyof typeof newStats.local];
-            let newValue = increment ? currentValue + 1 : Math.max(0, currentValue);
+            const currentVal = prev[team][stat];
+            const newValue = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
             
-            if (stat === 'fouls') {
-                if (increment && newValue > 5) {
-                    toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
-                    newValue = 6; // Cap at 6 to show it's over
-                }
+            if (stat === 'fouls' && increment && newValue > 5) {
+                toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
             }
-            
-            newStats[team][stat as keyof typeof newStats.local] = newValue;
-            return newStats;
+
+            return {
+                ...prev,
+                [team]: {
+                    ...prev[team],
+                    [stat]: newValue
+                }
+            };
         });
     };
     
