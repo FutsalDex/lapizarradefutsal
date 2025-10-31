@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, query } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -201,7 +201,7 @@ export default function SesionesPage() {
                   <CardTitle className="font-headline text-xl">{session.name}</CardTitle>
                   <CardDescription className="flex items-center pt-2">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(session.date, 'PPP', { locale: es })}
+                    {format(new Date(session.date), 'PPP', { locale: es })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
