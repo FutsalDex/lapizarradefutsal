@@ -167,10 +167,12 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todas">Todas las Edades</SelectItem>
-                <SelectItem value="infantil">Infantil</SelectItem>
-                <SelectItem value="cadete">Cadete</SelectItem>
-                <SelectItem value="juvenil">Juvenil</SelectItem>
-                <SelectItem value="senior">Senior</SelectItem>
+                <SelectItem value="benjamín">Benjamín (8-9 años)</SelectItem>
+                <SelectItem value="alevín">Alevín (10-11 años)</SelectItem>
+                <SelectItem value="infantil">Infantil (12-13 años)</SelectItem>
+                <SelectItem value="cadete">Cadete (14-15 años)</SelectItem>
+                <SelectItem value="juvenil">Juvenil (16-18 años)</SelectItem>
+                <SelectItem value="senior">Senior (+18 años)</SelectItem>
               </SelectContent>
             </Select>
         </div>
