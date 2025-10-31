@@ -161,8 +161,8 @@ export default function TeamOverallStatsPage() {
             acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
 
             // Goal stats
-            const teamGoals1H = _.sumBy(playerStats1H, 'goals');
-            const teamGoals2H = _.sumBy(playerStats2H, 'goals');
+            const teamGoals1H = _.sumBy(playerStats1H, 'goals') || 0;
+            const teamGoals2H = _.sumBy(playerStats2H, 'goals') || 0;
             const opponentGoals1H = opponentStats1H.goals || 0;
             const opponentGoals2H = opponentStats2H.goals || 0;
 
