@@ -94,7 +94,7 @@ export default function EventsCalendarPage() {
     const allEvents = useMemo<CalendarEvent[]>(() => {
         const sessionEvents: CalendarEvent[] = (sessions || []).map(s => ({
             id: `session-${s.id}`,
-            date: s.date.toDate(),
+            date: s.date?.toDate ? s.date.toDate() : new Date(s.date),
             title: s.name,
             type: 'session',
             details: `Sesión de entrenamiento: ${s.name}`
@@ -102,7 +102,7 @@ export default function EventsCalendarPage() {
         
         const matchEvents: CalendarEvent[] = (matches || []).map(m => ({
             id: `match-${m.id}`,
-            date: m.date.toDate(),
+            date: m.date?.toDate ? m.date.toDate() : new Date(m.date),
             title: `${m.localTeam} vs ${m.visitorTeam}`,
             type: 'match',
             details: m.isFinished 
