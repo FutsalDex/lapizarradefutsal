@@ -148,12 +148,16 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todas">Todas las Categorías</SelectItem>
-                <SelectItem value="Técnica individual">Técnica individual</SelectItem>
-                <SelectItem value="Táctica">Táctica</SelectItem>
-                <SelectItem value="Físico">Físico</SelectItem>
-                <SelectItem value="Psicológico">Psicológico</SelectItem>
-                <SelectItem value="Estrategia">Estrategia</SelectItem>
+                <SelectItem value="Balón parado y remates">Balón parado y remates</SelectItem>
+                <SelectItem value="Conducción y regate">Conducción y regate</SelectItem>
+                <SelectItem value="Coordinación, agilidad y velocidad">Coordinación, agilidad y velocidad</SelectItem>
+                <SelectItem value="Finalización">Finalización</SelectItem>
+                <SelectItem value="Pase y control">Pase y control</SelectItem>
                 <SelectItem value="Posesión y circulación del balón">Posesión y circulación del balón</SelectItem>
+                <SelectItem value="Superioridades e inferioridades numéricas">Superioridades e inferioridades numéricas</SelectItem>
+                <SelectItem value="Sistema táctico ofensivo">Sistema táctico ofensivo</SelectItem>
+                <SelectItem value="Técnica individual y combinada">Técnica individual y combinada</SelectItem>
+                <SelectItem value="Transiciones (ofensivas y defensivas)">Transiciones (ofensivas y defensivas)</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={setAgeFilter} defaultValue="Todas">
