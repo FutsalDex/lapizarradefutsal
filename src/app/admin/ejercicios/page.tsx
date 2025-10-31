@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, getDocs, getDoc } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -247,27 +248,42 @@ function BatchUploadForm() {
             toast({ variant: 'destructive', title: 'Error', description: 'Falta el archivo o no estás autenticado.' });
             return;
         }
-
         setIsSubmitting(true);
-        
         const reader = new FileReader();
-        reader.onload = async (e) => {
-            const text = e.target?.result;
-            if (typeof text !== 'string') {
-                toast({ variant: 'destructive', title: 'Error', description: 'No se pudo leer el archivo.' });
-                setIsSubmitting(false);
-                return;
-            }
 
+        reader.onload = async (e) => {
             try {
-                const allLines = text.split(/\r?\n/);
-                const rawHeaders = allLines[0].split(';');
-                const headers = rawHeaders.map(h => h.trim().replace(/^\uFEFF/, ''));
+                const data = e.target?.result;
+                let jsonData: any[] = [];
+
+                if (file.name.endsWith('.csv')) {
+                    const text = new TextDecoder("utf-8").decode(data as ArrayBuffer);
+                    const allLines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                    const rawHeaders = allLines[0].split(';');
+                    const headers = rawHeaders.map(h => h.trim().replace(/^\uFEFF/, ''));
+                    
+                    const dataRows = allLines.slice(1);
+                    jsonData = dataRows.map(row => {
+                        const values = row.split(';');
+                        const obj: { [key: string]: any } = {};
+                        headers.forEach((header, index) => {
+                            if (header) obj[header] = values[index];
+                        });
+                        return obj;
+                    });
+                } else {
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    jsonData = XLSX.utils.sheet_to_json(worksheet);
+                }
 
                 const idColumnVariants = ['Número', 'numero', 'úmero'];
                 let numberHeader = '';
+                const fileHeaders = Array.isArray(jsonData) && jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
+
                 for (const variant of idColumnVariants) {
-                    const foundHeader = headers.find(h => h.toLowerCase() === variant.toLowerCase());
+                    const foundHeader = fileHeaders.find(h => h.trim().toLowerCase() === variant.toLowerCase());
                     if (foundHeader) {
                         numberHeader = foundHeader;
                         break;
@@ -279,26 +295,8 @@ function BatchUploadForm() {
                     setIsSubmitting(false);
                     return;
                 }
-
-                const dataRows = allLines.slice(1);
                 
-                const exercisesToProcess: { [key: string]: any }[] = [];
-                for (const row of dataRows) {
-                    if (!row || row.trim() === '') continue;
-
-                    const values = row.split(';').map(v => v.trim());
-                    const exerciseData: { [key: string]: any } = {};
-                    
-                    headers.forEach((header, index) => {
-                        if (header) {
-                            exerciseData[header] = values[index];
-                        }
-                    });
-
-                    if (exerciseData[numberHeader] && exerciseData[numberHeader].trim() !== '') {
-                        exercisesToProcess.push(exerciseData);
-                    }
-                }
+                const exercisesToProcess = jsonData.filter(row => row[numberHeader] && String(row[numberHeader]).trim() !== '');
 
                 if (exercisesToProcess.length === 0) {
                     toast({ title: 'Aviso', description: 'No se encontraron ejercicios válidos con un "Número" en el archivo.' });
@@ -312,25 +310,22 @@ function BatchUploadForm() {
                 let createdCount = 0;
 
                 for (const exData of exercisesToProcess) {
-                    const exerciseNumber = exData[numberHeader];
-                    
+                    const exerciseNumber = String(exData[numberHeader]).trim();
                     const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
                     const snapshot = await getDocs(q);
-
-                    const edadValue = exData.Edad || exData.edad || '';
-                    const edadArray = typeof edadValue === 'string' 
-                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
-                        : [];
                     
                     const finalData: { [key: string]: any } = {};
                     for (const key in exData) {
-                        // Ensure no undefined values are being sent
                         if (exData[key] !== undefined) {
                             finalData[key] = exData[key];
                         }
                     }
 
-                    finalData.Edad = edadArray;
+                    const edadValue = finalData.Edad || finalData.edad || '';
+                    finalData.Edad = typeof edadValue === 'string' 
+                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
+                        : [];
+                    
                     finalData.Visible = finalData.Visible ? String(finalData.Visible).toUpperCase() === 'TRUE' : true;
                     finalData.userId = user.uid;
 
@@ -348,25 +343,30 @@ function BatchUploadForm() {
                 await batch.commit();
                 toast({ title: 'Éxito', description: `Proceso completado. ${createdCount} ejercicios creados y ${updatedCount} actualizados.` });
             } catch (error: any) {
-                console.error('Error processing CSV:', error);
+                console.error('Error processing file:', error);
                 toast({ variant: 'destructive', title: 'Error al procesar el archivo', description: error.message });
             } finally {
                 setIsSubmitting(false);
                 setFile(null);
-                if (document.getElementById('csv-file')) {
-                    (document.getElementById('csv-file') as HTMLInputElement).value = '';
+                if (document.getElementById('file-upload-input')) {
+                    (document.getElementById('file-upload-input') as HTMLInputElement).value = '';
                 }
             }
         };
 
-        reader.readAsText(file, 'UTF-8');
+        reader.onerror = () => {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo leer el archivo.' });
+            setIsSubmitting(false);
+        };
+        
+        reader.readAsArrayBuffer(file);
     };
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileUp/>Subida de Ejercicios en Lote</CardTitle>
-                <CardDescription>Sube un archivo CSV (separado por punto y coma) para añadir o actualizar múltiples ejercicios. El campo "Número" se usa como identificador único.</CardDescription>
+                <CardDescription>Sube un archivo CSV o Excel para añadir o actualizar múltiples ejercicios. El campo "Número" se usa como identificador único.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button variant="outline" onClick={handleDownloadTemplate} className="mb-6 w-full">
@@ -375,8 +375,8 @@ function BatchUploadForm() {
                 </Button>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <Label htmlFor="csv-file">Archivo CSV</Label>
-                        <Input id="csv-file" type="file" accept=".csv" onChange={handleFileChange} />
+                        <Label htmlFor="file-upload-input">Archivo CSV o Excel</Label>
+                        <Input id="file-upload-input" type="file" accept=".csv, .xlsx, .xls" onChange={handleFileChange} />
                     </div>
                     <Button type="submit" disabled={!file || isSubmitting} className="w-full">
                         {isSubmitting ? 'Procesando...' : 'Subir y Procesar Archivo'}
