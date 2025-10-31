@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -51,7 +52,12 @@ function CreateSessionDialog({ onSessionCreated }: { onSessionCreated: () => voi
     const [searchTerm, setSearchTerm] = useState('');
     
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
-    const { data: allExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollection);
+    const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
+
+    const allExercises = useMemo(() => {
+        if (!rawExercises) return [];
+        return rawExercises.map(mapExercise);
+    }, [rawExercises]);
     
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionSchema),
