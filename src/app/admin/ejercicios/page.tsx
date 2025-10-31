@@ -240,10 +240,6 @@ function BatchUploadForm() {
         link.click();
         document.body.removeChild(link);
     };
-    
-    const cleanHeader = (header: string) => {
-        return header.replace(/[\uFEFF]/g, '').trim().replace(/^"|"$/g, '');
-    };
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -264,85 +260,64 @@ function BatchUploadForm() {
             }
 
             try {
-                const allRows = text.split(/\r?\n/).filter(row => row.trim() !== '');
-
-                if (allRows.length < 2) {
-                     toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
-                     setIsSubmitting(false);
-                     return;
+                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                if (lines.length < 2) {
+                    toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
+                    setIsSubmitting(false);
+                    return;
                 }
-                
-                const headerRow = allRows[0];
-                const headers = headerRow.split(';').map(cleanHeader);
-                
-                const normalizeHeader = (h: string) => h.toLowerCase().replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
-                
-                const normalizedHeaders = headers.map(normalizeHeader);
-                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero', 'úmero'].includes(h));
 
+                const headers = lines[0].split(';').map(h => h.replace(/[\uFEFF]/g, '').trim());
+                const dataRows = lines.slice(1);
 
-                if (numeroIndex === -1) {
+                const numberIndex = headers.findIndex(h => h.toLowerCase().includes('numero') || h.toLowerCase().includes('número'));
+                if (numberIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
                     setIsSubmitting(false);
                     return;
                 }
-                
-                const numberHeaderKey = headers[numeroIndex];
 
-                const exercisesFromCSV = allRows
-                    .slice(1)
-                    .map(row => {
-                        const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
-                        const exercise = headers.reduce((obj, header, index) => {
-                            if (header && values[index] !== undefined) {
-                                obj[cleanHeader(header)] = values[index];
+                const exercisesToProcess = dataRows.map(row => {
+                    const values = row.split(';');
+                    if (values[numberIndex] && values[numberIndex].trim() !== '') {
+                        const exerciseData: { [key: string]: any } = {};
+                        headers.forEach((header, index) => {
+                            if (header) {
+                                exerciseData[header] = values[index] !== undefined ? values[index].trim() : '';
                             }
-                            return obj;
-                        }, {} as { [key: string]: any });
-                        return exercise;
-                    })
-                    .filter(ex => ex && ex[numberHeaderKey] && String(ex[numberHeaderKey]).trim() !== '');
-               
-                if (exercisesFromCSV.length === 0) {
-                    toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas con un "Número" de ejercicio.' });
+                        });
+                        return exerciseData;
+                    }
+                    return null;
+                }).filter(Boolean) as { [key: string]: any }[];
+
+                if (exercisesToProcess.length === 0) {
+                    toast({ title: 'Aviso', description: 'El archivo no contiene ejercicios válidos con un "Número".' });
                     setIsSubmitting(false);
                     return;
                 }
-
 
                 const batch = writeBatch(firestore);
                 const exercisesCollection = collection(firestore, 'exercises');
                 let updatedCount = 0;
                 let createdCount = 0;
 
-                for (const ex of exercisesFromCSV) {
-                    const exerciseNumber = ex[numberHeaderKey];
-                    if (!exerciseNumber) continue;
-
-                    const edadValue = ex.Edad || ex.edad || '';
-                    const edadArray = typeof edadValue === 'string' 
-                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
-                        : [];
-
-                    const data: { [key: string]: any } = {
-                        ...ex,
-                        Edad: edadArray,
-                        Visible: ex.Visible ? ex.Visible.toUpperCase() === 'TRUE' : true,
-                        userId: user.uid,
-                    };
-                    
-                    const finalData: { [key: string]: any } = {};
-                    for (const key in data) {
-                        if (Object.prototype.hasOwnProperty.call(data, key) && key) {
-                             if(data[key] !== undefined) {
-                                const cleanKey = key.replace(/^"|"$/g, '').trim();
-                                finalData[cleanKey] = data[key] === undefined ? '' : data[key];
-                             }
-                        }
-                    }
+                for (const exData of exercisesToProcess) {
+                    const exerciseNumber = exData[headers[numberIndex]];
                     
                     const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
                     const snapshot = await getDocs(q);
+
+                    const edadValue = exData.Edad || exData.edad || '';
+                    const edadArray = typeof edadValue === 'string' 
+                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
+                        : [];
+                    
+                    const finalData = { ...exData };
+                    finalData.Edad = edadArray;
+                    finalData.Visible = exData.Visible ? String(exData.Visible).toUpperCase() === 'TRUE' : true;
+                    finalData.userId = user.uid;
+
 
                     if (snapshot.empty) {
                         const docRef = doc(exercisesCollection);
@@ -363,7 +338,7 @@ function BatchUploadForm() {
             } finally {
                 setIsSubmitting(false);
                 setFile(null);
-                 if (document.getElementById('csv-file')) {
+                if (document.getElementById('csv-file')) {
                     (document.getElementById('csv-file') as HTMLInputElement).value = '';
                 }
             }
