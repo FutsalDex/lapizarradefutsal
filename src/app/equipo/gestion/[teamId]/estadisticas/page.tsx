@@ -16,7 +16,7 @@ export default function TeamStatsDashboardPage() {
             description: 'Resumen del rendimiento en partidos: victorias, derrotas, goles a favor, goles en contra y más métricas globales.',
             icon: <Trophy className="w-8 h-8 text-primary" />,
             href: `/equipo/gestion/${teamId}/estadisticas/equipo`,
-            disabled: true,
+            disabled: false,
         },
         {
             title: 'Estadísticas de Jugadores',
