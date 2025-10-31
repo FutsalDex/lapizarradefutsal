@@ -136,9 +136,9 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todas">Todas las Fases</SelectItem>
-                <SelectItem value="Calentamiento">Calentamiento</SelectItem>
-                <SelectItem value="Fase Principal">Fase Principal</SelectItem>
-                <SelectItem value="Vuelta a la Calma">Vuelta a la Calma</SelectItem>
+                <SelectItem value="Inicial">Inicial</SelectItem>
+                <SelectItem value="Principal">Principal</SelectItem>
+                <SelectItem value="Final">Final</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={setCategoryFilter} defaultValue="Todas">
