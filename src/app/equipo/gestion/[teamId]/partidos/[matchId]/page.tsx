@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, updateDoc, collection, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, collection, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
@@ -69,8 +69,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
-  opponentStats?: { [key in Period]?: Partial<OpponentStats> };
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
+  opponentStats?: { [key in Period]?: Partial<OpponentStats> } | Partial<OpponentStats>; // Legacy support
   fouls?: { local: number; visitor: number };
   timeouts?: { local: number; visitor: number };
   events?: MatchEvent[];
@@ -85,6 +85,57 @@ const formatStatTime = (totalSeconds: number) => {
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
+
+/**
+ * Migrates a match object from a legacy data structure to the new period-based structure.
+ */
+function migrateLegacyMatchData(matchData: Match): Match {
+    if (!matchData) return matchData;
+
+    const needsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0;
+
+    let migratedData = _.cloneDeep(matchData);
+    let wasMigrated = false;
+
+    // Migrate playerStats
+    if (needsMigration(migratedData.playerStats)) {
+        console.log("Migrating legacy playerStats...");
+        const legacyPlayerStats = migratedData.playerStats;
+        migratedData.playerStats = {
+            '1H': legacyPlayerStats as { [playerId: string]: Partial<PlayerStats> },
+            '2H': {}
+        };
+        wasMigrated = true;
+    }
+
+    // Migrate opponentStats
+    if (needsMigration(migratedData.opponentStats)) {
+        console.log("Migrating legacy opponentStats...");
+        const legacyOpponentStats = migratedData.opponentStats;
+        migratedData.opponentStats = {
+            '1H': legacyOpponentStats as Partial<OpponentStats>,
+            '2H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 }
+        };
+        wasMigrated = true;
+    }
+    
+    // Ensure stats objects exist if they are null/undefined
+    if (!migratedData.playerStats) {
+        migratedData.playerStats = { '1H': {}, '2H': {} };
+    }
+    if (!migratedData.opponentStats) {
+        migratedData.opponentStats = { 
+            '1H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 },
+            '2H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 }
+        };
+    }
+    
+    if (wasMigrated) {
+        console.log("Data migration complete:", migratedData);
+    }
+    
+    return migratedData;
+}
 
 
 // ====================
@@ -260,7 +311,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         if (!players || !match.playerStats || !match.playerStats[period]) return initialTotals;
         
         return players.reduce((acc, player) => {
-            const stats = match.playerStats![period]![player.id] || {};
+            const stats = (match.playerStats as any)[period]?.[player.id] || {};
             acc.goals += stats.goals || 0;
             acc.assists += stats.assists || 0;
             acc.yellowCards += stats.yellowCards || 0;
@@ -379,7 +430,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 <TableCell className="text-center px-1">{totals.goalsConceded}</TableCell>
                                 <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
                                 <TableCell className="text-center px-1">{totals.redCards}</TableCell>
-                                <TableCell className="text-center px-1">{_.sumBy(Object.values(match.playerStats?.[period] || {}), 'unoVsUno') || 0}</TableCell>
+                                <TableCell className="text-center px-1">{_.sumBy(Object.values((match.playerStats as any)?.[period] || {}), 'unoVsUno') || 0}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -520,17 +571,20 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (remoteMatchData) {
       setLocalMatchData(prevLocal => {
-        if (_.isEqual(prevLocal, remoteMatchData)) {
+        const migratedData = migrateLegacyMatchData(remoteMatchData);
+        if (_.isEqual(prevLocal, migratedData)) {
             return prevLocal;
         }
-        return remoteMatchData;
+        return migratedData;
       });
     }
   }, [remoteMatchData]);
 
   const debouncedUpdate = useCallback(_.debounce((data: Partial<Match>) => {
     if (!matchRef || remoteMatchData?.isFinished) return;
-    updateDoc(matchRef, data);
+    // When updating, make sure to use the server timestamp for fields that require it
+    const dataWithTimestamp = { ...data, updatedAt: serverTimestamp() };
+    updateDoc(matchRef, dataWithTimestamp);
   }, 1000), [matchRef, remoteMatchData?.isFinished]);
 
   const handleUpdate = (data: Partial<Match>) => {
