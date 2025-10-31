@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -56,11 +55,10 @@ interface Team {
   ownerName?: string;
 }
 
-interface Invitation {
+interface TeamMember {
     id: string;
     name: string;
     role: string;
-    status: 'pending' | 'accepted' | 'rejected';
 }
 
 
@@ -70,11 +68,11 @@ interface Invitation {
 
 function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
     const firestore = useFirestore();
-    const invitationsRef = useMemoFirebase(() => {
-        return query(collection(firestore, 'invitations'), where('teamId', '==', teamId), where('status', '==', 'accepted'));
+    const teamMembersRef = useMemoFirebase(() => {
+        return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
     }, [firestore, teamId]);
 
-    const { data: staff, isLoading: isLoadingStaff } = useCollection<Invitation>(invitationsRef);
+    const { data: staff, isLoading: isLoadingStaff } = useCollection<TeamMember>(teamMembersRef);
 
     const InfoField = ({ label, value }: { label: string, value: string }) => (
         <div>

@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp, or, writeBatch } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, or, writeBatch, doc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -33,15 +32,9 @@ interface Team {
   club?: string;
   season?: string;
   ownerId: string;
+  memberIds?: string[];
 }
 
-interface TeamInvitation {
-  id: string;
-  teamId: string;
-  teamName: string;
-  invitedUserEmail: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
 
 function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
   const { toast } = useToast();
@@ -74,19 +67,6 @@ function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
             ownerName: user.displayName,
             createdAt: serverTimestamp(),
             memberIds: [user.uid] // Automatically add owner as a member
-        });
-
-        // 2. Create an accepted invitation for the owner
-        const invitationRef = doc(collection(firestore, 'invitations'));
-        batch.set(invitationRef, {
-            teamId: teamRef.id,
-            teamName: values.name,
-            invitedUserEmail: user.email,
-            name: user.displayName,
-            role: 'Entrenador', // Default role for owner
-            status: 'accepted',
-            createdAt: serverTimestamp(),
-            acceptedAt: serverTimestamp(),
         });
         
         await batch.commit();
@@ -160,48 +140,23 @@ function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
   );
 }
 
-function TeamList() {
+function TeamList({ refreshKey }: { refreshKey: number }) {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
-  const [key, setKey] = useState(0); // Add key for re-fetching
-
-  const acceptedInvitationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user?.email) return null;
-    return query(
-      collection(firestore, 'invitations'),
-      where('invitedUserEmail', '==', user.email),
-      where('status', '==', 'accepted')
-    );
-  }, [firestore, user?.email, key]);
-
-  const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
-  
-  const memberTeamIds = useMemo(() => {
-    return acceptedInvitations?.map(inv => inv.teamId) || [];
-  }, [acceptedInvitations]);
 
   const teamsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
-
-    if (isLoadingInvites) return null;
-
-    const allTeamIds = [...new Set(memberTeamIds)];
-    const hasMemberTeams = allTeamIds.length > 0;
-
-    const clauses = [where('ownerId', '==', user.uid)];
-    if(hasMemberTeams) {
-        clauses.push(where('__name__', 'in', allTeamIds));
-    }
     
+    // Query for teams where the user is a member or the owner
     return query(
       collection(firestore, 'teams'),
-      or(...clauses)
+      where('memberIds', 'array-contains', user.uid)
     );
-  }, [firestore, user?.uid, memberTeamIds, isLoadingInvites, key]);
+  }, [firestore, user?.uid, refreshKey]);
 
   const { data: allTeams, isLoading: isLoadingTeams } = useCollection<Team>(teamsQuery);
   
-  const isLoading = isAuthLoading || isLoadingInvites || isLoadingTeams;
+  const isLoading = isAuthLoading || isLoadingTeams;
   
   return (
     <Card>
@@ -307,7 +262,7 @@ export default function GestionPage() {
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <div className="md:col-span-2">
-              <TeamList />
+              <TeamList refreshKey={key} />
             </div>
             <div className="md:col-span-1">
               <CreateTeamForm onTeamCreated={() => setKey(k => k + 1)} />
