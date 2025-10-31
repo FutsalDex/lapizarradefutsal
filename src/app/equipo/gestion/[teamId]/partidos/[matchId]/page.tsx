@@ -364,9 +364,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             <TableHead className="text-center px-1">Perdidas</TableHead>
             <TableHead className="text-center px-1">Paradas</TableHead>
             <TableHead className="text-center px-1">GC</TableHead>
+            <TableHead className="text-center px-1">1vs1</TableHead>
             <TableHead className="text-center px-1">TA</TableHead>
             <TableHead className="text-center px-1">TR</TableHead>
-            <TableHead className="text-center px-1">1vs1</TableHead>
         </TableRow>
     );
 
@@ -402,9 +402,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                         <TableCell className="py-1 px-1"><StatButton stat="turnovers" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="saves" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="goalsConceded" playerId={player.id} /></TableCell>
+                                        <TableCell className="py-1 px-1"><StatButton stat="unoVsUno" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="yellowCards" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="redCards" playerId={player.id} /></TableCell>
-                                        <TableCell className="py-1 px-1"><StatButton stat="unoVsUno" playerId={player.id} /></TableCell>
                                     </TableRow>
                                 )
                             }) : (
@@ -428,9 +428,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 <TableCell className="text-center px-1">{totals.turnovers}</TableCell>
                                 <TableCell className="text-center px-1">{totals.saves}</TableCell>
                                 <TableCell className="text-center px-1">{totals.goalsConceded}</TableCell>
+                                <TableCell className="text-center px-1">{_.sumBy(Object.values((match.playerStats as any)?.[period] || {}), 'unoVsUno') || 0}</TableCell>
                                 <TableCell className="text-center px-1">{totals.yellowCards}</TableCell>
                                 <TableCell className="text-center px-1">{totals.redCards}</TableCell>
-                                <TableCell className="text-center px-1">{_.sumBy(Object.values((match.playerStats as any)?.[period] || {}), 'unoVsUno') || 0}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -592,10 +592,7 @@ export default function MatchStatsPage() {
           ...dataToSave,
           updatedAt: serverTimestamp(),
         });
-        toast({
-          title: "Guardado automático",
-          description: "Los cambios se han guardado.",
-        });
+        // Toast for auto-save removed as per user request.
       } catch (err) {
         console.error(err);
         toast({

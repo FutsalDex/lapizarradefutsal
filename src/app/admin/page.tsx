@@ -57,7 +57,7 @@ export default function AdminPage() {
             <div className="text-center mb-10">
                 <h1 className="text-4xl font-bold font-headline text-primary">Panel de Administración</h1>
                 <p className="text-lg text-muted-foreground mt-2">
-                {user ? `Bienvenido, ${user.displayName || 'administrador'}.` : 'Bienvenido.'} 
+                {user ? `Bienvenido, ${user.displayName || user.email || 'administrador'}.` : 'Bienvenido.'} 
                 </p>
             </div>
 
