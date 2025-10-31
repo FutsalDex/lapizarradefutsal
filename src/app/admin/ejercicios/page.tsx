@@ -298,7 +298,8 @@ function BatchUploadForm() {
                     return exercise;
                 });
                
-                if (exercisesFromCSV.length === 0) {
+                const validExercises = exercisesFromCSV.filter(ex => ex[numberHeader]);
+                if (validExercises.length === 0) {
                     toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas.' });
                     setIsSubmitting(false);
                     return;
@@ -309,7 +310,7 @@ function BatchUploadForm() {
                 let updatedCount = 0;
                 let createdCount = 0;
 
-                for (const ex of exercisesFromCSV) {
+                for (const ex of validExercises) {
                     const exerciseNumber = ex[numberHeader];
                     if (!exerciseNumber) continue;
 
