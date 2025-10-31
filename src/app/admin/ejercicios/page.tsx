@@ -259,7 +259,10 @@ function BatchUploadForm() {
 
             try {
                 const rows = text.split('\n').filter(row => row.trim() !== '');
-                const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                // Clean up header row from potential BOM characters
+                const headerRow = rows[0].replace(/[\uFEFF]/g, '');
+                const headers = headerRow.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
                 const exercisesFromCSV = rows.slice(1).map(row => {
                     const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                     const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
@@ -400,3 +403,5 @@ export default function AdminExercisesPage() {
         </div>
     );
 }
+
+    
