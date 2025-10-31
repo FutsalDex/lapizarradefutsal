@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -263,7 +264,7 @@ function BatchUploadForm() {
             }
 
             try {
-                const allRows = text.split('\n').filter(row => row.trim() !== '');
+                const allRows = text.split(/\r?\n/).filter(row => row.trim() !== '');
 
                 if (allRows.length < 2) {
                      toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
@@ -274,7 +275,7 @@ function BatchUploadForm() {
                 const headerRow = allRows[0];
                 const headers = headerRow.split(';').map(cleanHeader);
                 
-                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
+                const normalizeHeader = (h: string) => h.toLowerCase().replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
                 
                 const normalizedHeaders = headers.map(normalizeHeader);
                 const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero', 'úmero'].includes(h));
@@ -292,10 +293,10 @@ function BatchUploadForm() {
                     .slice(1)
                     .map(row => {
                         const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
-                        const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
-                             if (header && values[index] !== undefined) {
+                        const exercise = headers.reduce((obj, header, index) => {
+                            if (header && values[index] !== undefined) {
                                 obj[cleanHeader(header)] = values[index];
-                             }
+                            }
                             return obj;
                         }, {} as { [key: string]: any });
                         return exercise;
@@ -335,7 +336,7 @@ function BatchUploadForm() {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
                              if(data[key] !== undefined) {
                                 const cleanKey = key.replace(/^"|"$/g, '').trim();
-                                finalData[cleanKey] = data[key] ?? '';
+                                finalData[cleanKey] = data[key] === undefined ? '' : data[key];
                              }
                         }
                     }
