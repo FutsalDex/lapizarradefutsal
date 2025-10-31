@@ -263,7 +263,9 @@ function BatchUploadForm() {
             }
 
             try {
+                // Filter out completely empty lines first
                 const rows = text.split('\n').filter(row => row.trim() !== '');
+
                 if (rows.length < 2) {
                      toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
                      setIsSubmitting(false);
@@ -298,12 +300,13 @@ function BatchUploadForm() {
                     return exercise;
                 });
                
-                const validExercises = exercisesFromCSV.filter(ex => ex[numberHeader]);
+                const validExercises = exercisesFromCSV.filter(ex => ex[numberHeader] && ex[numberHeader].trim() !== '');
                 if (validExercises.length === 0) {
-                    toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas.' });
+                    toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas con un "Número" de ejercicio.' });
                     setIsSubmitting(false);
                     return;
                 }
+
 
                 const batch = writeBatch(firestore);
                 const exercisesCollection = collection(firestore, 'exercises');
@@ -329,7 +332,7 @@ function BatchUploadForm() {
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
-                             if(data[key] !== undefined && data[key] !== null) {
+                             if(data[key] !== undefined) { // Allow empty strings, but not undefined
                                 const cleanKey = key.replace(/^"|"$/g, '').trim();
                                 finalData[cleanKey] = data[key];
                              }
