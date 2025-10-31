@@ -582,6 +582,33 @@ export default function MatchStatsPage() {
     }
   }, [remoteMatchData]);
 
+  const debouncedSave = useCallback(
+    _.debounce(async (dataToSave: Match) => {
+      if (!matchRef) return;
+      setIsSaving(true);
+      try {
+        await updateDoc(matchRef, {
+          ...dataToSave,
+          updatedAt: serverTimestamp(),
+        });
+        toast({
+          title: "Guardado automático",
+          description: "Los cambios se han guardado.",
+        });
+      } catch (err) {
+        console.error(err);
+        toast({
+          title: "Error de guardado automático",
+          description: "No se pudieron guardar los últimos cambios.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    }, 5000), // 5000ms debounce time
+    [matchRef, toast]
+  );
+
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
     setLocalMatchData(prevData => {
@@ -591,61 +618,63 @@ export default function MatchStatsPage() {
                 return _.unionWith(objValue, srcValue, _.isEqual);
             }
         });
+        debouncedSave(newState as Match);
         return newState as Match;
     });
   };
   
-    const maxTime = 25 * 60;
-    
-    useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-        if (isTimerActive && time < maxTime) {
-            interval = setInterval(() => {
-                setTime(prevTime => prevTime + 1);
-                 if (activePlayerIds.length > 0) {
-                     setLocalMatchData(prevData => {
-                        if (!prevData) return null;
-                        const newLocalData = _.cloneDeep(prevData);
-                        activePlayerIds.forEach(playerId => {
-                            const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
-                            _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, (currentMinutes || 0) + 1);
-                        });
-                        return newLocalData;
-                    });
-                }
-            }, 1000);
-        } else if (time >= maxTime) {
-            setIsTimerActive(false);
-        }
+  const maxTime = 25 * 60;
+  
+  useEffect(() => {
+      let interval: NodeJS.Timeout | null = null;
+      if (isTimerActive && time < maxTime) {
+          interval = setInterval(() => {
+              setTime(prevTime => prevTime + 1);
+               if (activePlayerIds.length > 0) {
+                   setLocalMatchData(prevData => {
+                      if (!prevData) return null;
+                      const newLocalData = _.cloneDeep(prevData);
+                      activePlayerIds.forEach(playerId => {
+                          const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
+                          _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, (currentMinutes || 0) + 1);
+                      });
+                      return newLocalData;
+                  });
+              }
+          }, 1000);
+      } else if (time >= maxTime) {
+          setIsTimerActive(false);
+      }
 
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isTimerActive, time, maxTime, activePlayerIds, period]);
+      return () => {
+          if (interval) clearInterval(interval);
+      };
+  }, [isTimerActive, time, maxTime, activePlayerIds, period]);
 
-    const handleManualSave = async () => {
-        if (!matchRef || !localMatchData) return;
-        setIsSaving(true);
-        try {
-            await updateDoc(matchRef, {
-                ...localMatchData,
-                updatedAt: serverTimestamp(),
-            });
-            toast({
-                title: "Guardado",
-                description: "Los datos del partido se han guardado correctamente.",
-            });
-        } catch (err) {
-            console.error(err);
-            toast({
-                title: "Error al guardar",
-                description: "No se pudieron guardar los datos del partido.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSaving(false);
-        }
-    };
+  const handleManualSave = async () => {
+      if (!matchRef || !localMatchData) return;
+      debouncedSave.cancel(); // Cancel any pending auto-save
+      setIsSaving(true);
+      try {
+          await updateDoc(matchRef, {
+              ...localMatchData,
+              updatedAt: serverTimestamp(),
+          });
+          toast({
+              title: "Guardado",
+              description: "Los datos del partido se han guardado correctamente.",
+          });
+      } catch (err) {
+          console.error(err);
+          toast({
+              title: "Error al guardar",
+              description: "No se pudieron guardar los datos del partido.",
+              variant: "destructive",
+          });
+      } finally {
+          setIsSaving(false);
+      }
+  };
 
 
   const toggleMatchFinished = async () => {
