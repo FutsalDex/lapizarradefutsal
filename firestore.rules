@@ -28,6 +28,10 @@ service cloud.firestore {
     function canAccessTeam(teamId) {
       return isTeamOwner(teamId) || isTeamMember(teamId);
     }
+    
+    function isAdmin() {
+      return isAuth() && authEmail() == 'futsaldex@gmail.com';
+    }
 
     // =============================
     // 🧩 TEAMS
@@ -94,7 +98,7 @@ service cloud.firestore {
     // =============================
     match /exercises/{exerciseId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isAdmin();
     }
   }
 }
