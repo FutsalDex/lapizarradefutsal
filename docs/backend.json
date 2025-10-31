@@ -227,13 +227,13 @@
       },
       "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
     },
-    "TeamInvitation": {
-        "title": "Team Invitation",
+    "TeamMember": {
+        "title": "Team Member",
         "type": "object",
-        "description": "Represents an invitation for a user to join a team's staff.",
+        "description": "Represents a staff member of a team.",
         "properties": {
             "createdAt": {"type": "string", "format": "date-time"},
-            "invitedUserEmail": {"type": "string", "format": "email"},
+            "email": {"type": "string", "format": "email"},
             "name": {"type": "string"},
             "role": {"type": "string", "enum": [
                 "Entrenador",
@@ -246,11 +246,10 @@
                 "Psicólogo",
                 "Nutricionista"
             ]},
-            "status": {"type": "string", "enum": ["pending", "accepted", "rejected"]},
             "teamId": {"type": "string"},
-            "teamName": {"type": "string"}
+            "userId": {"type": "string"}
         },
-        "required": ["teamId", "teamName", "invitedUserEmail", "status", "role"]
+        "required": ["teamId", "email", "role", "userId"]
     },
     "AttendanceRecord": {
       "title": "Attendance Record",
@@ -313,13 +312,13 @@
         "schema": { "$ref": "#/entities/Player" },
         "description": "Stores the players for a specific team."
     },
+     "/teamMembers/{memberId}": {
+      "schema": { "$ref": "#/entities/TeamMember" },
+      "description": "Stores staff members for all teams."
+    },
     "/matches/{matchId}": {
       "schema": { "$ref": "#/entities/Match" },
       "description": "Stores all matches for all teams."
-    },
-    "/invitations/{invitationId}": {
-        "schema": { "$ref": "#/entities/TeamInvitation" },
-        "description": "Stores invitations for users to join teams."
     },
     "/teams/{teamId}/attendance/{attendanceId}": {
         "schema": { "$ref": "#/entities/AttendanceRecord" },
@@ -327,3 +326,5 @@
     }
   }
 }
+
+    

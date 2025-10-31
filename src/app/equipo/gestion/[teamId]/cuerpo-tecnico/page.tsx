@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayRemove } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -41,10 +41,13 @@ interface Team {
   memberIds?: string[];
 }
 
-interface TeamMember extends UserProfile {
+interface TeamMember {
+    id: string; // Document ID from teamMembers collection
+    userId: string;
+    name: string;
+    email: string;
     role: string;
-    invitationId: string;
-    status?: 'pending' | 'accepted' | 'rejected';
+    teamId: string;
 }
 
 interface UserProfile {
@@ -93,7 +96,6 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
   const onSubmit = async (values: AddMemberValues) => {
     setIsSubmitting(true);
     
-    // 1. Check if user exists in 'users' collection
     const usersRef = collection(firestore, 'users');
     const userQuery = query(usersRef, where('email', '==', values.email));
     
@@ -106,54 +108,50 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
           return;
         }
         
-        const invitedUser = userSnapshot.docs[0].data();
+        const invitedUserDoc = userSnapshot.docs[0];
+        const invitedUserId = invitedUserDoc.id;
+        const invitedUserData = invitedUserDoc.data();
 
-        // 2. Check for existing invitation (pending or accepted)
-        const invitationsRef = collection(firestore, 'invitations');
-        const invitationQuery = query(invitationsRef, 
+        const teamMembersRef = collection(firestore, 'teamMembers');
+        const memberQuery = query(teamMembersRef, 
           where('teamId', '==', team.id), 
-          where('invitedUserEmail', '==', values.email),
-          where('status', 'in', ['pending', 'accepted'])
+          where('userId', '==', invitedUserId)
         );
-        const invitationSnapshot = await getDocs(invitationQuery);
+        const memberSnapshot = await getDocs(memberQuery);
 
-        if (!invitationSnapshot.empty) {
-          toast({ variant: 'destructive', title: 'Invitación ya existente', description: 'Este usuario ya ha sido invitado o ya es miembro del equipo.' });
+        if (!memberSnapshot.empty) {
+          toast({ variant: 'destructive', title: 'Miembro ya existente', description: 'Este usuario ya es miembro del equipo.' });
           setIsSubmitting(false);
           return;
         }
         
-        // 3. Create invitation
-        const invitationData = {
-          teamId: team.id,
-          teamName: team.name,
-          invitedUserEmail: values.email,
-          name: invitedUser.displayName || 'Usuario sin nombre',
-          role: values.role,
-          status: 'pending',
-          createdAt: serverTimestamp(),
-        };
+        const batch = writeBatch(firestore);
+        
+        const newMemberRef = doc(teamMembersRef);
+        batch.set(newMemberRef, {
+            teamId: team.id,
+            userId: invitedUserId,
+            email: values.email,
+            name: invitedUserData.displayName || 'Usuario sin nombre',
+            role: values.role,
+            createdAt: serverTimestamp(),
+        });
+        
+        const teamRef = doc(firestore, 'teams', team.id);
+        batch.update(teamRef, {
+            memberIds: arrayUnion(invitedUserId)
+        });
+        
+        await batch.commit();
 
-        addDoc(invitationsRef, invitationData)
-          .catch((error) => {
-            console.error("Original Firebase Error:", error);
-            const contextualError = new FirestorePermissionError({
-              operation: 'create',
-              path: `invitations/${Math.random().toString(36).substring(7)}`, // Approximate path
-              requestResourceData: invitationData,
-            });
-            errorEmitter.emit('permission-error', contextualError);
-          })
-          .then(() => {
-            toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${values.email}.` });
-            onInvitationSent(); // Callback to refetch data
-            setIsOpen(false);
-            form.reset();
-          });
+        toast({ title: 'Miembro añadido', description: `${values.email} ha sido añadido al equipo.` });
+        onInvitationSent();
+        setIsOpen(false);
+        form.reset();
           
     } catch (error) {
-        console.error("Error querying user:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo verificar el usuario.' });
+        console.error("Error adding member:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo añadir al miembro.' });
     } finally {
         setIsSubmitting(false);
     }
@@ -169,9 +167,9 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Invitar a un Miembro del Cuerpo Técnico</DialogTitle>
+          <DialogTitle>Añadir Miembro al Cuerpo Técnico</DialogTitle>
           <DialogDescription>
-            El usuario debe estar registrado en la plataforma. Recibirá una notificación para unirse a tu equipo.
+            El usuario debe estar registrado en la plataforma para poder ser añadido.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -214,7 +212,7 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={() => setIsOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Enviando...' : 'Enviar Invitación'}
+                {isSubmitting ? 'Añadiendo...' : 'Añadir Miembro'}
               </Button>
             </DialogFooter>
           </form>
@@ -228,10 +226,10 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const handleRoleChange = async (invitationId: string, newRole: string) => {
+    const handleRoleChange = async (memberId: string, newRole: string) => {
         try {
-            const invitationRef = doc(firestore, 'invitations', invitationId);
-            await updateDoc(invitationRef, { role: newRole });
+            const memberRef = doc(firestore, 'teamMembers', memberId);
+            await updateDoc(memberRef, { role: newRole });
             toast({ title: 'Rol actualizado', description: 'El rol del miembro ha sido actualizado.'});
             onDataChange();
         } catch (error) {
@@ -241,22 +239,16 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
     };
     
     const handleRemoveMember = async (member: TeamMember) => {
-        if (!member.invitationId) return;
+        if (!member.id) return;
 
         try {
             const batch = writeBatch(firestore);
 
-            const invitationRef = doc(firestore, 'invitations', member.invitationId);
-            batch.delete(invitationRef);
+            const memberRef = doc(firestore, 'teamMembers', member.id);
+            batch.delete(memberRef);
 
-            if (member.status === 'accepted') {
-                const teamRef = doc(firestore, 'teams', team.id);
-                const userSnapshot = await getDocs(query(collection(firestore, 'users'), where('email', '==', member.email)));
-                if (!userSnapshot.empty) {
-                    const userId = userSnapshot.docs[0].id;
-                    batch.update(teamRef, { memberIds: arrayRemove(userId) });
-                }
-            }
+            const teamRef = doc(firestore, 'teams', team.id);
+            batch.update(teamRef, { memberIds: arrayRemove(member.userId) });
 
             await batch.commit();
             toast({ title: 'Miembro eliminado', description: 'El usuario ha sido eliminado del equipo.'});
@@ -273,7 +265,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
             <CardHeader>
                 <CardTitle>Miembros del Equipo</CardTitle>
                 <CardDescription>
-                    Lista de usuarios con acceso a este equipo. Desde aquí puedes enviar invitaciones o eliminar miembros.
+                    Lista de usuarios con acceso a este equipo.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -290,31 +282,27 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                         <TableBody>
                             {members.length > 0 ? (
                                 members.map((member) => (
-                                    <TableRow key={member.email}>
-                                        <TableCell className="font-medium">{member.displayName || 'N/A'}</TableCell>
+                                    <TableRow key={member.id}>
+                                        <TableCell className="font-medium">{member.name || 'N/A'}</TableCell>
                                         <TableCell>{member.email}</TableCell>
                                         <TableCell>
-                                           {member.status === 'pending' ? (
-                                                <div className="text-sm text-muted-foreground italic">Invitación pendiente</div>
-                                            ) : (
-                                                <Select 
-                                                    defaultValue={member.role}
-                                                    onValueChange={(newRole) => handleRoleChange(member.invitationId!, newRole)}
-                                                    disabled={!isOwner && member.id !== team.ownerId}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {staffRoles.map(role => (
-                                                            <SelectItem key={role} value={role}>{role}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
+                                            <Select 
+                                                defaultValue={member.role}
+                                                onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
+                                                disabled={!isOwner && member.userId !== team.ownerId}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {staffRoles.map(role => (
+                                                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {member.id !== team.ownerId && isOwner && (
+                                            {member.userId !== team.ownerId && isOwner && (
                                                  <AlertDialog>
                                                     <AlertDialogTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -363,142 +351,35 @@ export default function StaffPage() {
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
   const { user } = useUser();
-  const [key, setKey] = useState(0); // Used to force refetch
-  const [memberUsers, setMemberUsers] = useState<UserProfile[]>([]);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [key, setKey] = useState(0); 
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId, key]);
 
-  const invitationsRef = useMemoFirebase(() => {
+  const teamMembersRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
-    return query(collection(firestore, 'invitations'), where('teamId', '==', teamId));
+    return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
   }, [firestore, teamId, key]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
-  const { data: invitations, isLoading: isLoadingInvitations } = useCollection(invitationsRef);
+  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersRef);
   
-
-  const fetchMemberUsers = useCallback(async () => {
-    if (!firestore || !invitations || !team) {
-      setIsLoadingMembers(false);
-      return;
-    }
-    
-    // Create a unique list of member emails from invitations
-    const memberEmails = [...new Set(invitations.map(inv => inv.invitedUserEmail))];
-
-    // Ensure owner's user data is fetched if they don't have an invitation
-    // Although the new logic adds one, this is a good safeguard.
-    const ownerUserRef = doc(firestore, 'users', team.ownerId);
-      
-    if (memberEmails.length === 0) {
-      // Still might need to fetch the owner
-       try {
-        const ownerSnap = await getDoc(ownerUserRef);
-        if (ownerSnap.exists()) {
-            setMemberUsers([{ id: ownerSnap.id, ...ownerSnap.data() } as UserProfile]);
-        } else {
-            setMemberUsers([]);
-        }
-      } catch (e) {
-          setMemberUsers([]);
-      } finally {
-          setIsLoadingMembers(false);
-      }
-      return;
-    }
-    
-    setIsLoadingMembers(true);
-    try {
-        const fetchedUsers = new Map<string, UserProfile>();
-
-        // Fetch users from invitations
-        if (memberEmails.length > 0) {
-            // Firestore 'in' query supports up to 30 elements.
-            const q = query(collection(firestore, 'users'), where('email', 'in', memberEmails.slice(0, 30)));
-            const snapshot = await getDocs(q);
-            snapshot.docs.forEach(doc => {
-              const userData = { id: doc.id, ...doc.data() } as UserProfile;
-              fetchedUsers.set(userData.id, userData);
-            });
-        }
-        
-        // Fetch owner if not already fetched
-        if (!fetchedUsers.has(team.ownerId)) {
-            const ownerSnap = await getDoc(ownerUserRef);
-            if (ownerSnap.exists()) {
-                 const ownerData = { id: ownerSnap.id, ...ownerSnap.data() } as UserProfile;
-                 fetchedUsers.set(ownerData.id, ownerData);
-            }
-        }
-        
-        setMemberUsers(Array.from(fetchedUsers.values()));
-
-    } catch (error) {
-      console.error("Error fetching member users:", error);
-      setMemberUsers([]);
-    } finally {
-      setIsLoadingMembers(false);
-    }
-  }, [firestore, invitations, team]);
-
-  useEffect(() => {
-    if (!isLoadingInvitations && invitations && !isLoadingTeam && team) {
-      fetchMemberUsers();
-    }
-  }, [invitations, isLoadingInvitations, team, isLoadingTeam, fetchMemberUsers]);
-
-  const teamMembers: TeamMember[] = useMemo(() => {
-    if (!invitations || !memberUsers || !team) return [];
-    
-    const membersMap = new Map<string, TeamMember>();
-
-    invitations.forEach(inv => {
-      const userData = memberUsers.find(u => u.email === inv.invitedUserEmail);
-      if (userData) {
-          membersMap.set(userData.id, {
-            id: userData.id,
-            displayName: inv.name || userData.displayName,
-            email: inv.invitedUserEmail,
-            photoURL: userData.photoURL,
-            role: inv.role,
-            invitationId: inv.id,
-            status: inv.status,
-          });
-      }
+  const sortedTeamMembers = useMemo(() => {
+    if (!teamMembers || !team) return [];
+    return teamMembers.sort((a, b) => {
+        if (a.userId === team.ownerId) return -1;
+        if (b.userId === team.ownerId) return 1;
+        return (a.name || '').localeCompare(b.name || '');
     });
-
-    // Ensure the owner is in the list, even if they have no explicit invitation (legacy)
-    if (!membersMap.has(team.ownerId)) {
-        const ownerData = memberUsers.find(u => u.id === team.ownerId);
-        if (ownerData) {
-            membersMap.set(ownerData.id, {
-                id: ownerData.id,
-                displayName: ownerData.displayName,
-                email: ownerData.email,
-                photoURL: ownerData.photoURL,
-                role: 'Propietario',
-                invitationId: '', // No invitation ID for legacy owners
-                status: 'accepted'
-            });
-        }
-    }
-
-    return Array.from(membersMap.values()).sort((a, b) => {
-        if (a.id === team.ownerId) return -1;
-        if (b.id === team.ownerId) return 1;
-        return (a.displayName || '').localeCompare(b.displayName || '');
-    });
-  }, [invitations, memberUsers, team]);
+  }, [teamMembers, team]);
 
   const isOwner = user && team && user.uid === team.ownerId;
-  const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
+  const isLoading = isLoadingTeam || isLoadingMembers;
 
   const handleDataChange = () => {
-    setKey(prev => prev + 1); // Increment key to trigger refetch
+    setKey(prev => prev + 1);
   };
 
   if (isLoading && !team) {
@@ -567,10 +448,11 @@ export default function StaffPage() {
          {isLoading ? (
             <Skeleton className="h-96 w-full" />
          ) : (
-            <TeamStaffTable members={teamMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
+            <TeamStaffTable members={sortedTeamMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
          )}
        </div>
     </div>
   );
 }
 
+    
