@@ -13,6 +13,29 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { FutsalCourt } from '@/components/futsal-court';
+
+function mapExercise(doc: any): Exercise {
+    const data = doc;
+    return {
+        id: doc.id,
+        name: data['Ejercicio'] || 'Ejercicio sin nombre',
+        description: data['Descripción de la tarea'] || '',
+        category: data['Categoría'] || 'Sin categoría',
+        fase: data['Fase'] || 'Fase no especificada',
+        edad: data['Edad'] || [],
+        objectives: data['Objetivos'] || '',
+        duration: data['Duración (min)'] || '0',
+        numberOfPlayers: data['Número de jugadores'] || '',
+        variations: data['Variantes'] || '',
+        consejos: data['Consejos para el entrenador'] || '',
+        image: data['Imagen'] || '',
+        aiHint: data['aiHint'] || '',
+        visible: data['Visible'] !== false,
+        ...data
+    };
+}
+
 
 export default function FavoritosPage() {
   const firestore = useFirestore();
@@ -29,12 +52,14 @@ export default function FavoritosPage() {
   }, [firestore]);
 
   const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
-  const { data: allExercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollectionRef);
+  const { data: allExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollectionRef);
 
   const favoriteExercises = useMemo(() => {
     if (!favorites || !allExercises) return [];
     const favoriteIds = new Set(favorites.map(fav => fav.id));
-    return allExercises.filter(exercise => favoriteIds.has(exercise.id));
+    return allExercises
+      .filter(exercise => favoriteIds.has(exercise.id))
+      .map(mapExercise);
   }, [favorites, allExercises]);
 
   const handleRemoveFavorite = async (exerciseId: string) => {
@@ -56,7 +81,7 @@ export default function FavoritosPage() {
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm">
-                <Skeleton className="h-56 w-full" />
+                <Skeleton className="aspect-video w-full" />
                 <CardContent className="p-4 flex-grow">
                   <Skeleton className="h-6 w-3/4 mb-2" />
                 </CardContent>
@@ -101,15 +126,18 @@ export default function FavoritosPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
            {favoriteExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="relative h-56 w-full">
-                  <Image
-                    src={exercise.imageUrl || 'https://picsum.photos/seed/placeholder/600/400'}
-                    alt={exercise.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain p-2"
-                    data-ai-hint={exercise.imageHint}
-                  />
+                <div className="relative aspect-video w-full bg-muted">
+                   {exercise.image ? (
+                        <Image
+                            src={exercise.image}
+                            alt={exercise.name}
+                            fill
+                            className="object-contain"
+                            data-ai-hint={exercise.aiHint}
+                        />
+                    ) : (
+                        <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
+                    )}
                 </div>
                 <CardContent className="p-4 flex-grow">
                   <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.name}</h3>
