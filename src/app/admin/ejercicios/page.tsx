@@ -268,31 +268,45 @@ function BatchUploadForm() {
                 }
 
                 const headers = lines[0].split(';').map(h => h.replace(/[\uFEFF]/g, '').trim());
-                const dataRows = lines.slice(1);
-
-                const numberIndex = headers.findIndex(h => h.toLowerCase().includes('numero') || h.toLowerCase().includes('número'));
-                if (numberIndex === -1) {
+                
+                const idColumnVariants = ['Número', 'numero', 'úmero'];
+                let numberHeader = '';
+                for (const variant of idColumnVariants) {
+                    const foundHeader = headers.find(h => h.toLowerCase() === variant.toLowerCase());
+                    if (foundHeader) {
+                        numberHeader = foundHeader;
+                        break;
+                    }
+                }
+                
+                if (!numberHeader) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
                     setIsSubmitting(false);
                     return;
                 }
 
+                const dataRows = lines.slice(1);
+
                 const exercisesToProcess = dataRows.map(row => {
-                    const values = row.split(';');
-                    if (values[numberIndex] && values[numberIndex].trim() !== '') {
-                        const exerciseData: { [key: string]: any } = {};
-                        headers.forEach((header, index) => {
-                            if (header) {
-                                exerciseData[header] = values[index] !== undefined ? values[index].trim() : '';
-                            }
-                        });
-                        return exerciseData;
+                    const values = row.split(';').map(v => v.trim());
+                    const exerciseData: { [key: string]: any } = {};
+                    
+                    headers.forEach((header, index) => {
+                        if (header) {
+                            exerciseData[header] = values[index] !== undefined ? values[index] : '';
+                        }
+                    });
+
+                    // Explicit check for a valid identifier
+                    if (!exerciseData[numberHeader] || exerciseData[numberHeader].trim() === '') {
+                        return null;
                     }
-                    return null;
+                    
+                    return exerciseData;
                 }).filter(Boolean) as { [key: string]: any }[];
 
                 if (exercisesToProcess.length === 0) {
-                    toast({ title: 'Aviso', description: 'El archivo no contiene ejercicios válidos con un "Número".' });
+                    toast({ title: 'Aviso', description: 'No se encontraron ejercicios válidos con un "Número" en el archivo.' });
                     setIsSubmitting(false);
                     return;
                 }
@@ -303,7 +317,7 @@ function BatchUploadForm() {
                 let createdCount = 0;
 
                 for (const exData of exercisesToProcess) {
-                    const exerciseNumber = exData[headers[numberIndex]];
+                    const exerciseNumber = exData[numberHeader];
                     
                     const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
                     const snapshot = await getDocs(q);
@@ -313,11 +327,16 @@ function BatchUploadForm() {
                         ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '').replace(/\s*\(\+\d+\s*años\)/, '')) 
                         : [];
                     
-                    const finalData = { ...exData };
-                    finalData.Edad = edadArray;
-                    finalData.Visible = exData.Visible ? String(exData.Visible).toUpperCase() === 'TRUE' : true;
-                    finalData.userId = user.uid;
+                    const finalData: { [key: string]: any } = {};
+                    for (const key in exData) {
+                        if (exData[key] !== undefined) {
+                            finalData[key] = exData[key];
+                        }
+                    }
 
+                    finalData.Edad = edadArray;
+                    finalData.Visible = finalData.Visible ? String(finalData.Visible).toUpperCase() === 'TRUE' : true;
+                    finalData.userId = user.uid;
 
                     if (snapshot.empty) {
                         const docRef = doc(exercisesCollection);
