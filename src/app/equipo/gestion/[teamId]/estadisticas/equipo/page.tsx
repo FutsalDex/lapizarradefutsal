@@ -135,8 +135,9 @@ export default function TeamOverallStatsPage() {
             const isLocal = match.localTeam === team.name;
 
             // Match result
-            const userScore = isLocal ? match.localScore : match.visitorScore;
-            const opponentScore = isLocal ? match.visitorScore : match.localScore;
+            const userScore = isLocal ? (match.localScore || 0) : (match.visitorScore || 0);
+            const opponentScore = isLocal ? (match.visitorScore || 0) : (match.localScore || 0);
+
             if (userScore > opponentScore) wins++;
             else if (userScore < opponentScore) losses++;
             else draws++;
@@ -145,13 +146,13 @@ export default function TeamOverallStatsPage() {
             const playerStats1H = _.values(match.playerStats?.['1H'] || {});
             const playerStats2H = _.values(match.playerStats?.['2H'] || {});
             
-            acc.shotsOnTarget += _.sumBy(playerStats1H, 'shotsOnTarget') + _.sumBy(playerStats2H, 'shotsOnTarget');
-            acc.shotsOffTarget += _.sumBy(playerStats1H, 'shotsOffTarget') + _.sumBy(playerStats2H, 'shotsOffTarget');
-            acc.foulsCommitted += _.sumBy(playerStats1H, 'fouls') + _.sumBy(playerStats2H, 'fouls');
-            acc.turnovers += _.sumBy(playerStats1H, 'turnovers') + _.sumBy(playerStats2H, 'turnovers');
-            acc.recoveries += _.sumBy(playerStats1H, 'recoveries') + _.sumBy(playerStats2H, 'recoveries');
-            acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
-            acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
+            acc.shotsOnTarget += _.sumBy(playerStats1H, s => s.shotsOnTarget || 0) + _.sumBy(playerStats2H, s => s.shotsOnTarget || 0);
+            acc.shotsOffTarget += _.sumBy(playerStats1H, s => s.shotsOffTarget || 0) + _.sumBy(playerStats2H, s => s.shotsOffTarget || 0);
+            acc.foulsCommitted += _.sumBy(playerStats1H, s => s.fouls || 0) + _.sumBy(playerStats2H, s => s.fouls || 0);
+            acc.turnovers += _.sumBy(playerStats1H, s => s.turnovers || 0) + _.sumBy(playerStats2H, s => s.turnovers || 0);
+            acc.recoveries += _.sumBy(playerStats1H, s => s.recoveries || 0) + _.sumBy(playerStats2H, s => s.recoveries || 0);
+            acc.yellowCards += _.sumBy(playerStats1H, s => s.yellowCards || 0) + _.sumBy(playerStats2H, s => s.yellowCards || 0);
+            acc.redCards += _.sumBy(playerStats1H, s => s.redCards || 0) + _.sumBy(playerStats2H, s => s.redCards || 0);
             
             // Opponent stats
             const opponentStats1H = match.opponentStats?.['1H'] || {};
