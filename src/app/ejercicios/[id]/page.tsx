@@ -15,6 +15,28 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
+function mapExercise(doc: any): Exercise {
+    const data = doc;
+    return {
+        id: doc.id,
+        name: data['Ejercicio'] || 'Ejercicio sin nombre',
+        description: data['Descripción de la tarea'] || '',
+        category: data['Categoría'] || 'Sin categoría',
+        fase: data['Fase'] || 'Fase no especificada',
+        edad: data['Edad'] || [],
+        objectives: data['Objetivos'] || '',
+        duration: data['Duración (min)'] || '0',
+        numberOfPlayers: data['Número de jugadores'] || '',
+        variations: data['Variantes'] || '',
+        consejos: data['Consejos para el entrenador'] || '',
+        image: data['Imagen'] || 'https://picsum.photos/seed/placeholder/800/600',
+        aiHint: data['aiHint'] || '',
+        visible: data['Visible'] !== false,
+        ...data
+    };
+}
+
+
 export default function ExerciseDetailPage() {
   const params = useParams();
   const { id } = params;
@@ -25,7 +47,9 @@ export default function ExerciseDetailPage() {
     return doc(firestore, 'exercises', id);
   }, [firestore, id]);
 
-  const { data: exercise, isLoading } = useDoc<Exercise>(exerciseRef);
+  const { data: rawExercise, isLoading } = useDoc<any>(exerciseRef);
+  
+  const exercise = rawExercise ? mapExercise(rawExercise) : null;
 
   if (isLoading) {
     return (
@@ -65,8 +89,7 @@ export default function ExerciseDetailPage() {
     );
   }
   
-  const edadArray = exercise.edad ? Object.keys(exercise.edad).filter(k => exercise.edad[k]) : [];
-
+  const edadArray = Array.isArray(exercise.edad) ? exercise.edad : [];
 
   return (
     <div className="container mx-auto px-4 py-8">

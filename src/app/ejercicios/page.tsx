@@ -2,19 +2,41 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Exercise } from '@/lib/data';
-import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye } from 'lucide-react';
+import { Heart, Search, Filter, Eye, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { FutsalCourt } from '@/components/futsal-court';
+
+function mapExercise(doc: any): Exercise {
+    const data = doc;
+    return {
+        id: doc.id,
+        name: data['Ejercicio'] || 'Ejercicio sin nombre',
+        description: data['Descripción de la tarea'] || '',
+        category: data['Categoría'] || 'Sin categoría',
+        fase: data['Fase'] || 'Fase no especificada',
+        edad: data['Edad'] || [],
+        objectives: data['Objetivos'] || '',
+        duration: data['Duración (min)'] || '0',
+        numberOfPlayers: data['Número de jugadores'] || '',
+        variations: data['Variantes'] || '',
+        consejos: data['Consejos para el entrenador'] || '',
+        image: data['Imagen'] || 'https://picsum.photos/seed/placeholder/600/400',
+        aiHint: data['aiHint'] || '',
+        visible: data['Visible'] !== false,
+        ...data
+    };
+}
+
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,8 +57,13 @@ export default function EjerciciosPage() {
     return collection(firestore, `users/${user.uid}/favorites`);
   }, [firestore, user]);
 
-  const { data: exercises, isLoading: isLoadingExercises } = useCollection<Exercise>(exercisesCollection);
+  const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
   const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
+
+  const exercises = useMemo(() => {
+      if (!rawExercises) return [];
+      return rawExercises.map(mapExercise);
+  }, [rawExercises]);
 
   const favoriteIds = useMemo(() => new Set(favorites?.map(fav => fav.id)), [favorites]);
 
@@ -59,18 +86,19 @@ export default function EjerciciosPage() {
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
       const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || (exercise.edad && typeof exercise.edad === 'object' && !Array.isArray(exercise.edad) && exercise.edad[ageFilter.toLowerCase()]);
+      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.includes(ageFilter.toLowerCase()));
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
   }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
   
   const isLoading = isLoadingExercises || isLoadingFavorites;
+  const totalVisibleExercises = useMemo(() => exercises.filter(e => e.visible).length, [exercises]);
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold font-headline text-primary">Biblioteca de Ejercicios</h1>
+      <div className="mb-8 text-left">
+        <h1 className="text-4xl font-bold font-headline text-foreground">Biblioteca de Ejercicios</h1>
         <p className="text-lg text-muted-foreground mt-2">Explora nuestra colección de ejercicios de futsal. Filtra por nombre, fase, categoría o edad.</p>
       </div>
       
@@ -119,32 +147,31 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todas">Todas las Edades</SelectItem>
-                <SelectItem value="Infantil">Infantil</SelectItem>
-                <SelectItem value="Cadete">Cadete</SelectItem>
-                <SelectItem value="Juvenil">Juvenil</SelectItem>
-                <SelectItem value="Senior">Senior</SelectItem>
+                <SelectItem value="infantil">Infantil</SelectItem>
+                <SelectItem value="cadete">Cadete</SelectItem>
+                <SelectItem value="juvenil">Juvenil</SelectItem>
+                <SelectItem value="senior">Senior</SelectItem>
               </SelectContent>
             </Select>
         </div>
         {!isLoading && exercises && (
-            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {exercises.filter(e => e.visible).length} ejercicios.</p>
+            <p className="text-sm text-muted-foreground mt-4">Mostrando {filteredExercises.length} de {totalVisibleExercises} ejercicios.</p>
         )}
       </div>
       
       {isLoading && (
         <>
           <p className="text-sm text-muted-foreground text-center mb-6">Cargando ejercicios...</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm">
-                <Skeleton className="h-56 w-full" />
-                <CardContent className="p-4 flex-grow">
-                  <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="aspect-video w-full" />
+                <CardContent className="p-4 flex-grow space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                   <Skeleton className="h-4 w-1/2" />
+                   <Skeleton className="h-4 w-full" />
+                   <Skeleton className="h-4 w-2/3" />
                 </CardContent>
-                <CardFooter className="p-4 bg-muted/30 flex justify-between items-center">
-                  <Skeleton className="h-9 w-24" />
-                  <Skeleton className="h-9 w-9 rounded-full" />
-                </CardFooter>
               </Card>
             ))}
           </div>
@@ -153,38 +180,39 @@ export default function EjerciciosPage() {
 
       {!isLoading && exercises && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredExercises.map((exercise) => (
-              <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300">
-                <div className="relative h-56 w-full">
-                  <Image
-                    src={exercise.image || 'https://picsum.photos/seed/placeholder/600/400'}
-                    alt={exercise.name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-contain p-2"
-                    data-ai-hint={exercise.aiHint}
-                  />
+              <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
+                <div className="relative aspect-video w-full bg-muted">
+                    {/* We can use FutsalCourt as a placeholder background */}
+                    <FutsalCourt className="absolute inset-0 w-full h-full object-cover" />
                 </div>
-                <CardContent className="p-4 flex-grow">
-                  <h3 className="font-bold text-lg leading-tight truncate font-headline">{exercise.name}</h3>
+                <CardContent className="p-4 flex-grow flex flex-col">
+                  <h3 className="font-bold text-lg leading-tight truncate font-headline text-foreground mb-2">{exercise.name}</h3>
+                  <div className="space-y-1.5 text-xs text-muted-foreground flex-grow">
+                      <p><span className='font-semibold text-foreground'>Fase:</span> {exercise.fase}</p>
+                      <p className="capitalize"><span className='font-semibold text-foreground'>Edad:</span> {Array.isArray(exercise.edad) ? exercise.edad.join(', ') : ''}</p>
+                      <p><span className='font-semibold text-foreground'>Duración:</span> {exercise.duration} min</p>
+                      <p className="line-clamp-2 pt-2"><span className='font-semibold text-foreground'>Descripción:</span> {exercise.description}</p>
+                  </div>
+
+                  <div className="pt-4 flex justify-between items-center">
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/ejercicios/${exercise.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Ficha
+                        </Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
+                        <Heart className={cn(
+                            "h-5 w-5 transition-colors",
+                            favoriteIds.has(exercise.id) 
+                            ? "text-red-500 fill-red-500" 
+                            : "text-muted-foreground group-hover:text-red-500"
+                        )} />
+                    </Button>
+                  </div>
                 </CardContent>
-                 <CardFooter className="p-4 bg-muted/30 flex justify-between items-center">
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/ejercicios/${exercise.id}`}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Ver Ficha
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
-                    <Heart className={cn(
-                        "h-5 w-5 transition-colors",
-                        favoriteIds.has(exercise.id) 
-                          ? "text-red-500 fill-red-500" 
-                          : "text-muted-foreground group-hover:text-red-500"
-                    )} />
-                  </Button>
-                </CardFooter>
               </Card>
             ))}
           </div>

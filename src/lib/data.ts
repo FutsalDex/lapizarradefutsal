@@ -5,68 +5,36 @@ const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.star
 
 export type Exercise = {
   id: string;
-  name: string;
-  description: string;
-  category: string;
-  fase?: string; // Not in user schema
-  edad: { [key: string]: boolean };
-  objectives: string;
-  duration: string;
-  numberOfPlayers: string;
-  variations: string;
-  consejos: string;
-  image: string;
+  name: string; // This will be mapped from 'Ejercicio'
+  description: string; // Mapped from 'Descripción de la tarea'
+  category: string; // Mapped from 'Categoría'
+  fase: string; // Mapped from 'Fase'
+  edad: string[]; // Mapped from 'Edad'
+  objectives: string; // Mapped from 'Objetivos'
+  duration: string; // Mapped from 'Duración (min)'
+  numberOfPlayers: string; // Mapped from 'Número de jugadores'
+  variations: string; // Mapped from 'Variantes'
+  consejos: string; // Mapped from 'Consejos para el entrenador'
+  image: string; // Mapped from 'Imagen'
   aiHint?: string;
   visible: boolean;
   userId?: string;
   createdAt?: any;
+
+  // Raw fields from Firestore
+  'Ejercicio'?: string;
+  'Descripción de la tarea'?: string;
+  'Categoría'?: string;
+  'Fase'?: string;
+  'Edad'?: string[];
+  'Objetivos'?: string;
+  'Duración (min)'?: string;
+  'Número de jugadores'?: string;
+  'Variantes'?: string;
+  'Consejos para el entrenador'?: string;
+  'Imagen'?: string;
 };
 
-export const exercises: Exercise[] = [
-  // This is mock data and might not be fully representative of Firestore.
-  // The Exercise type definition is the source of truth for fields.
-  {
-    id: '1',
-    name: 'Rondo 4 vs 1',
-    description: 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
-    category: 'Técnica',
-    fase: 'Fase Principal',
-    edad: { infantil: true, cadete: true, juvenil: true, senior: true },
-    objectives: 'Mejorar el pase y la presión.',
-    duration: "10",
-    numberOfPlayers: '5',
-    consejos: 'Pases rápidos y movimiento constante.',
-    variations: 'Añadir un segundo defensor.',
-    image: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
-    aiHint: exerciseImages[0]?.imageHint || 'futsal drill',
-    visible: true,
-  },
-  {
-    id: '2',
-    name: 'Finalización 2 vs 1',
-    description: 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
-    category: 'Táctica',
-    fase: 'Fase Principal',
-    edad: { cadete: true, juvenil: true, senior: true },
-    objectives: 'Mejorar la toma de decisiones en ataque.',
-    duration: "15",
-    numberOfPlayers: '3 + Portero',
-    consejos: 'Atraer al defensor antes de pasar.',
-    variations: 'Limitar el número de toques.',
-    image: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
-    aiHint: exerciseImages[1]?.imageHint || 'futsal attack',
-    visible: true,
-  },
-  // Add other mock exercises if needed
-];
-
-
-export type Session = {
-    id: string;
-    name: string;
-    date: string;
-    exercises: Partial<Exercise>[]; // Can be partial if just storing references
-}
 
 export const sessions: Session[] = [
     {
@@ -88,6 +56,14 @@ export const sessions: Session[] = [
         exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
     }
 ]
+
+export type Session = {
+    id: string;
+    name: string;
+    date: string;
+    exercises: Partial<Exercise>[]; // Can be partial if just storing references
+}
+
 
 export type Match = {
     id: string;
