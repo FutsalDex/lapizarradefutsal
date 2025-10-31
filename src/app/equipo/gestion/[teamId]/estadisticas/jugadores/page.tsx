@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import _ from 'lodash';
