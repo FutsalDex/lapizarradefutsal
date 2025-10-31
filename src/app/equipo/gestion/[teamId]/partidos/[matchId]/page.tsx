@@ -204,13 +204,13 @@ const Scoreboard = ({
         
         <div className="flex justify-center items-center gap-4 mb-4">
              <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-16 mx-auto", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                TM {localTimeouts > 0 && `${localTimeouts}`}
+                TM
              </Button>
              <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                 {formatTime(time)}
             </div>
             <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-16 mx-auto", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                TM {visitorTimeouts > 0 && `${visitorTimeouts}`}
+                TM
             </Button>
         </div>
 
