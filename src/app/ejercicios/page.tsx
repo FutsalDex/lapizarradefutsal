@@ -89,7 +89,7 @@ export default function EjerciciosPage() {
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
       const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.map(e => e.toLowerCase()).includes(ageFilter.toLowerCase()));
+      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.map(e => String(e).toLowerCase()).includes(ageFilter.toLowerCase()));
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
