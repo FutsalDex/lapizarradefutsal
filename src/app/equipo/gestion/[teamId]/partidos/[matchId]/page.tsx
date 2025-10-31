@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -558,9 +558,10 @@ export default function MatchStatsPage() {
   const [time, setTime] = useState(0); 
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [period, setPeriod] = useState<Period>('1H');
+  const [isSaving, setIsSaving] = useState(false);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
-  const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
+  const { data: remoteMatchData, isLoading: isLoadingMatch, error } = useDoc<Match>(matchRef);
   
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
@@ -572,31 +573,24 @@ export default function MatchStatsPage() {
     if (remoteMatchData) {
       setLocalMatchData(prevLocal => {
         const migratedData = migrateLegacyMatchData(remoteMatchData);
-        if (_.isEqual(prevLocal, migratedData)) {
-            return prevLocal;
+        // Only update local state if remote data is different to avoid re-renders
+        if (!_.isEqual(prevLocal, migratedData)) {
+            return migratedData;
         }
-        return migratedData;
+        return prevLocal;
       });
     }
   }, [remoteMatchData]);
 
-  const debouncedUpdate = useCallback(_.debounce((data: Partial<Match>) => {
-    if (!matchRef || remoteMatchData?.isFinished) return;
-    // When updating, make sure to use the server timestamp for fields that require it
-    const dataWithTimestamp = { ...data, updatedAt: serverTimestamp() };
-    updateDoc(matchRef, dataWithTimestamp);
-  }, 1000), [matchRef, remoteMatchData?.isFinished]);
-
   const handleUpdate = (data: Partial<Match>) => {
     if (localMatchData?.isFinished) return;
     setLocalMatchData(prevData => {
+        if (!prevData) return null;
         const newState = _.mergeWith({}, prevData, data, (objValue, srcValue) => {
-            if (_.isArray(objValue)) {
-                // For arrayUnion, we need to merge arrays manually
-                return _.union(objValue, srcValue);
+            if (_.isArray(objValue) && _.isArray(srcValue)) {
+                return _.unionWith(objValue, srcValue, _.isEqual);
             }
         });
-        debouncedUpdate(newState);
         return newState as Match;
     });
   };
@@ -614,9 +608,8 @@ export default function MatchStatsPage() {
                         const newLocalData = _.cloneDeep(prevData);
                         activePlayerIds.forEach(playerId => {
                             const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
-                            _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, currentMinutes + 1);
+                            _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, (currentMinutes || 0) + 1);
                         });
-                        debouncedUpdate({ playerStats: newLocalData.playerStats });
                         return newLocalData;
                     });
                 }
@@ -628,15 +621,38 @@ export default function MatchStatsPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerActive, time, maxTime, activePlayerIds, debouncedUpdate, period]);
+    }, [isTimerActive, time, maxTime, activePlayerIds, period]);
+
+    const handleManualSave = async () => {
+        if (!matchRef || !localMatchData) return;
+        setIsSaving(true);
+        try {
+            await updateDoc(matchRef, {
+                ...localMatchData,
+                updatedAt: serverTimestamp(),
+            });
+            toast({
+                title: "Guardado",
+                description: "Los datos del partido se han guardado correctamente.",
+            });
+        } catch (err) {
+            console.error(err);
+            toast({
+                title: "Error al guardar",
+                description: "No se pudieron guardar los datos del partido.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
 
   const toggleMatchFinished = async () => {
     if (!matchRef || !localMatchData) return;
-    debouncedUpdate.flush();
+    await handleManualSave();
     const newStatus = !localMatchData.isFinished;
-    const finalData = { isFinished: newStatus };
-    await updateDoc(matchRef, finalData);
+    await updateDoc(matchRef, { isFinished: newStatus });
     toast({
         title: newStatus ? "Partido Finalizado" : "Partido Reabierto",
         description: `Las estadísticas ${newStatus ? 'finales han sido guardadas' : 'pueden ser editadas de nuevo'}.`
@@ -715,11 +731,14 @@ export default function MatchStatsPage() {
             <h1 className="text-2xl font-bold font-headline text-primary flex items-center gap-2">
                 <ClipboardList /> Marcador y Estadísticas en Vivo
             </h1>
-            <p className="text-muted-foreground">Gestiona el partido en tiempo real. Los cambios se guardan automáticamente.</p>
+            <p className="text-muted-foreground">Gestiona el partido en tiempo real y pulsa Guardar para registrar los cambios.</p>
         </div>
         <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
                 <ArrowLeft className="mr-2 h-4 w-4"/> Volver
+            </Button>
+            <Button onClick={handleManualSave} disabled={isSaving}>
+                <Save className="mr-2 h-4 w-4"/> {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
             <Button onClick={toggleMatchFinished} variant={localMatchData.isFinished ? "outline" : "destructive"}>
                 {localMatchData.isFinished 
