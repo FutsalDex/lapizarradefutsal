@@ -20,6 +20,7 @@
         "duration": {"type": "string"},
         "category": {"type": "string"},
         "consejos": {"type": "string"},
+        "Espacio y materiales necesarios": {"type": "string"},
         "edad": {
             "type": "object",
             "properties": {
@@ -326,5 +327,3 @@
     }
   }
 }
-
-    

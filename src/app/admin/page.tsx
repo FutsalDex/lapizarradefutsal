@@ -4,6 +4,7 @@
 import {
   Users,
   ChevronRight,
+  Upload,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,12 @@ const adminItems = [
     description: 'Visualiza y gestiona todos los equipos creados en la plataforma.',
     icon: <Users className="w-6 h-6 text-primary" />,
     href: '/admin/equipos',
+  },
+  {
+    title: 'Gestión de Ejercicios',
+    description: 'Añade ejercicios a la biblioteca, individualmente o en lote.',
+    icon: <Upload className="w-6 h-6 text-primary" />,
+    href: '/admin/ejercicios',
   },
 ];
 
