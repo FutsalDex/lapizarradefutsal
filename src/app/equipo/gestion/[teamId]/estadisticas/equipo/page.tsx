@@ -264,6 +264,22 @@ export default function TeamOverallStatsPage() {
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl">Rendimiento del Equipo</CardTitle>
+                </CardHeader>
+                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <StatCard title="Tiros Totales" value={totalShots} icon={BarChart} />
+                    <StatCard title="Tiros a Puerta" value={performance.shotsOnTarget} icon={Crosshair} />
+                    <StatCard title="Tiros Fuera" value={performance.shotsOffTarget} icon={Target} />
+                    <StatCard title="Faltas Cometidas" value={performance.foulsCommitted} icon={ShieldAlert} />
+                    <StatCard title="Faltas Recibidas" value={performance.foulsReceived} icon={ShieldCheck} />
+                    <StatCard title="Pérdidas de Balón" value={performance.turnovers} icon={Shuffle} />
+                    <StatCard title="Robos de Balón" value={performance.recoveries} icon={Repeat} />
+                    <StatCard title="Tarjetas Amarillas" value={performance.yellowCards} icon={YellowCardIcon} />
+                 </CardContent>
+            </Card>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card>
                     <CardHeader>
@@ -286,22 +302,6 @@ export default function TeamOverallStatsPage() {
                     </CardContent>
                 </Card>
             </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl">Rendimiento del Equipo</CardTitle>
-                </CardHeader>
-                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <StatCard title="Tiros Totales" value={totalShots} icon={BarChart} />
-                    <StatCard title="Tiros a Puerta" value={performance.shotsOnTarget} icon={Crosshair} />
-                    <StatCard title="Tiros Fuera" value={performance.shotsOffTarget} icon={Target} />
-                    <StatCard title="Faltas Cometidas" value={performance.foulsCommitted} icon={ShieldAlert} />
-                    <StatCard title="Faltas Recibidas" value={performance.foulsReceived} icon={ShieldCheck} />
-                    <StatCard title="Pérdidas de Balón" value={performance.turnovers} icon={Shuffle} />
-                    <StatCard title="Robos de Balón" value={performance.recoveries} icon={Repeat} />
-                    <StatCard title="Tarjetas Amarillas" value={performance.yellowCards} icon={YellowCardIcon} />
-                 </CardContent>
-            </Card>
         </div>
     );
 }
