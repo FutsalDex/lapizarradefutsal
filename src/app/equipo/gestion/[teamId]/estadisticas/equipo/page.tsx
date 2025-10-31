@@ -7,12 +7,14 @@ import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Trophy, BarChart, ShieldCheck, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Trophy, BarChart, ShieldCheck, TrendingDown, TrendingUp, Crosshair, Target, ShieldAlert, Repeat, Shuffle, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import _ from 'lodash';
+
 
 // ====================
 // TYPES
@@ -23,14 +25,26 @@ interface Team {
   name: string;
 }
 
+interface PlayerStats {
+    goals?: number; assists?: number; yellowCards?: number; redCards?: number; fouls?: number;
+    shotsOnTarget?: number; shotsOffTarget?: number; recoveries?: number; turnovers?: number;
+}
+interface OpponentStats {
+    goals?: number; fouls?: number; shotsOnTarget?: number; shotsOffTarget?: number;
+    recoveries?: number; turnovers?: number;
+}
+
 interface Match {
   id: string;
   localTeam: string;
   visitorTeam: string;
   localScore: number;
   visitorScore: number;
+  teamId: string;
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
+  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
+  opponentStats?: { ['1H']?: Partial<OpponentStats>, ['2H']?: Partial<OpponentStats> };
 }
 
 type MatchResult = 'win' | 'loss' | 'draw';
@@ -39,7 +53,7 @@ type MatchResult = 'win' | 'loss' | 'draw';
 // STATS CARD COMPONENT
 // ====================
 
-const StatCard = ({ title, value, icon: Icon }: { title: string, value: number, icon: React.ElementType }) => (
+const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
     <Card className="flex items-center p-4">
         <div className="bg-primary/10 text-primary p-3 rounded-lg mr-4">
             <Icon className="w-6 h-6" />
@@ -50,6 +64,9 @@ const StatCard = ({ title, value, icon: Icon }: { title: string, value: number, 
         </div>
     </Card>
 );
+
+const YellowCardIcon = () => <div className="w-4 h-5 bg-yellow-400 border border-black rounded-sm" />;
+
 
 // ====================
 // MAIN PAGE COMPONENT
@@ -82,27 +99,60 @@ export default function TeamOverallStatsPage() {
     }, [finishedMatches, filter]);
     
     const teamStats = useMemo(() => {
-        if (!team || !filteredMatches) return { played: 0, wins: 0, losses: 0, draws: 0 };
+        const initialPerformanceStats = {
+            shotsOnTarget: 0, shotsOffTarget: 0,
+            foulsCommitted: 0, foulsReceived: 0,
+            turnovers: 0, recoveries: 0,
+            yellowCards: 0, redCards: 0,
+        };
+
+        if (!team || !filteredMatches) return { 
+            played: 0, wins: 0, losses: 0, draws: 0,
+            performance: initialPerformanceStats
+        };
         
         let wins = 0;
         let losses = 0;
         let draws = 0;
         
-        filteredMatches.forEach(match => {
+        const performance = filteredMatches.reduce((acc, match) => {
             const isLocal = match.localTeam === team.name;
+
+            // Match result
             const userScore = isLocal ? match.localScore : match.visitorScore;
             const opponentScore = isLocal ? match.visitorScore : match.localScore;
-
             if (userScore > opponentScore) wins++;
             else if (userScore < opponentScore) losses++;
             else draws++;
-        });
+
+            // Player stats
+            const playerStats1H = _.values(match.playerStats?.['1H'] || {});
+            const playerStats2H = _.values(match.playerStats?.['2H'] || {});
+            
+            acc.shotsOnTarget += _.sumBy(playerStats1H, 'shotsOnTarget') + _.sumBy(playerStats2H, 'shotsOnTarget');
+            acc.shotsOffTarget += _.sumBy(playerStats1H, 'shotsOffTarget') + _.sumBy(playerStats2H, 'shotsOffTarget');
+            acc.foulsCommitted += _.sumBy(playerStats1H, 'fouls') + _.sumBy(playerStats2H, 'fouls');
+            acc.turnovers += _.sumBy(playerStats1H, 'turnovers') + _.sumBy(playerStats2H, 'turnovers');
+            acc.recoveries += _.sumBy(playerStats1H, 'recoveries') + _.sumBy(playerStats2H, 'recoveries');
+            acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
+            acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
+            
+            // Opponent stats for received fouls
+            const opponentStats1H = match.opponentStats?.['1H'] || {};
+            const opponentStats2H = match.opponentStats?.['2H'] || {};
+
+            acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
+
+            return acc;
+
+        }, initialPerformanceStats);
 
         return {
             played: filteredMatches.length,
             wins,
             losses,
-            draws
+            draws,
+            performance
         };
 
     }, [team, filteredMatches]);
@@ -123,6 +173,14 @@ export default function TeamOverallStatsPage() {
                         <Skeleton className="h-24 w-full" />
                     </CardContent>
                 </Card>
+                 <Card>
+                    <CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader>
+                    <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                </Card>
             </div>
         );
     }
@@ -130,10 +188,14 @@ export default function TeamOverallStatsPage() {
     if (!team) {
         return <div className="container mx-auto text-center py-10">Equipo no encontrado.</div>;
     }
+    
+    const { performance } = teamStats;
+    const totalShots = performance.shotsOnTarget + performance.shotsOffTarget;
+
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
+        <div className="container mx-auto px-4 py-8 space-y-8">
+            <div className="flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <Trophy className="w-10 h-10 text-primary" />
                     <div>
@@ -173,8 +235,21 @@ export default function TeamOverallStatsPage() {
                 </CardContent>
             </Card>
 
-            {/* TODO: Add more sections like "Rendimiento del Equipo" with charts */}
-
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl">Rendimiento del Equipo</CardTitle>
+                </CardHeader>
+                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <StatCard title="Tiros Totales" value={totalShots} icon={BarChart} />
+                    <StatCard title="Tiros a Puerta" value={performance.shotsOnTarget} icon={Crosshair} />
+                    <StatCard title="Tiros Fuera" value={performance.shotsOffTarget} icon={Target} />
+                    <StatCard title="Faltas Cometidas" value={performance.foulsCommitted} icon={ShieldAlert} />
+                    <StatCard title="Faltas Recibidas" value={performance.foulsReceived} icon={ShieldCheck} />
+                    <StatCard title="Pérdidas de Balón" value={performance.turnovers} icon={Shuffle} />
+                    <StatCard title="Robos de Balón" value={performance.recoveries} icon={Repeat} />
+                    <StatCard title="Tarjetas Amarillas" value={performance.yellowCards} icon={YellowCardIcon} />
+                 </CardContent>
+            </Card>
         </div>
     );
 }
