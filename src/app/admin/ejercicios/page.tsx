@@ -34,7 +34,14 @@ const categories = [
     "Transiciones (ofensivas y defensivas)",
 ];
 const phases = ["Inicial", "Principal", "Final"];
-const ages = ["Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil", "Senior"];
+const ages = [
+    { value: "Benjamín", label: "Benjamín (8-9 años)" },
+    { value: "Alevín", label: "Alevín (10-11 años)" },
+    { value: "Infantil", label: "Infantil (12-13 años)" },
+    { value: "Cadete", label: "Cadete (14-15 años)" },
+    { value: "Juvenil", label: "Juvenil (16-18 años)" },
+    { value: "Senior", label: "Senior (+18 años)" },
+];
 
 
 const exerciseSchema = z.object({
@@ -140,23 +147,23 @@ function AddExerciseForm() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {ages.map((item) => (
                         <FormField
-                            key={item}
+                            key={item.value}
                             control={form.control}
                             name="Edad"
                             render={({ field }) => {
                             return (
-                                <FormItem key={item} className="flex flex-row items-start space-x-3 space-y-0">
+                                <FormItem key={item.value} className="flex flex-row items-start space-x-3 space-y-0">
                                 <FormControl>
                                     <Checkbox
-                                        checked={field.value?.includes(item)}
+                                        checked={field.value?.includes(item.value)}
                                         onCheckedChange={(checked) => {
                                             return checked
-                                            ? field.onChange([...(field.value || []), item])
-                                            : field.onChange(field.value?.filter((value) => value !== item));
+                                            ? field.onChange([...(field.value || []), item.value])
+                                            : field.onChange(field.value?.filter((value) => value !== item.value));
                                         }}
                                     />
                                 </FormControl>
-                                <FormLabel className="font-normal">{item}</FormLabel>
+                                <FormLabel className="font-normal">{item.label}</FormLabel>
                                 </FormItem>
                             );
                             }}
