@@ -300,7 +300,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                                                 <Select 
                                                     defaultValue={member.role}
                                                     onValueChange={(newRole) => handleRoleChange(member.invitationId!, newRole)}
-                                                    disabled={!isOwner}
+                                                    disabled={!isOwner && member.id !== team.ownerId}
                                                 >
                                                     <SelectTrigger>
                                                         <SelectValue />
@@ -382,65 +382,117 @@ export default function StaffPage() {
   
 
   const fetchMemberUsers = useCallback(async () => {
-    if (!firestore || !invitations) {
+    if (!firestore || !invitations || !team) {
       setIsLoadingMembers(false);
       return;
     }
     
-    const memberEmails = invitations
-      .map(inv => inv.invitedUserEmail);
+    // Create a unique list of member emails from invitations
+    const memberEmails = [...new Set(invitations.map(inv => inv.invitedUserEmail))];
+
+    // Ensure owner's user data is fetched if they don't have an invitation
+    // Although the new logic adds one, this is a good safeguard.
+    const ownerUserRef = doc(firestore, 'users', team.ownerId);
       
     if (memberEmails.length === 0) {
-      setMemberUsers([]);
-      setIsLoadingMembers(false);
+      // Still might need to fetch the owner
+       try {
+        const ownerSnap = await getDoc(ownerUserRef);
+        if (ownerSnap.exists()) {
+            setMemberUsers([{ id: ownerSnap.id, ...ownerSnap.data() } as UserProfile]);
+        } else {
+            setMemberUsers([]);
+        }
+      } catch (e) {
+          setMemberUsers([]);
+      } finally {
+          setIsLoadingMembers(false);
+      }
       return;
     }
     
     setIsLoadingMembers(true);
     try {
-      if (memberEmails.length > 0) {
-        // Firestore 'in' query supports up to 30 elements.
-        const q = query(collection(firestore, 'users'), where('email', 'in', memberEmails.slice(0, 30)));
-        const snapshot = await getDocs(q);
-        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-        setMemberUsers(usersData);
-      } else {
-        setMemberUsers([]);
-      }
+        const fetchedUsers = new Map<string, UserProfile>();
+
+        // Fetch users from invitations
+        if (memberEmails.length > 0) {
+            // Firestore 'in' query supports up to 30 elements.
+            const q = query(collection(firestore, 'users'), where('email', 'in', memberEmails.slice(0, 30)));
+            const snapshot = await getDocs(q);
+            snapshot.docs.forEach(doc => {
+              const userData = { id: doc.id, ...doc.data() } as UserProfile;
+              fetchedUsers.set(userData.id, userData);
+            });
+        }
+        
+        // Fetch owner if not already fetched
+        if (!fetchedUsers.has(team.ownerId)) {
+            const ownerSnap = await getDoc(ownerUserRef);
+            if (ownerSnap.exists()) {
+                 const ownerData = { id: ownerSnap.id, ...ownerSnap.data() } as UserProfile;
+                 fetchedUsers.set(ownerData.id, ownerData);
+            }
+        }
+        
+        setMemberUsers(Array.from(fetchedUsers.values()));
+
     } catch (error) {
       console.error("Error fetching member users:", error);
       setMemberUsers([]);
     } finally {
       setIsLoadingMembers(false);
     }
-  }, [firestore, invitations]);
+  }, [firestore, invitations, team]);
 
   useEffect(() => {
-    if (!isLoadingInvitations && invitations) {
+    if (!isLoadingInvitations && invitations && !isLoadingTeam && team) {
       fetchMemberUsers();
     }
-  }, [invitations, isLoadingInvitations, fetchMemberUsers]);
+  }, [invitations, isLoadingInvitations, team, isLoadingTeam, fetchMemberUsers]);
 
   const teamMembers: TeamMember[] = useMemo(() => {
-    if (!invitations) return [];
+    if (!invitations || !memberUsers || !team) return [];
     
-    return invitations.map(inv => {
-      const userData = memberUsers?.find(u => u.email === inv.invitedUserEmail);
-      return {
-        id: userData?.id || '',
-        displayName: inv.name || userData?.displayName,
-        email: inv.invitedUserEmail,
-        photoURL: userData?.photoURL,
-        role: inv.role,
-        invitationId: inv.id,
-        status: inv.status,
+    const membersMap = new Map<string, TeamMember>();
+
+    invitations.forEach(inv => {
+      const userData = memberUsers.find(u => u.email === inv.invitedUserEmail);
+      if (userData) {
+          membersMap.set(userData.id, {
+            id: userData.id,
+            displayName: inv.name || userData.displayName,
+            email: inv.invitedUserEmail,
+            photoURL: userData.photoURL,
+            role: inv.role,
+            invitationId: inv.id,
+            status: inv.status,
+          });
       }
-    }).sort((a, b) => {
-        if (a.id === team?.ownerId) return -1;
-        if (b.id === team?.ownerId) return 1;
-        return 0;
     });
-  }, [invitations, memberUsers, team?.ownerId]);
+
+    // Ensure the owner is in the list, even if they have no explicit invitation (legacy)
+    if (!membersMap.has(team.ownerId)) {
+        const ownerData = memberUsers.find(u => u.id === team.ownerId);
+        if (ownerData) {
+            membersMap.set(ownerData.id, {
+                id: ownerData.id,
+                displayName: ownerData.displayName,
+                email: ownerData.email,
+                photoURL: ownerData.photoURL,
+                role: 'Propietario',
+                invitationId: '', // No invitation ID for legacy owners
+                status: 'accepted'
+            });
+        }
+    }
+
+    return Array.from(membersMap.values()).sort((a, b) => {
+        if (a.id === team.ownerId) return -1;
+        if (b.id === team.ownerId) return 1;
+        return (a.displayName || '').localeCompare(b.displayName || '');
+    });
+  }, [invitations, memberUsers, team]);
 
   const isOwner = user && team && user.uid === team.ownerId;
   const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
@@ -521,3 +573,4 @@ export default function StaffPage() {
     </div>
   );
 }
+
