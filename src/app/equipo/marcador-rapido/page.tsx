@@ -132,10 +132,6 @@ export default function QuickScoreboardPage() {
     const [maxTimeouts, setMaxTimeouts] = useState(1);
 
     // Main Scoreboard State
-    const [localScore, setLocalScore] = useState(0);
-    const [visitorScore, setVisitorScore] = useState(0);
-    const [localPeriodFouls, setLocalPeriodFouls] = useState(0);
-    const [visitorPeriodFouls, setVisitorPeriodFouls] = useState(0);
     const [localTimeouts, setLocalTimeouts] = useState(0);
     const [visitorTimeouts, setVisitorTimeouts] = useState(0);
     
@@ -176,18 +172,6 @@ export default function QuickScoreboardPage() {
         const remainingSeconds = seconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     };
-
-    const handlePeriodFoulChange = (team: 'local' | 'visitor', increment: boolean) => {
-        const setter = team === 'local' ? setLocalPeriodFouls : setVisitorPeriodFouls;
-        setter(prev => {
-            const newValue = increment ? prev + 1 : Math.max(0, prev - 1);
-            if (increment && newValue > 5) {
-                toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
-                return 6;
-            }
-            return newValue;
-        });
-    };
     
     const handleTimeout = (team: 'local' | 'visitor') => {
         const state = team === 'local' ? localTimeouts : visitorTimeouts;
@@ -201,10 +185,13 @@ export default function QuickScoreboardPage() {
     const resetPeriod = () => {
         setTime(matchDuration);
         setIsTimerActive(false);
-        setLocalPeriodFouls(0);
-        setVisitorPeriodFouls(0);
         setLocalTimeouts(0);
         setVisitorTimeouts(0);
+        setGeneralStats(prev => ({
+            ...prev,
+            local: { ...prev.local, fouls: 0 },
+            visitor: { ...prev.visitor, fouls: 0 },
+        }));
     };
 
     const handlePeriodChange = (newPeriod: number) => {
@@ -215,8 +202,6 @@ export default function QuickScoreboardPage() {
     };
     
     const resetMatch = () => {
-        setLocalScore(0);
-        setVisitorScore(0);
         setGeneralStats({
             local: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
             visitor: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
@@ -240,13 +225,16 @@ export default function QuickScoreboardPage() {
         setGeneralStats(prev => {
             const newStats = { ...prev };
             const currentValue = newStats[team][stat as keyof typeof newStats.local];
-            newStats[team][stat as keyof typeof newStats.local] = increment ? currentValue + 1 : Math.max(0, currentValue);
+            const newValue = increment ? currentValue + 1 : Math.max(0, currentValue);
+            newStats[team][stat as keyof typeof newStats.local] = newValue;
             
-            // Sync goals with main scoreboard
-            if (stat === 'goals') {
-                if(team === 'local') setLocalScore(newStats.local.goals);
-                else setVisitorScore(newStats.visitor.goals);
+            if (stat === 'fouls') {
+                if (increment && newValue > 5) {
+                    toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
+                     newStats[team][stat as keyof typeof newStats.local] = 6;
+                }
             }
+            
             return newStats;
         });
     };
@@ -257,14 +245,6 @@ export default function QuickScoreboardPage() {
         setConfigDuration(matchDuration / 60);
     }, [isSheetOpen, localTeam, visitorTeam, matchDuration]);
     
-    useEffect(() => {
-       setGeneralStats(prev => ({
-           ...prev,
-           local: { ...prev.local, goals: localScore },
-           visitor: { ...prev.visitor, goals: visitorScore }
-       }));
-    }, [localScore, visitorScore]);
-
 
     return (
         <div className="container mx-auto px-4 py-8 flex flex-col items-center">
@@ -284,16 +264,16 @@ export default function QuickScoreboardPage() {
                     <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
                         <div className="space-y-2">
                             <h2 className="text-xl md:text-2xl font-bold truncate">{localTeam}</h2>
-                             <FoulIndicator count={localPeriodFouls} />
+                             <FoulIndicator count={generalStats.local.fouls} />
                         </div>
                         
                         <div className="text-5xl md:text-6xl font-bold tabular-nums text-primary">
-                            {localScore} - {visitorScore}
+                            {generalStats.local.goals} - {generalStats.visitor.goals}
                         </div>
 
                         <div className="space-y-2">
                             <h2 className="text-xl md:text-2xl font-bold truncate">{visitorTeam}</h2>
-                            <FoulIndicator count={visitorPeriodFouls} />
+                            <FoulIndicator count={generalStats.visitor.fouls} />
                         </div>
                     </div>
                     
