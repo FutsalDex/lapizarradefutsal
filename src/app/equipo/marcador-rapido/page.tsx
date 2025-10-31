@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Play, Pause, RefreshCw, Plus, Minus, Flag, Settings, BarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
 const FoulIndicator = ({ count, max = 5 }: { count: number; max?: number }) => (
@@ -36,9 +36,8 @@ export default function QuickScoreboardPage() {
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [period, setPeriod] = useState(1);
     
-    // Config state for the sheet
+    // Config state for the dialog
     const [configDuration, setConfigDuration] = useState(25);
-    const [configTimeouts, setConfigTimeouts] = useState(1);
     const [configLocalName, setConfigLocalName] = useState('Local');
     const [configVisitorName, setConfigVisitorName] = useState('Visitante');
     const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -115,7 +114,6 @@ export default function QuickScoreboardPage() {
     const applySettings = () => {
         setLocalTeam(configLocalName);
         setVisitorTeam(configVisitorName);
-        setMaxTimeouts(configTimeouts);
         const newDurationInSeconds = configDuration * 60;
         setMatchDuration(newDurationInSeconds);
         if (!isTimerActive) {
@@ -129,8 +127,7 @@ export default function QuickScoreboardPage() {
         setConfigLocalName(localTeam);
         setConfigVisitorName(visitorTeam);
         setConfigDuration(matchDuration / 60);
-        setConfigTimeouts(maxTimeouts);
-    }, [isSheetOpen, localTeam, visitorTeam, matchDuration, maxTimeouts]);
+    }, [isSheetOpen, localTeam, visitorTeam, matchDuration]);
 
     return (
         <div className="container mx-auto px-4 py-8 flex flex-col items-center">
@@ -185,49 +182,33 @@ export default function QuickScoreboardPage() {
                         <Button onClick={resetPeriod} variant="outline" size="sm">
                             <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
                         </Button>
-                        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                            <SheetTrigger asChild>
+                        <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                            <DialogTrigger asChild>
                                  <Button variant="ghost" size="icon"><Settings /></Button>
-                            </SheetTrigger>
-                            <SheetContent>
-                                <SheetHeader>
-                                    <SheetTitle>Configuración del Marcador</SheetTitle>
-                                </SheetHeader>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>Configuración del Marcador</DialogTitle>
+                                </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="local-name">Nombre Equipo Local</Label>
+                                        <Label htmlFor="local-name">Equipo Local</Label>
                                         <Input id="local-name" value={configLocalName} onChange={(e) => setConfigLocalName(e.target.value)} />
                                     </div>
                                      <div className="space-y-2">
-                                        <Label htmlFor="visitor-name">Nombre Equipo Visitante</Label>
+                                        <Label htmlFor="visitor-name">Equipo Visitante</Label>
                                         <Input id="visitor-name" value={configVisitorName} onChange={(e) => setConfigVisitorName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="duration">Duración de la Parte (minutos)</Label>
+                                        <Label htmlFor="duration">Tiempo (min)</Label>
                                         <Input id="duration" type="number" value={configDuration} onChange={(e) => setConfigDuration(Number(e.target.value))} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="timeouts">Tiempos Muertos por Parte</Label>
-                                        <Input id="timeouts" type="number" value={configTimeouts} onChange={(e) => setConfigTimeouts(Number(e.target.value))} min="1" max="5"/>
-                                    </div>
-                                     <div className="space-y-2">
-                                        <Label>Puntuación</Label>
-                                        <div className='flex gap-4'>
-                                            <Input type="number" value={localScore} onChange={(e) => setLocalScore(Number(e.target.value))} />
-                                            <Input type="number" value={visitorScore} onChange={(e) => setVisitorScore(Number(e.target.value))} />
-                                        </div>
-                                    </div>
-                                     <div className="space-y-2">
-                                        <Label>Faltas</Label>
-                                         <div className='flex gap-4'>
-                                            <Input type="number" value={localFouls} onChange={(e) => setLocalFouls(Number(e.target.value))} />
-                                            <Input type="number" value={visitorFouls} onChange={(e) => setVisitorFouls(Number(e.target.value))} />
-                                        </div>
-                                    </div>
                                 </div>
-                                <Button onClick={applySettings} className="w-full">Aplicar Cambios</Button>
-                            </SheetContent>
-                        </Sheet>
+                                <DialogFooter>
+                                    <Button onClick={applySettings} className="w-full">Aplicar Cambios</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
                     {/* Period selection */}
