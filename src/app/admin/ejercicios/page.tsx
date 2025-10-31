@@ -273,17 +273,18 @@ function BatchUploadForm() {
                 const headerRow = rows[0];
                 const headers = headerRow.split(';').map(cleanHeader);
                 
-                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '');
+                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
                 
                 const normalizedHeaders = headers.map(normalizeHeader);
-                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'número', 'úmero'].includes(h));
-
+                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero'].includes(normalizeHeader(h)));
 
                 if (numeroIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
                     setIsSubmitting(false);
                     return;
                 }
+                
+                const numberHeader = headers[numeroIndex];
 
                 const exercisesFromCSV = rows.slice(1).map(row => {
                     const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
@@ -308,7 +309,7 @@ function BatchUploadForm() {
                 let createdCount = 0;
 
                 for (const ex of exercisesFromCSV) {
-                    const exerciseNumber = ex['Número'] || ex['numero'] || ex['úmero'];
+                    const exerciseNumber = ex[numberHeader];
                     if (!exerciseNumber) continue;
 
                     const edadValue = ex.Edad || ex.edad || '';
@@ -330,8 +331,9 @@ function BatchUploadForm() {
                             finalData[cleanKey] = data[key];
                         }
                     }
-
-                    const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
+                    
+                    // Use the original header for query `where`
+                    const q = query(exercisesCollection, where(numberHeader, '==', exerciseNumber));
                     const snapshot = await getDocs(q);
 
                     if (snapshot.empty) {
@@ -429,3 +431,5 @@ export default function AdminExercisesPage() {
         </div>
     );
 }
+
+    
