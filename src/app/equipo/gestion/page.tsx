@@ -147,10 +147,13 @@ function TeamList({ refreshKey }: { refreshKey: number }) {
   const teamsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
     
-    // Query for teams where the user is a member or the owner
+    // Query for teams where the user is a member OR the owner
     return query(
       collection(firestore, 'teams'),
-      where('memberIds', 'array-contains', user.uid)
+      or(
+        where('memberIds', 'array-contains', user.uid),
+        where('ownerId', '==', user.uid)
+      )
     );
   }, [firestore, user?.uid, refreshKey]);
 
