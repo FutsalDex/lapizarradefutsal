@@ -10,11 +10,12 @@ import { Exercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, Clock } from 'lucide-react';
+import { Heart, Search, Filter, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { FutsalCourt } from '@/components/futsal-court';
+import Image from 'next/image';
 
 function mapExercise(doc: any): Exercise {
     const data = doc;
@@ -30,7 +31,7 @@ function mapExercise(doc: any): Exercise {
         numberOfPlayers: data['Número de jugadores'] || '',
         variations: data['Variantes'] || '',
         consejos: data['Consejos para el entrenador'] || '',
-        image: data['Imagen'] || 'https://picsum.photos/seed/placeholder/600/400',
+        image: data['Imagen'] || '',
         aiHint: data['aiHint'] || '',
         visible: data['Visible'] !== false,
         ...data
@@ -184,8 +185,17 @@ export default function EjerciciosPage() {
             {filteredExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
                 <div className="relative aspect-video w-full bg-muted">
-                    {/* We can use FutsalCourt as a placeholder background */}
-                    <FutsalCourt className="absolute inset-0 w-full h-full object-cover" />
+                    {exercise.image ? (
+                        <Image
+                            src={exercise.image}
+                            alt={`Imagen de ${exercise.name}`}
+                            fill
+                            className="object-contain"
+                            data-ai-hint={exercise.aiHint}
+                        />
+                    ) : (
+                        <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
+                    )}
                 </div>
                 <CardContent className="p-4 flex-grow flex flex-col">
                   <h3 className="font-bold text-lg leading-tight truncate font-headline text-foreground mb-2">{exercise.name}</h3>
