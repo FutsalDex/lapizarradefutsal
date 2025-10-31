@@ -81,20 +81,24 @@ function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
         return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
     }, [firestore, teamId]);
 
-    const { data: staffMembers } = useCollection<TeamMember>(teamMembersQuery);
+    const { data: staffMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersQuery);
 
     const fetchStaffData = useCallback(async () => {
+        if (isLoadingMembers || !team.ownerId) {
+            return;
+        }
+
         setIsLoadingStaff(true);
         const combinedStaff: TeamMember[] = staffMembers ? [...staffMembers] : [];
         
         // Ensure owner is included if not already in members
-        if (team.ownerId && !combinedStaff.some(m => m.userId === team.ownerId)) {
+        if (!combinedStaff.some(m => m.userId === team.ownerId)) {
             try {
                 const ownerUserRef = doc(firestore, 'users', team.ownerId);
                 const userSnap = await getDoc(ownerUserRef);
+                
                 if (userSnap.exists()) {
                     const userData = userSnap.data() as UserProfile;
-                    // Find if the owner has a role in teamMembers collection
                     const ownerMemberDoc = staffMembers?.find(sm => sm.userId === team.ownerId);
 
                     combinedStaff.push({
@@ -113,13 +117,13 @@ function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
         combinedStaff.sort((a, b) => {
             if (a.userId === team.ownerId) return -1;
             if (b.userId === team.ownerId) return 1;
-            return a.name.localeCompare(b.name);
+            return (a.name || '').localeCompare(b.name || '');
         });
 
         setAllStaff(combinedStaff);
         setIsLoadingStaff(false);
 
-    }, [firestore, teamId, team.ownerId, staffMembers]);
+    }, [firestore, team.ownerId, staffMembers, isLoadingMembers]);
 
     useEffect(() => {
        fetchStaffData();
