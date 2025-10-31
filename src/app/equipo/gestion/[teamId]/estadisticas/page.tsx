@@ -23,7 +23,7 @@ export default function TeamStatsDashboardPage() {
             description: 'Consulta las estadísticas individuales de todos los jugadores de tu plantilla: goles, asistencias, tarjetas y más.',
             icon: <Users className="w-8 h-8 text-primary" />,
             href: `/equipo/gestion/${teamId}/estadisticas/jugadores`,
-            disabled: true,
+            disabled: false,
         },
     ];
 
