@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayUnion, getDoc, arrayRemove } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -289,7 +289,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                                             <Select 
                                                 defaultValue={member.role}
                                                 onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
-                                                disabled={!isOwner && member.userId !== team.ownerId}
+                                                disabled={!isOwner}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue />
@@ -358,13 +358,13 @@ export default function StaffPage() {
     return doc(firestore, 'teams', teamId);
   }, [firestore, teamId, key]);
 
-  const teamMembersRef = useMemoFirebase(() => {
+  const teamMembersQuery = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
   }, [firestore, teamId, key]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
-  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersRef);
+  const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersQuery);
   
   const sortedTeamMembers = useMemo(() => {
     if (!teamMembers || !team) return [];
@@ -455,4 +455,3 @@ export default function StaffPage() {
   );
 }
 
-    
