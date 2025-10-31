@@ -220,7 +220,7 @@ export default function TeamOverallStatsPage() {
     }
     
     const { performance } = teamStats;
-    const totalShots = performance.shotsOnTarget + performance.shotsOffTarget;
+    const totalShots = (performance.shotsOnTarget || 0) + (performance.shotsOffTarget || 0);
 
 
     return (
@@ -271,13 +271,13 @@ export default function TeamOverallStatsPage() {
                 </CardHeader>
                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <StatCard title="Tiros Totales" value={totalShots} icon={BarChart} />
-                    <StatCard title="Tiros a Puerta" value={performance.shotsOnTarget} icon={Crosshair} />
-                    <StatCard title="Tiros Fuera" value={performance.shotsOffTarget} icon={Target} />
-                    <StatCard title="Faltas Cometidas" value={performance.foulsCommitted} icon={ShieldAlert} />
-                    <StatCard title="Faltas Recibidas" value={performance.foulsReceived} icon={ShieldCheck} />
-                    <StatCard title="Pérdidas de Balón" value={performance.turnovers} icon={Shuffle} />
-                    <StatCard title="Robos de Balón" value={performance.recoveries} icon={Repeat} />
-                    <StatCard title="Tarjetas Amarillas" value={performance.yellowCards} icon={YellowCardIcon} />
+                    <StatCard title="Tiros a Puerta" value={performance.shotsOnTarget || 0} icon={Crosshair} />
+                    <StatCard title="Tiros Fuera" value={performance.shotsOffTarget || 0} icon={Target} />
+                    <StatCard title="Faltas Cometidas" value={performance.foulsCommitted || 0} icon={ShieldAlert} />
+                    <StatCard title="Faltas Recibidas" value={performance.foulsReceived || 0} icon={ShieldCheck} />
+                    <StatCard title="Pérdidas de Balón" value={performance.turnovers || 0} icon={Shuffle} />
+                    <StatCard title="Robos de Balón" value={performance.recoveries || 0} icon={Repeat} />
+                    <StatCard title="Tarjetas Amarillas" value={performance.yellowCards || 0} icon={YellowCardIcon} />
                  </CardContent>
             </Card>
             
