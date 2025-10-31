@@ -225,16 +225,16 @@ export default function QuickScoreboardPage() {
         setGeneralStats(prev => {
             const newStats = { ...prev };
             const currentValue = newStats[team][stat as keyof typeof newStats.local];
-            const newValue = increment ? currentValue + 1 : Math.max(0, currentValue);
-            newStats[team][stat as keyof typeof newStats.local] = newValue;
+            let newValue = increment ? currentValue + 1 : Math.max(0, currentValue);
             
             if (stat === 'fouls') {
                 if (increment && newValue > 5) {
                     toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
-                     newStats[team][stat as keyof typeof newStats.local] = 6;
+                    newValue = 6; // Cap at 6 to show it's over
                 }
             }
             
+            newStats[team][stat as keyof typeof newStats.local] = newValue;
             return newStats;
         });
     };
