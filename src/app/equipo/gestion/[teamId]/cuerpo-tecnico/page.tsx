@@ -281,7 +281,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                         <TableBody>
                             {members.length > 0 ? (
                                 members.map((member) => (
-                                    <TableRow key={member.id}>
+                                    <TableRow key={member.userId}>
                                         <TableCell className="font-medium">{member.name || 'N/A'}</TableCell>
                                         <TableCell>{member.email}</TableCell>
                                         <TableCell>
@@ -368,7 +368,10 @@ export default function StaffPage() {
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersQuery);
 
   const fetchOwnerProfile = useCallback(async () => {
-    if (!firestore || !team?.ownerId) return;
+    if (!firestore || !team?.ownerId) {
+        setIsLoadingOwner(false);
+        return;
+    };
 
     setIsLoadingOwner(true);
     try {
@@ -386,11 +389,11 @@ export default function StaffPage() {
             const userData = userSnap.data() as UserProfile;
             // Create a temporary TeamMember-like object for the owner
             setOwnerProfile({
-                id: userData.id,
-                userId: userData.id,
+                id: userData.id, // This is user doc ID, might collide if owner is also a member
+                userId: team.ownerId,
                 name: userData.displayName || 'Propietario',
                 email: userData.email,
-                role: 'Propietario', // This will be editable
+                role: 'Propietario',
                 teamId: team.id
             });
         }
