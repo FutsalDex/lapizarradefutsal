@@ -11,7 +11,6 @@ import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, get
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +19,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, BookPlus, FileUp, Download } from 'lucide-react';
 import Link from 'next/link';
+import { Label } from '@/components/ui/label';
+
 
 const categories = [
     "Balón parado y remates",
@@ -224,7 +225,7 @@ function BatchUploadForm() {
         ].join(';');
         const exampleRow = [
             "F001", "Rondo de calentamiento", "Un rondo simple 4vs1 para calentar.", "Mejorar el pase y control.", "Inicial", 
-            "Pase y control", "Infantil;Cadete", "5", "10", 
+            "Pase y control", "Infantil,Cadete", "5", "10", 
             "10x10 metros, 1 balón, 4 conos", "Limitar a 2 toques.", "Fomentar la comunicación.",
             "https://ejemplo.com/img.png", "TRUE", "futsal rondo"
         ].join(';');
@@ -271,7 +272,11 @@ function BatchUploadForm() {
                 
                 const headerRow = rows[0];
                 const headers = headerRow.split(';').map(cleanHeader);
-                const numeroIndex = headers.findIndex(h => h.toLowerCase().includes('numero') || h.toLowerCase().includes('número'));
+                
+                const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '');
+                
+                const normalizedHeaders = headers.map(normalizeHeader);
+                const numeroIndex = normalizedHeaders.findIndex(h => h.includes('numero') || h.includes('número'));
 
                 if (numeroIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
@@ -279,12 +284,10 @@ function BatchUploadForm() {
                     return;
                 }
 
-
                 const exercisesFromCSV = rows.slice(1).map(row => {
-                    // Use a regex to handle quoted fields that might contain the separator
                     const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                     const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
-                         if (header) { // Only add if header is not empty
+                         if (header) {
                             obj[header] = values[index];
                          }
                         return obj;
@@ -292,7 +295,6 @@ function BatchUploadForm() {
                     return exercise;
                 });
                
-
                 if (exercisesFromCSV.length === 0) {
                     toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas.' });
                     setIsSubmitting(false);
@@ -306,12 +308,16 @@ function BatchUploadForm() {
 
                 for (const ex of exercisesFromCSV) {
                     const exerciseNumber = ex['Número'] || ex['numero'] || ex['úmero'];
-
                     if (!exerciseNumber) continue;
+
+                    const edadValue = ex.Edad || ex.edad || '';
+                    const edadArray = typeof edadValue === 'string' 
+                        ? edadValue.split(',').map(e => e.trim().replace(/\s*\(\d+-\d+\s*años\)/, '')) 
+                        : [];
 
                     const data: { [key: string]: any } = {
                         ...ex,
-                        Edad: ex.Edad ? ex.Edad.split(',').map((e:string) => e.trim()) : [],
+                        Edad: edadArray,
                         Visible: ex.Visible ? ex.Visible.toUpperCase() === 'TRUE' : true,
                         userId: user.uid,
                     };
@@ -324,17 +330,14 @@ function BatchUploadForm() {
                         }
                     }
 
-                    // Check if exercise with this "Número" already exists
                     const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
                     const snapshot = await getDocs(q);
 
                     if (snapshot.empty) {
-                        // Create new exercise
                         const docRef = doc(exercisesCollection);
                         batch.set(docRef, { ...finalData, createdAt: serverTimestamp() });
                         createdCount++;
                     } else {
-                        // Update existing exercise
                         const docRef = snapshot.docs[0].ref;
                         batch.update(docRef, { ...finalData, updatedAt: serverTimestamp() });
                         updatedCount++;
