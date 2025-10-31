@@ -260,15 +260,10 @@ function BatchUploadForm() {
             }
 
             try {
-                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-                if (lines.length < 2) {
-                    toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
-                    setIsSubmitting(false);
-                    return;
-                }
+                const allLines = text.split(/\r?\n/);
+                const rawHeaders = allLines[0].split(';');
+                const headers = rawHeaders.map(h => h.trim().replace(/^\uFEFF/, ''));
 
-                const headers = lines[0].split(';').map(h => h.replace(/[\uFEFF]/g, '').trim());
-                
                 const idColumnVariants = ['Número', 'numero', 'úmero'];
                 let numberHeader = '';
                 for (const variant of idColumnVariants) {
@@ -285,25 +280,25 @@ function BatchUploadForm() {
                     return;
                 }
 
-                const dataRows = lines.slice(1);
+                const dataRows = allLines.slice(1);
+                
+                const exercisesToProcess: { [key: string]: any }[] = [];
+                for (const row of dataRows) {
+                    if (!row || row.trim() === '') continue;
 
-                const exercisesToProcess = dataRows.map(row => {
                     const values = row.split(';').map(v => v.trim());
                     const exerciseData: { [key: string]: any } = {};
                     
                     headers.forEach((header, index) => {
                         if (header) {
-                            exerciseData[header] = values[index] !== undefined ? values[index] : '';
+                            exerciseData[header] = values[index];
                         }
                     });
 
-                    // Explicit check for a valid identifier
-                    if (!exerciseData[numberHeader] || exerciseData[numberHeader].trim() === '') {
-                        return null;
+                    if (exerciseData[numberHeader] && exerciseData[numberHeader].trim() !== '') {
+                        exercisesToProcess.push(exerciseData);
                     }
-                    
-                    return exerciseData;
-                }).filter(Boolean) as { [key: string]: any }[];
+                }
 
                 if (exercisesToProcess.length === 0) {
                     toast({ title: 'Aviso', description: 'No se encontraron ejercicios válidos con un "Número" en el archivo.' });
@@ -329,6 +324,7 @@ function BatchUploadForm() {
                     
                     const finalData: { [key: string]: any } = {};
                     for (const key in exData) {
+                        // Ensure no undefined values are being sent
                         if (exData[key] !== undefined) {
                             finalData[key] = exData[key];
                         }
