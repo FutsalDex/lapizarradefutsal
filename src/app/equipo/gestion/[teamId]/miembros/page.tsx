@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, getDocs, getDoc } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -59,6 +59,12 @@ interface TeamMember {
     id: string;
     name: string;
     role: string;
+    userId: string;
+}
+
+interface UserProfile {
+    displayName?: string;
+    email: string;
 }
 
 
@@ -68,11 +74,56 @@ interface TeamMember {
 
 function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
     const firestore = useFirestore();
-    const teamMembersRef = useMemoFirebase(() => {
+    const [allStaff, setAllStaff] = useState<TeamMember[]>([]);
+    const [isLoadingStaff, setIsLoadingStaff] = useState(true);
+
+    const teamMembersQuery = useMemoFirebase(() => {
         return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
     }, [firestore, teamId]);
 
-    const { data: staff, isLoading: isLoadingStaff } = useCollection<TeamMember>(teamMembersRef);
+    const { data: staffMembers } = useCollection<TeamMember>(teamMembersQuery);
+
+    const fetchStaffData = useCallback(async () => {
+        setIsLoadingStaff(true);
+        const combinedStaff: TeamMember[] = staffMembers ? [...staffMembers] : [];
+        
+        // Ensure owner is included if not already in members
+        if (team.ownerId && !combinedStaff.some(m => m.userId === team.ownerId)) {
+            try {
+                const ownerUserRef = doc(firestore, 'users', team.ownerId);
+                const userSnap = await getDoc(ownerUserRef);
+                if (userSnap.exists()) {
+                    const userData = userSnap.data() as UserProfile;
+                    // Find if the owner has a role in teamMembers collection
+                    const ownerMemberDoc = staffMembers?.find(sm => sm.userId === team.ownerId);
+
+                    combinedStaff.push({
+                        id: ownerMemberDoc?.id || '', // Not a real doc id if just a user
+                        userId: team.ownerId,
+                        name: userData.displayName || 'Propietario',
+                        role: ownerMemberDoc?.role || 'Propietario',
+                    });
+                }
+            } catch(e) {
+                console.error("Error fetching owner profile for InfoCard", e);
+            }
+        }
+        
+        // Sort to have owner first
+        combinedStaff.sort((a, b) => {
+            if (a.userId === team.ownerId) return -1;
+            if (b.userId === team.ownerId) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        setAllStaff(combinedStaff);
+        setIsLoadingStaff(false);
+
+    }, [firestore, teamId, team.ownerId, staffMembers]);
+
+    useEffect(() => {
+       fetchStaffData();
+    }, [staffMembers, fetchStaffData]);
 
     const InfoField = ({ label, value }: { label: string, value: string }) => (
         <div>
@@ -100,9 +151,9 @@ function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
                     <div className="border rounded-md p-3 bg-muted/50 space-y-2">
                         {isLoadingStaff ? (
                            <Skeleton className="h-5 w-1/2" />
-                        ) : (staff && staff.length > 0) ? (
-                            staff.map(member => (
-                                <div key={member.id} className="flex items-center">
+                        ) : (allStaff && allStaff.length > 0) ? (
+                            allStaff.map(member => (
+                                <div key={member.userId} className="flex items-center">
                                     <Briefcase className="w-4 h-4 mr-3 text-muted-foreground" />
                                     <span className='text-sm font-medium'>{member.name}</span>
                                     <span className='text-xs text-muted-foreground ml-2'>- {member.role}</span>
