@@ -336,7 +336,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
 
         players.forEach(player => {
             const min1H = _.get(match.playerStats, `1H.${player.id}.minutesPlayed`, 0);
-            const min2H = _.get(match.playerStats, `2H.${player.id}.minutesPlayed`, 0);
+            const min2H = _.get(match.playerStats, `2H.${p.id}.minutesPlayed`, 0);
             totalMinutes[player.id] = min1H + min2H;
         });
 
@@ -418,6 +418,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                             )}
                         </TableBody>
                          <TableFooter>
+                            {tableHeaders}
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell className="px-2">Total {period === '1H' ? '1ª Parte' : '2ª Parte'}</TableCell>
                                 <TableCell className="text-center tabular-nums py-1 px-1"></TableCell>

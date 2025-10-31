@@ -7,7 +7,7 @@ import { useDoc, useFirestore, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, BarChart2, CalendarDays, History } from 'lucide-react';
@@ -131,6 +131,23 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
 
     }, [match.playerStats, squadPlayers]);
 
+    const totals = useMemo(() => {
+        return aggregatedStats.reduce((acc, player) => {
+            acc.minutesPlayed += player.minutesPlayed || 0;
+            acc.goals += player.goals || 0;
+            acc.assists += player.assists || 0;
+            acc.yellowCards += player.yellowCards || 0;
+            acc.redCards += player.redCards || 0;
+            acc.fouls += player.fouls || 0;
+            acc.saves += player.saves || 0;
+            acc.goalsConceded += player.goalsConceded || 0;
+            acc.unoVsUno += player.unoVsUno || 0;
+            return acc;
+        }, {
+            minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, saves: 0, goalsConceded: 0, unoVsUno: 0
+        });
+    }, [aggregatedStats]);
+
     if (isLoadingPlayers) {
         return <Skeleton className="h-40 w-full" />;
     }
@@ -179,6 +196,20 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
                                 </TableRow>
                             )}
                         </TableBody>
+                        <TableFooter>
+                            <TableRow className="bg-muted/50 font-bold">
+                                <TableCell colSpan={2}>Total Equipo</TableCell>
+                                <TableCell>{formatStatTime(totals.minutesPlayed)}</TableCell>
+                                <TableCell>{totals.goals}</TableCell>
+                                <TableCell>{totals.assists}</TableCell>
+                                <TableCell>{totals.yellowCards}</TableCell>
+                                <TableCell>{totals.redCards}</TableCell>
+                                <TableCell>{totals.fouls}</TableCell>
+                                <TableCell>{totals.saves}</TableCell>
+                                <TableCell>{totals.goalsConceded}</TableCell>
+                                <TableCell>{totals.unoVsUno}</TableCell>
+                            </TableRow>
+                        </TableFooter>
                     </Table>
                 </div>
             </CardContent>
