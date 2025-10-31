@@ -263,16 +263,15 @@ function BatchUploadForm() {
             }
 
             try {
-                // Filter out completely empty lines first
-                const rows = text.split('\n').filter(row => row.trim() !== '');
+                const allRows = text.split('\n');
 
-                if (rows.length < 2) {
+                if (allRows.length < 2) {
                      toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
                      setIsSubmitting(false);
                      return;
                 }
                 
-                const headerRow = rows[0];
+                const headerRow = allRows[0];
                 const headers = headerRow.split(';').map(cleanHeader);
                 
                 const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
@@ -287,21 +286,23 @@ function BatchUploadForm() {
                     return;
                 }
                 
-                const numberHeader = headers[numeroIndex];
+                const numberHeaderKey = headers[numeroIndex];
 
-                const exercisesFromCSV = rows.slice(1).map(row => {
-                    const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
-                    const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
-                         if (header) {
-                            obj[cleanHeader(header)] = values[index];
-                         }
-                        return obj;
-                    }, {} as { [key: string]: any });
-                    return exercise;
-                });
+                const exercisesFromCSV = allRows
+                    .slice(1)
+                    .map(row => {
+                        const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+                        const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
+                             if (header && values[index] !== undefined) {
+                                obj[cleanHeader(header)] = values[index];
+                             }
+                            return obj;
+                        }, {} as { [key: string]: any });
+                        return exercise;
+                    })
+                    .filter(ex => ex && ex[numberHeaderKey] && String(ex[numberHeaderKey]).trim() !== '');
                
-                const validExercises = exercisesFromCSV.filter(ex => ex[numberHeader] && ex[numberHeader].trim() !== '');
-                if (validExercises.length === 0) {
+                if (exercisesFromCSV.length === 0) {
                     toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas con un "Número" de ejercicio.' });
                     setIsSubmitting(false);
                     return;
@@ -313,8 +314,8 @@ function BatchUploadForm() {
                 let updatedCount = 0;
                 let createdCount = 0;
 
-                for (const ex of validExercises) {
-                    const exerciseNumber = ex[numberHeader];
+                for (const ex of exercisesFromCSV) {
+                    const exerciseNumber = ex[numberHeaderKey];
                     if (!exerciseNumber) continue;
 
                     const edadValue = ex.Edad || ex.edad || '';
@@ -332,9 +333,9 @@ function BatchUploadForm() {
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
-                             if(data[key] !== undefined) { // Allow empty strings, but not undefined
+                             if(data[key] !== undefined) {
                                 const cleanKey = key.replace(/^"|"$/g, '').trim();
-                                finalData[cleanKey] = data[key];
+                                finalData[cleanKey] = data[key] || '';
                              }
                         }
                     }
