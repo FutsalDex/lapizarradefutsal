@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -352,6 +351,8 @@ export default function StaffPage() {
   const firestore = useFirestore();
   const { user } = useUser();
   const [key, setKey] = useState(0); 
+  const [ownerProfile, setOwnerProfile] = useState<TeamMember | null>(null);
+  const [isLoadingOwner, setIsLoadingOwner] = useState(true);
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -365,18 +366,65 @@ export default function StaffPage() {
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
   const { data: teamMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersQuery);
+
+  const fetchOwnerProfile = useCallback(async () => {
+    if (!firestore || !team?.ownerId) return;
+
+    setIsLoadingOwner(true);
+    try {
+        // Try to find the owner in the existing teamMembers list first
+        const ownerInMembers = teamMembers?.find(m => m.userId === team.ownerId);
+        if (ownerInMembers) {
+            setOwnerProfile(ownerInMembers);
+            return;
+        }
+
+        // If not found, fetch from the users collection
+        const userRef = doc(firestore, 'users', team.ownerId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data() as UserProfile;
+            // Create a temporary TeamMember-like object for the owner
+            setOwnerProfile({
+                id: userData.id,
+                userId: userData.id,
+                name: userData.displayName || 'Propietario',
+                email: userData.email,
+                role: 'Propietario', // This will be editable
+                teamId: team.id
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching owner profile:", error);
+    } finally {
+        setIsLoadingOwner(false);
+    }
+  }, [firestore, team, teamMembers]);
+
+
+  useEffect(() => {
+    if (team) {
+        fetchOwnerProfile();
+    }
+  }, [team, teamMembers, fetchOwnerProfile]);
   
-  const sortedTeamMembers = useMemo(() => {
-    if (!teamMembers || !team) return [];
-    return teamMembers.sort((a, b) => {
-        if (a.userId === team.ownerId) return -1;
-        if (b.userId === team.ownerId) return 1;
+  const allMembers = useMemo(() => {
+    const combined = [...(teamMembers || [])];
+
+    if (ownerProfile && !combined.some(m => m.userId === ownerProfile.userId)) {
+      combined.push(ownerProfile);
+    }
+    
+    // Sort so owner is always first
+    return combined.sort((a, b) => {
+        if (a.userId === team?.ownerId) return -1;
+        if (b.userId === team?.ownerId) return 1;
         return (a.name || '').localeCompare(b.name || '');
     });
-  }, [teamMembers, team]);
+  }, [teamMembers, ownerProfile, team?.ownerId]);
 
   const isOwner = user && team && user.uid === team.ownerId;
-  const isLoading = isLoadingTeam || isLoadingMembers;
+  const isLoading = isLoadingTeam || isLoadingMembers || isLoadingOwner;
 
   const handleDataChange = () => {
     setKey(prev => prev + 1);
@@ -448,10 +496,9 @@ export default function StaffPage() {
          {isLoading ? (
             <Skeleton className="h-96 w-full" />
          ) : (
-            <TeamStaffTable members={sortedTeamMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
+            <TeamStaffTable members={allMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
          )}
        </div>
     </div>
   );
 }
-
