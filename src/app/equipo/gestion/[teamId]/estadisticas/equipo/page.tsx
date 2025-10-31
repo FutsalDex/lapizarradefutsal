@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Trophy, BarChart, ShieldCheck, TrendingDown, TrendingUp, Crosshair, Target, ShieldAlert, Repeat, Shuffle, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Trophy, BarChart, ShieldCheck, TrendingDown, TrendingUp, Crosshair, Target, ShieldAlert, Repeat, Shuffle, HelpCircle, Plus, Minus, Goal } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
@@ -65,6 +65,19 @@ const StatCard = ({ title, value, icon: Icon }: { title: string, value: string |
     </Card>
 );
 
+const GoalStatRow = ({ label, value, icon: Icon }: { label: string; value: number; icon: React.ElementType }) => (
+    <div className="flex items-center justify-between rounded-lg border p-3">
+        <div className="flex items-center gap-3">
+            <div className="bg-primary/10 text-primary p-2 rounded-md">
+                <Icon className="w-4 h-4" />
+            </div>
+            <p className="font-medium text-sm">{label}</p>
+        </div>
+        <p className="text-lg font-bold">{value}</p>
+    </div>
+);
+
+
 const YellowCardIcon = () => <div className="w-4 h-5 bg-yellow-400 border border-black rounded-sm" />;
 
 
@@ -104,6 +117,9 @@ export default function TeamOverallStatsPage() {
             foulsCommitted: 0, foulsReceived: 0,
             turnovers: 0, recoveries: 0,
             yellowCards: 0, redCards: 0,
+            goalsFor: 0, goalsAgainst: 0,
+            goalsFor1H: 0, goalsAgainst1H: 0,
+            goalsFor2H: 0, goalsAgainst2H: 0,
         };
 
         if (!team || !filteredMatches) return { 
@@ -137,11 +153,24 @@ export default function TeamOverallStatsPage() {
             acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
             acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
             
-            // Opponent stats for received fouls
+            // Opponent stats
             const opponentStats1H = match.opponentStats?.['1H'] || {};
             const opponentStats2H = match.opponentStats?.['2H'] || {};
 
             acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
+
+            // Goal stats
+            const teamGoals1H = _.sumBy(playerStats1H, 'goals');
+            const teamGoals2H = _.sumBy(playerStats2H, 'goals');
+            const opponentGoals1H = opponentStats1H.goals || 0;
+            const opponentGoals2H = opponentStats2H.goals || 0;
+
+            acc.goalsFor1H += teamGoals1H;
+            acc.goalsFor2H += teamGoals2H;
+            acc.goalsAgainst1H += opponentGoals1H;
+            acc.goalsAgainst2H += opponentGoals2H;
+            acc.goalsFor += teamGoals1H + teamGoals2H;
+            acc.goalsAgainst += opponentGoals1H + opponentGoals2H;
 
             return acc;
 
@@ -234,6 +263,29 @@ export default function TeamOverallStatsPage() {
                     <StatCard title="Empatados" value={teamStats.draws} icon={ShieldCheck} />
                 </CardContent>
             </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Goles a Favor</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <GoalStatRow label="Totales" value={performance.goalsFor} icon={Plus} />
+                        <GoalStatRow label="1ª Parte" value={performance.goalsFor1H} icon={Plus} />
+                        <GoalStatRow label="2ª Parte" value={performance.goalsFor2H} icon={Plus} />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Goles en Contra</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <GoalStatRow label="Totales" value={performance.goalsAgainst} icon={Minus} />
+                        <GoalStatRow label="1ª Parte" value={performance.goalsAgainst1H} icon={Minus} />
+                        <GoalStatRow label="2ª Parte" value={performance.goalsAgainst2H} icon={Minus} />
+                    </CardContent>
+                </Card>
+            </div>
 
             <Card>
                 <CardHeader>
