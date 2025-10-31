@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, getDocs } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -260,7 +260,7 @@ function BatchUploadForm() {
             try {
                 const rows = text.split('\n').filter(row => row.trim() !== '');
                 const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-                const exercises = rows.slice(1).map(row => {
+                const exercisesFromCSV = rows.slice(1).map(row => {
                     const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                     const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
                         obj[header] = values[index];
@@ -269,21 +269,28 @@ function BatchUploadForm() {
                     return exercise;
                 });
 
+                if (exercisesFromCSV.length === 0) {
+                    toast({ title: 'Aviso', description: 'El archivo CSV está vacío o no tiene datos.' });
+                    setIsSubmitting(false);
+                    return;
+                }
+
                 const batch = writeBatch(firestore);
                 const exercisesCollection = collection(firestore, 'exercises');
+                let updatedCount = 0;
+                let createdCount = 0;
 
-                exercises.forEach(ex => {
-                    const docRef = doc(collection(firestore, 'exercises'));
+                for (const ex of exercisesFromCSV) {
+                    const exerciseNumber = ex['Número'];
+                    if (!exerciseNumber) continue;
 
                     const data: { [key: string]: any } = {
                         ...ex,
                         Edad: ex.Edad ? ex.Edad.split(';').map((e:string) => e.trim()) : [],
-                        Visible: ex.Visible.toUpperCase() === 'TRUE',
-                        createdAt: serverTimestamp(),
-                        userId: user.uid
+                        Visible: ex.Visible ? ex.Visible.toUpperCase() === 'TRUE' : true,
+                        userId: user.uid,
                     };
-
-                    // Clean up keys from CSV that might not match schema perfectly or have extra quotes
+                    
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
                         if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -292,28 +299,45 @@ function BatchUploadForm() {
                         }
                     }
 
-                    batch.set(docRef, finalData);
-                });
+                    // Check if exercise with this "Número" already exists
+                    const q = query(exercisesCollection, where('Número', '==', exerciseNumber));
+                    const snapshot = await getDocs(q);
+
+                    if (snapshot.empty) {
+                        // Create new exercise
+                        const docRef = doc(exercisesCollection);
+                        batch.set(docRef, { ...finalData, createdAt: serverTimestamp() });
+                        createdCount++;
+                    } else {
+                        // Update existing exercise
+                        const docRef = snapshot.docs[0].ref;
+                        batch.update(docRef, { ...finalData, updatedAt: serverTimestamp() });
+                        updatedCount++;
+                    }
+                }
 
                 await batch.commit();
-                toast({ title: 'Éxito', description: `${exercises.length} ejercicios subidos correctamente.` });
+                toast({ title: 'Éxito', description: `Proceso completado. ${createdCount} ejercicios creados y ${updatedCount} actualizados.` });
             } catch (error: any) {
                 console.error('Error processing CSV:', error);
                 toast({ variant: 'destructive', title: 'Error al procesar el archivo', description: error.message });
             } finally {
                 setIsSubmitting(false);
                 setFile(null);
+                 if (document.getElementById('csv-file')) {
+                    (document.getElementById('csv-file') as HTMLInputElement).value = '';
+                }
             }
         };
 
-        reader.readAsText(file);
+        reader.readAsText(file, 'UTF-8');
     };
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileUp/>Subida de Ejercicios en Lote</CardTitle>
-                <CardDescription>Sube un archivo CSV para añadir múltiples ejercicios a la vez. Asegúrate de que el formato sea el correcto.</CardDescription>
+                <CardDescription>Sube un archivo CSV para añadir o actualizar múltiples ejercicios a la vez. El campo "Número" se usa como identificador único.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button variant="outline" onClick={handleDownloadTemplate} className="mb-6 w-full">
@@ -326,7 +350,7 @@ function BatchUploadForm() {
                         <Input id="csv-file" type="file" accept=".csv" onChange={handleFileChange} />
                     </div>
                     <Button type="submit" disabled={!file || isSubmitting} className="w-full">
-                        {isSubmitting ? 'Subiendo...' : 'Subir Archivo'}
+                        {isSubmitting ? 'Procesando...' : 'Subir y Procesar Archivo'}
                     </Button>
                 </form>
             </CardContent>
