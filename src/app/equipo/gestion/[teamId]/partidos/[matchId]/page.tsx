@@ -268,11 +268,13 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
 
              // Add or remove goal event
              if (increment) {
+                 const minuteInPeriod = Math.floor((25 * 60 - time) / 60);
+                 const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
                  const newEvent: MatchEvent = {
                      type: 'goal',
                      team: isLocalTeam ? 'local' : 'visitor',
                      period: period,
-                     minute: Math.floor((25 * 60 - time) / 60),
+                     minute: eventMinute,
                      playerId: player.id,
                      playerName: player.name
                  };
@@ -488,11 +490,13 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
 
              // Add or remove goal event
              if (increment) {
+                 const minuteInPeriod = Math.floor((25 * 60 - time) / 60);
+                 const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
                  const newEvent: MatchEvent = {
                      type: 'goal',
                      team: isOpponentLocal ? 'local' : 'visitor',
                      period: period,
-                     minute: Math.floor((25 * 60 - time) / 60),
+                     minute: eventMinute,
                      playerName: 'Rival'
                  };
                  batchUpdate.events = arrayUnion(newEvent) as any;
@@ -592,7 +596,6 @@ export default function MatchStatsPage() {
           ...dataToSave,
           updatedAt: serverTimestamp(),
         });
-        // Toast for auto-save removed as per user request.
       } catch (err) {
         console.error(err);
         toast({
