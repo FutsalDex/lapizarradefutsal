@@ -523,7 +523,7 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
     const opponentScore = isUserTeamLocal ? visitorScore : localScore;
 
     if (userTeamScore === opponentScore) return 'text-muted-foreground';
-    return userTeamScore > opponentScore ? 'text-green-600' : 'text-red-600';
+    return userTeamScore > opponentScore ? 'text-primary' : 'text-destructive';
   };
 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
