@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Play, Pause, RefreshCw, Plus, Minus, Flag, Settings, BarChart, Goal, ShieldAlert } from 'lucide-react';
+import { Play, Pause, RefreshCw, Plus, Minus, Flag, Settings, BarChart, Goal, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+
 
 const FoulIndicator = ({ count, max = 5 }: { count: number; max?: number }) => (
     <div className="flex justify-center gap-1.5 mt-2">
@@ -220,22 +222,19 @@ export default function QuickScoreboardPage() {
         toast({title: "Configuración guardada", description: "Se han aplicado los nuevos ajustes."})
         setIsSheetOpen(false);
     };
-
+    
     const handleGeneralStatChange = (team: 'local' | 'visitor', stat: keyof typeof generalStats.local, increment: boolean) => {
         setGeneralStats(prev => {
             const currentVal = prev[team][stat];
             const newValue = increment ? currentVal + 1 : Math.max(0, currentVal - 1);
-            
+    
             if (stat === 'fouls' && increment && newValue > 5) {
                 toast({ title: 'Límite de Faltas', description: 'El equipo ha superado las 5 faltas acumuladas.', variant: 'destructive'});
             }
-
+    
             return {
                 ...prev,
-                [team]: {
-                    ...prev[team],
-                    [stat]: newValue
-                }
+                [team]: { ...prev[team], [stat]: newValue }
             };
         });
     };
@@ -249,6 +248,14 @@ export default function QuickScoreboardPage() {
 
     return (
         <div className="container mx-auto px-4 py-8 flex flex-col items-center">
+            <div className="w-full max-w-2xl">
+                 <Button asChild variant="outline" className="mb-4">
+                    <Link href={`/equipo/gestion`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Volver al Panel
+                    </Link>
+                </Button>
+            </div>
             <div className="text-center mb-8">
                  <div className="flex justify-center items-center mb-4">
                     <div className="bg-primary/10 p-4 rounded-lg">

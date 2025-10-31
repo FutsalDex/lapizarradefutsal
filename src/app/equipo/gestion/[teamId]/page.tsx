@@ -61,7 +61,7 @@ const menuItems = [
     description: 'Analiza el rendimiento del equipo y los jugadores.',
     icon: <BarChart3 className="w-8 h-8 text-primary" />,
     href: '/estadisticas',
-    disabled: true,
+    disabled: false,
   },
 ];
 
