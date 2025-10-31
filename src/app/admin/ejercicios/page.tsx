@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -276,7 +275,7 @@ function BatchUploadForm() {
                 const normalizeHeader = (h: string) => h.toLowerCase().replace(/\s/g, '').replace(/[\uFEFF]/g, '').replace(/[^a-z0-9]/gi, '');
                 
                 const normalizedHeaders = headers.map(normalizeHeader);
-                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero'].includes(normalizeHeader(h)));
+                const numeroIndex = normalizedHeaders.findIndex(h => ['numero', 'nmero', 'úmero'].includes(normalizeHeader(h)));
 
                 if (numeroIndex === -1) {
                     toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
@@ -327,8 +326,10 @@ function BatchUploadForm() {
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
-                            const cleanKey = key.replace(/^"|"$/g, '').trim();
-                            finalData[cleanKey] = data[key];
+                             if(data[key] !== undefined) {
+                                const cleanKey = key.replace(/^"|"$/g, '').trim();
+                                finalData[cleanKey] = data[key];
+                             }
                         }
                     }
                     
@@ -431,5 +432,3 @@ export default function AdminExercisesPage() {
         </div>
     );
 }
-
-    
