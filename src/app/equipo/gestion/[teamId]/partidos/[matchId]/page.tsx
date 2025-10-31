@@ -272,7 +272,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                      type: 'goal',
                      team: isLocalTeam ? 'local' : 'visitor',
                      period: period,
-                     minute: Math.floor(time / 60),
+                     minute: Math.floor((25 * 60 - time) / 60),
                      playerId: player.id,
                      playerName: player.name
                  };
@@ -492,7 +492,7 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
                      type: 'goal',
                      team: isOpponentLocal ? 'local' : 'visitor',
                      period: period,
-                     minute: Math.floor(time / 60),
+                     minute: Math.floor((25 * 60 - time) / 60),
                      playerName: 'Rival'
                  };
                  batchUpdate.events = arrayUnion(newEvent) as any;
@@ -555,7 +555,8 @@ export default function MatchStatsPage() {
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
   const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
   
-  const [time, setTime] = useState(0); 
+  const matchDuration = 25 * 60; // 25 minutes in seconds
+  const [time, setTime] = useState(matchDuration); 
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [period, setPeriod] = useState<Period>('1H');
   const [isSaving, setIsSaving] = useState(false);
@@ -623,13 +624,11 @@ export default function MatchStatsPage() {
     });
   };
   
-  const maxTime = 25 * 60;
-  
   useEffect(() => {
       let interval: NodeJS.Timeout | null = null;
-      if (isTimerActive && time < maxTime) {
+      if (isTimerActive && time > 0) {
           interval = setInterval(() => {
-              setTime(prevTime => prevTime + 1);
+              setTime(prevTime => prevTime - 1);
                if (activePlayerIds.length > 0) {
                    setLocalMatchData(prevData => {
                       if (!prevData) return null;
@@ -642,14 +641,14 @@ export default function MatchStatsPage() {
                   });
               }
           }, 1000);
-      } else if (time >= maxTime) {
+      } else if (time <= 0) {
           setIsTimerActive(false);
       }
 
       return () => {
           if (interval) clearInterval(interval);
       };
-  }, [isTimerActive, time, maxTime, activePlayerIds, period]);
+  }, [isTimerActive, time, activePlayerIds, period]);
 
   const handleManualSave = async () => {
       if (!matchRef || !localMatchData) return;
@@ -691,7 +690,7 @@ export default function MatchStatsPage() {
   const handlePeriodChange = (newPeriod: Period) => {
     if (period !== newPeriod) {
         setIsTimerActive(false);
-        setTime(0);
+        setTime(matchDuration);
         setPeriod(newPeriod);
     }
   };
@@ -783,7 +782,7 @@ export default function MatchStatsPage() {
         time={time}
         isTimerActive={isTimerActive}
         onTimerToggle={() => setIsTimerActive(!isTimerActive)}
-        onTimeReset={() => setTime(0)}
+        onTimeReset={() => setTime(matchDuration)}
         onTimeout={handleTimeout}
         period={period}
         setPeriod={handlePeriodChange}
