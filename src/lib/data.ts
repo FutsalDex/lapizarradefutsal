@@ -5,6 +5,7 @@ const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.star
 
 export type Exercise = {
   id: string;
+  number: string;
   name: string; // This will be mapped from 'Ejercicio'
   description: string; // Mapped from 'Descripción de la tarea'
   category: string; // Mapped from 'Categoría'
@@ -26,6 +27,7 @@ export function mapExercise(doc: any): Exercise {
     const data = doc;
     return {
         id: doc.id,
+        number: data['Número'] || '',
         name: data['Ejercicio'] || 'Ejercicio sin nombre',
         description: data['Descripción de la tarea'] || '',
         category: data['Categoría'] || 'Sin categoría',

@@ -1,92 +1,107 @@
 
-"use client";
+'use client';
 
-import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Search, Filter, Eye, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
-import { FutsalCourt } from '@/components/futsal-court';
 import Image from 'next/image';
+import { FutsalCourt } from '@/components/futsal-court';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminExercisesListPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [phaseFilter, setPhaseFilter] = useState('Todas');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
-  const [ageFilter, setAgeFilter] = useState('Todas');
-  const [currentPage, setCurrentPage] = useState(1);
-  const exercisesPerPage = 12;
+  const { toast } = useToast();
   
   const firestore = useFirestore();
   const { user } = useUser();
+  const isAdmin = user?.email === 'futsaldex@gmail.com';
 
   const exercisesCollection = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'exercises');
   }, [firestore]);
 
-  const favoritesCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, `users/${user.uid}/favorites`);
-  }, [firestore, user]);
-
   const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
-  const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
 
   const exercises = useMemo(() => {
       if (!rawExercises) return [];
-      return rawExercises.map(mapExercise);
+      return rawExercises.map(mapExercise).sort((a,b) => {
+        const numA = parseInt(a.number, 10);
+        const numB = parseInt(b.number, 10);
+        if (isNaN(numA)) return 1;
+        if (isNaN(numB)) return -1;
+        return numA - numB;
+      });
   }, [rawExercises]);
-
-  const favoriteIds = useMemo(() => new Set(favorites?.map(fav => fav.id)), [favorites]);
-
-  const handleFavoriteToggle = async (exercise: Exercise) => {
-    if (!user || !firestore) return;
-    const favoriteRef = doc(firestore, `users/${user.uid}/favorites`, exercise.id);
-
-    if (favoriteIds.has(exercise.id)) {
-      await deleteDoc(favoriteRef);
-    } else {
-      await setDoc(favoriteRef, { favorited: true });
-    }
-  };
-
+  
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     return exercises.filter(exercise => {
-      if (!exercise.visible || !exercise.name) return false;
+      if (!exercise.name) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
-      const matchesPhase = phaseFilter === 'Todas' || exercise.fase === phaseFilter;
-      const matchesAge = ageFilter === 'Todas' || (Array.isArray(exercise.edad) && exercise.edad.map(e => String(e).toLowerCase()).includes(ageFilter.toLowerCase()));
-
-      return matchesSearch && matchesCategory && matchesPhase && matchesAge;
+      
+      return matchesSearch && matchesCategory;
     });
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
-  
-  const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
-  const paginatedExercises = useMemo(() => {
-      const startIndex = (currentPage - 1) * exercisesPerPage;
-      const endIndex = startIndex + exercisesPerPage;
-      return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage]);
+  }, [exercises, searchTerm, categoryFilter]);
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= totalPages) {
-        setCurrentPage(newPage);
+  const handleVisibilityChange = async (exercise: Exercise, isVisible: boolean) => {
+    if (!isAdmin || !firestore) return;
+    try {
+        const exerciseRef = doc(firestore, 'exercises', exercise.id);
+        await updateDoc(exerciseRef, { 'Visible': isVisible });
+        toast({
+            title: 'Visibilidad actualizada',
+            description: `El ejercicio "${exercise.name}" ahora es ${isVisible ? 'visible' : 'oculto'}.`,
+        });
+    } catch (error) {
+        console.error("Error updating visibility:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo actualizar la visibilidad del ejercicio.',
+        });
     }
-  }
-  
-  const isLoading = isLoadingExercises || isLoadingFavorites;
+  };
+
+  const handleDeleteExercise = async (exercise: Exercise) => {
+    if (!isAdmin || !firestore) return;
+    try {
+        await deleteDoc(doc(firestore, 'exercises', exercise.id));
+        toast({
+            title: 'Ejercicio eliminado',
+            description: `El ejercicio "${exercise.name}" ha sido eliminado.`,
+        });
+    } catch (error) {
+        console.error("Error deleting exercise:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo eliminar el ejercicio.',
+        });
+    }
+  };
+
+
+  const isLoading = isLoadingExercises;
+  const categories = useMemo(() => {
+    if (!exercises) return [];
+    return [...new Set(exercises.map(e => e.category).filter(Boolean))];
+  }, [exercises]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -97,169 +112,123 @@ export default function AdminExercisesListPage() {
                 Volver a Gestión de Ejercicios
             </Link>
           </Button>
-        <h1 className="text-4xl font-bold font-headline text-foreground">Listado de Ejercicios</h1>
-        <p className="text-lg text-muted-foreground mt-2">Explora la colección completa de ejercicios de la biblioteca pública.</p>
+        <h1 className="text-4xl font-bold font-headline text-primary">Gestionar Biblioteca de Ejercicios</h1>
+        <p className="text-lg text-muted-foreground mt-2">Activa o desactiva la visibilidad de los ejercicios para los usuarios.</p>
       </div>
       
-      <div className="mb-6 p-4 bg-card rounded-lg border">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-            <div className="relative md:col-span-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Buscar ejercicio por nombre..." 
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select onValueChange={setPhaseFilter} defaultValue="Todas">
-              <SelectTrigger>
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Fase" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas las Fases</SelectItem>
-                <SelectItem value="Inicial">Inicial</SelectItem>
-                <SelectItem value="Principal">Principal</SelectItem>
-                <SelectItem value="Final">Final</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={setCategoryFilter} defaultValue="Todas">
-              <SelectTrigger>
-                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas las Categorías</SelectItem>
-                <SelectItem value="Balón parado y remates">Balón parado y remates</SelectItem>
-                <SelectItem value="Conducción y regate">Conducción y regate</SelectItem>
-                <SelectItem value="Coordinación, agilidad y velocidad">Coordinación, agilidad y velocidad</SelectItem>
-                <SelectItem value="Finalización">Finalización</SelectItem>
-                <SelectItem value="Pase y control">Pase y control</SelectItem>
-                <SelectItem value="Posesión y circulación del balón">Posesión y circulación del balón</SelectItem>
-                <SelectItem value="Superioridades e inferioridades numéricas">Superioridades e inferioridades numéricas</SelectItem>
-                <SelectItem value="Sistema táctico ofensivo">Sistema táctico ofensivo</SelectItem>
-                <SelectItem value="Técnica individual y combinada">Técnica individual y combinada</SelectItem>
-                <SelectItem value="Transiciones (ofensivas y defensivas)">Transiciones (ofensivas y defensivas)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select onValueChange={setAgeFilter} defaultValue="Todas">
-              <SelectTrigger>
-                 <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Edad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todas las Edades</SelectItem>
-                <SelectItem value="benjamín">Benjamín (8-9 años)</SelectItem>
-                <SelectItem value="alevín">Alevín (10-11 años)</SelectItem>
-                <SelectItem value="infantil">Infantil (12-13 años)</SelectItem>
-                <SelectItem value="cadete">Cadete (14-15 años)</SelectItem>
-                <SelectItem value="juvenil">Juvenil (16-18 años)</SelectItem>
-                <SelectItem value="senior">Senior (+18 años)</SelectItem>
-              </SelectContent>
-            </Select>
-        </div>
-        {!isLoading && exercises && (
-            <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
-        )}
-      </div>
-      
-      {isLoading && (
-        <>
-          <p className="text-sm text-muted-foreground text-center mb-6">Cargando ejercicios...</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Card key={i} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm">
-                <Skeleton className="aspect-video w-full" />
-                <CardContent className="p-4 flex-grow space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                   <Skeleton className="h-4 w-1/2" />
-                   <Skeleton className="h-4 w-full" />
-                   <Skeleton className="h-4 w-2/3" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-
-      {!isLoading && exercises && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {paginatedExercises.map((exercise) => (
-              <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
-                <div className="relative aspect-video w-full bg-muted">
-                    {exercise.image ? (
-                        <Image
-                            src={exercise.image}
-                            alt={`Imagen de ${exercise.name}`}
-                            fill
-                            className="object-contain"
-                            data-ai-hint={exercise.aiHint}
-                        />
-                    ) : (
-                        <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
-                    )}
+      <Card>
+        <CardHeader>
+            <CardTitle>Listado de Todos los Ejercicios</CardTitle>
+            <CardDescription>Usa el interruptor para cambiar la visibilidad de un ejercicio en la biblioteca pública.</CardDescription>
+            <div className="pt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <div className="relative md:col-span-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Buscar ejercicio por nombre..." 
+                        className="pl-9"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
-                <CardContent className="p-4 flex-grow flex flex-col">
-                  <h3 className="font-bold text-lg leading-tight truncate font-headline text-foreground mb-2">{exercise.name}</h3>
-                  <div className="space-y-1.5 text-xs text-muted-foreground flex-grow">
-                      <p><span className='font-semibold text-foreground'>Fase:</span> {exercise.fase}</p>
-                      <p className="capitalize"><span className='font-semibold text-foreground'>Edad:</span> {Array.isArray(exercise.edad) ? exercise.edad.join(', ') : ''}</p>
-                      <p><span className='font-semibold text-foreground'>Duración:</span> {exercise.duration} min</p>
-                      <p className="line-clamp-2 pt-2"><span className='font-semibold text-foreground'>Descripción:</span> {exercise.description}</p>
-                  </div>
-
-                  <div className="pt-4 flex justify-between items-center">
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/ejercicios/${exercise.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver Ficha
-                        </Link>
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
-                        <Heart className={cn(
-                            "h-5 w-5 transition-colors",
-                            favoriteIds.has(exercise.id) 
-                            ? "text-red-500 fill-red-500" 
-                            : "text-muted-foreground group-hover:text-red-500"
-                        )} />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-           {filteredExercises.length === 0 && (
-            <div className="text-center py-16 text-muted-foreground col-span-full">
-                <p>No se encontraron ejercicios con los filtros seleccionados.</p>
+                <Select onValueChange={setCategoryFilter} defaultValue="Todas">
+                    <SelectTrigger>
+                        <Filter className="mr-2 h-4 w-4" />
+                        <SelectValue placeholder="Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Todas">Todas las Categorías</SelectItem>
+                        {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
-          )}
-           {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-8">
-                    <Button 
-                        onClick={() => handlePageChange(currentPage - 1)} 
-                        disabled={currentPage === 1}
-                        variant="outline"
-                    >
-                        <ArrowLeft className="mr-2 h-4 w-4"/>
-                        Anterior
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                        Página {currentPage} de {totalPages}
-                    </span>
-                    <Button 
-                        onClick={() => handlePageChange(currentPage + 1)} 
-                        disabled={currentPage === totalPages}
-                        variant="outline"
-                    >
-                        Siguiente
-                        <ArrowRight className="ml-2 h-4 w-4"/>
-                    </Button>
-                </div>
-           )}
-        </>
-      )}
+        </CardHeader>
+        <CardContent>
+            <div className="border rounded-lg overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[80px]">Número</TableHead>
+                            <TableHead className="w-[100px]">Imagen</TableHead>
+                            <TableHead>Nombre del Ejercicio</TableHead>
+                            <TableHead>Categoría</TableHead>
+                            <TableHead className="text-right w-[150px]">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-full"/></TableCell>
+                                    <TableCell><Skeleton className="h-10 w-16"/></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-full"/></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-full"/></TableCell>
+                                    <TableCell><Skeleton className="h-8 w-full"/></TableCell>
+                                </TableRow>
+                            ))
+                        ) : filteredExercises.length > 0 ? (
+                            filteredExercises.map((exercise) => (
+                                <TableRow key={exercise.id}>
+                                    <TableCell className="font-medium">{exercise.number}</TableCell>
+                                    <TableCell>
+                                        <div className="relative w-16 h-10 bg-muted rounded-md">
+                                             {exercise.image ? (
+                                                <Image src={exercise.image} alt={exercise.name} fill className="object-contain"/>
+                                             ) : (
+                                                <FutsalCourt className="w-full h-full p-1" />
+                                             )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="font-semibold">{exercise.name}</TableCell>
+                                    <TableCell><Badge variant="outline">{exercise.category}</Badge></TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Switch
+                                                checked={exercise.visible}
+                                                onCheckedChange={(checked) => handleVisibilityChange(exercise, checked)}
+                                                aria-label="Visibilidad del ejercicio"
+                                                disabled={!isAdmin}
+                                            />
+                                            <Button variant="ghost" size="icon" disabled>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={!isAdmin}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acción no se puede deshacer. Se eliminará permanentemente el ejercicio de la biblioteca.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteExercise(exercise)} className="bg-destructive hover:bg-destructive/90">
+                                                            Sí, eliminar
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                             <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center">
+                                    No se encontraron ejercicios con los filtros actuales.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
