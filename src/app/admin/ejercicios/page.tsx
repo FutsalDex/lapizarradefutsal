@@ -221,15 +221,15 @@ function BatchUploadForm() {
             "Categoría", "Edad", "Número de jugadores", "Duración (min)", 
             "Espacio y materiales necesarios", "Variantes", "Consejos para el entrenador", 
             "Imagen", "Visible", "aiHint"
-        ].join(',');
+        ].join(';');
         const exampleRow = [
             "F001", "Rondo de calentamiento", "Un rondo simple 4vs1 para calentar.", "Mejorar el pase y control.", "Inicial", 
             "Pase y control", "Infantil;Cadete", "5", "10", 
             "10x10 metros, 1 balón, 4 conos", "Limitar a 2 toques.", "Fomentar la comunicación.",
             "https://ejemplo.com/img.png", "TRUE", "futsal rondo"
-        ].join(',');
+        ].join(';');
         
-        const csvContent = "data:text/csv;charset=utf-8," + header + "\n" + exampleRow;
+        const csvContent = "data:text/csv;charset=utf-8," + "\uFEFF" + header + "\n" + exampleRow;
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -237,6 +237,10 @@ function BatchUploadForm() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+    
+    const cleanHeader = (header: string) => {
+        return header.replace(/[\uFEFF]/g, '').trim().replace(/^"|"$/g, '');
     };
 
     const handleSubmit = async (event: React.FormEvent) => {
@@ -259,21 +263,38 @@ function BatchUploadForm() {
 
             try {
                 const rows = text.split('\n').filter(row => row.trim() !== '');
-                // Clean up header row from potential BOM characters
-                const headerRow = rows[0].replace(/[\uFEFF]/g, '');
-                const headers = headerRow.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                if (rows.length < 2) {
+                     toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
+                     setIsSubmitting(false);
+                     return;
+                }
+                
+                const headerRow = rows[0];
+                const headers = headerRow.split(';').map(cleanHeader);
+                const numeroIndex = headers.findIndex(h => h.toLowerCase().includes('numero') || h.toLowerCase().includes('número'));
+
+                if (numeroIndex === -1) {
+                    toast({ variant: 'destructive', title: 'Error de formato', description: 'La columna "Número" es obligatoria y no se encontró.' });
+                    setIsSubmitting(false);
+                    return;
+                }
+
 
                 const exercisesFromCSV = rows.slice(1).map(row => {
-                    const values = row.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                    // Use a regex to handle quoted fields that might contain the separator
+                    const values = row.split(/;(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                     const exercise: { [key: string]: any } = headers.reduce((obj, header, index) => {
-                        obj[header] = values[index];
+                         if (header) { // Only add if header is not empty
+                            obj[header] = values[index];
+                         }
                         return obj;
                     }, {} as { [key: string]: any });
                     return exercise;
                 });
+               
 
                 if (exercisesFromCSV.length === 0) {
-                    toast({ title: 'Aviso', description: 'El archivo CSV está vacío o no tiene datos.' });
+                    toast({ title: 'Aviso', description: 'El archivo CSV no contiene filas de datos válidas.' });
                     setIsSubmitting(false);
                     return;
                 }
@@ -284,20 +305,21 @@ function BatchUploadForm() {
                 let createdCount = 0;
 
                 for (const ex of exercisesFromCSV) {
-                    const exerciseNumber = ex['Número'];
+                    const exerciseNumber = ex['Número'] || ex['numero'] || ex['úmero'];
+
                     if (!exerciseNumber) continue;
 
                     const data: { [key: string]: any } = {
                         ...ex,
-                        Edad: ex.Edad ? ex.Edad.split(';').map((e:string) => e.trim()) : [],
+                        Edad: ex.Edad ? ex.Edad.split(',').map((e:string) => e.trim()) : [],
                         Visible: ex.Visible ? ex.Visible.toUpperCase() === 'TRUE' : true,
                         userId: user.uid,
                     };
                     
                     const finalData: { [key: string]: any } = {};
                     for (const key in data) {
-                        if (Object.prototype.hasOwnProperty.call(data, key)) {
-                            const cleanKey = key.replace(/^"|"$/g, '');
+                        if (Object.prototype.hasOwnProperty.call(data, key) && key) {
+                            const cleanKey = key.replace(/^"|"$/g, '').trim();
                             finalData[cleanKey] = data[key];
                         }
                     }
@@ -340,7 +362,7 @@ function BatchUploadForm() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileUp/>Subida de Ejercicios en Lote</CardTitle>
-                <CardDescription>Sube un archivo CSV para añadir o actualizar múltiples ejercicios a la vez. El campo "Número" se usa como identificador único.</CardDescription>
+                <CardDescription>Sube un archivo CSV (separado por punto y coma) para añadir o actualizar múltiples ejercicios. El campo "Número" se usa como identificador único.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Button variant="outline" onClick={handleDownloadTemplate} className="mb-6 w-full">
@@ -403,5 +425,3 @@ export default function AdminExercisesPage() {
         </div>
     );
 }
-
-    
