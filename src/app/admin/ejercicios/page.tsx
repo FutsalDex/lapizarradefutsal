@@ -263,7 +263,7 @@ function BatchUploadForm() {
             }
 
             try {
-                const allRows = text.split('\n');
+                const allRows = text.split('\n').filter(row => row.trim() !== '');
 
                 if (allRows.length < 2) {
                      toast({ title: 'Aviso', description: 'El archivo CSV está vacío o solo contiene la cabecera.' });
@@ -335,7 +335,7 @@ function BatchUploadForm() {
                         if (Object.prototype.hasOwnProperty.call(data, key) && key) {
                              if(data[key] !== undefined) {
                                 const cleanKey = key.replace(/^"|"$/g, '').trim();
-                                finalData[cleanKey] = data[key] || '';
+                                finalData[cleanKey] = data[key] ?? '';
                              }
                         }
                     }
