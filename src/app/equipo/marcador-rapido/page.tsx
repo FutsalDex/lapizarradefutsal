@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Play, Pause, RefreshCw, Plus, Minus, Flag, Settings, BarChart } from 'lucide-react';
+import { Play, Pause, RefreshCw, Plus, Minus, Flag, Settings, BarChart, Goal, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -18,25 +18,139 @@ const FoulIndicator = ({ count, max = 5 }: { count: number; max?: number }) => (
     </div>
 );
 
+const StatCounter = ({ label, value, onIncrement, onDecrement, icon: Icon }: { label: string; value: number; onIncrement: () => void; onDecrement: () => void; icon: React.ElementType }) => (
+    <div className="flex items-center justify-between border-b py-3 last:border-none">
+        <div className="flex items-center gap-3">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+            <span className="font-medium text-sm">{label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onDecrement}><Minus className="h-4 w-4"/></Button>
+            <span className="w-6 text-center tabular-nums font-bold text-lg">{value}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onIncrement}><Plus className="h-4 w-4"/></Button>
+        </div>
+    </div>
+);
+
+const GeneralStats = ({ localStats, visitorStats, onStatChange, onResetAll }: { 
+    localStats: any, 
+    visitorStats: any, 
+    onStatChange: (team: 'local' | 'visitor', stat: string, increment: boolean) => void,
+    onResetAll: () => void
+}) => {
+    
+    const YellowCardIcon = () => <div className="w-3 h-4 bg-yellow-400 border border-black" />;
+    const RedCardIcon = () => <div className="w-3 h-4 bg-red-600 border border-black" />;
+
+    return (
+        <Card className="w-full max-w-2xl shadow-lg mt-8">
+             <CardHeader className="bg-primary text-primary-foreground p-4 flex flex-row items-center justify-between rounded-t-lg">
+                <CardTitle className="text-lg">Estadísticas Generales</CardTitle>
+                <Button variant="destructive" size="sm" onClick={onResetAll}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reiniciar Todo
+                </Button>
+            </CardHeader>
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                 {/* Local Team Stats */}
+                <div className="space-y-2">
+                    <h3 className="font-bold text-center mb-2">Local</h3>
+                    <StatCounter 
+                        label="Goles" 
+                        value={localStats.goals}
+                        onIncrement={() => onStatChange('local', 'goals', true)}
+                        onDecrement={() => onStatChange('local', 'goals', false)}
+                        icon={Goal}
+                    />
+                     <StatCounter 
+                        label="Faltas" 
+                        value={localStats.fouls}
+                        onIncrement={() => onStatChange('local', 'fouls', true)}
+                        onDecrement={() => onStatChange('local', 'fouls', false)}
+                        icon={ShieldAlert}
+                    />
+                     <StatCounter 
+                        label="T. Amarillas" 
+                        value={localStats.yellowCards}
+                        onIncrement={() => onStatChange('local', 'yellowCards', true)}
+                        onDecrement={() => onStatChange('local', 'yellowCards', false)}
+                        icon={YellowCardIcon}
+                    />
+                     <StatCounter 
+                        label="T. Rojas" 
+                        value={localStats.redCards}
+                        onIncrement={() => onStatChange('local', 'redCards', true)}
+                        onDecrement={() => onStatChange('local', 'redCards', false)}
+                        icon={RedCardIcon}
+                    />
+                </div>
+                 {/* Visitor Team Stats */}
+                <div className="space-y-2">
+                    <h3 className="font-bold text-center mb-2">Visitante</h3>
+                     <StatCounter 
+                        label="Goles" 
+                        value={visitorStats.goals}
+                        onIncrement={() => onStatChange('visitor', 'goals', true)}
+                        onDecrement={() => onStatChange('visitor', 'goals', false)}
+                        icon={Goal}
+                    />
+                     <StatCounter 
+                        label="Faltas" 
+                        value={visitorStats.fouls}
+                        onIncrement={() => onStatChange('visitor', 'fouls', true)}
+                        onDecrement={() => onStatChange('visitor', 'fouls', false)}
+                        icon={ShieldAlert}
+                    />
+                     <StatCounter 
+                        label="T. Amarillas" 
+                        value={visitorStats.yellowCards}
+                        onIncrement={() => onStatChange('visitor', 'yellowCards', true)}
+                        onDecrement={() => onStatChange('visitor', 'yellowCards', false)}
+                        icon={YellowCardIcon}
+                    />
+                     <StatCounter 
+                        label="T. Rojas" 
+                        value={visitorStats.redCards}
+                        onIncrement={() => onStatChange('visitor', 'redCards', true)}
+                        onDecrement={() => onStatChange('visitor', 'redCards', false)}
+                        icon={RedCardIcon}
+                    />
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+
 export default function QuickScoreboardPage() {
     const { toast } = useToast();
     
+    // Config state
     const [matchDuration, setMatchDuration] = useState(25 * 60);
     const [localTeam, setLocalTeam] = useState('Local');
     const [visitorTeam, setVisitorTeam] = useState('Visitante');
-    const [localScore, setLocalScore] = useState(0);
-    const [visitorScore, setVisitorScore] = useState(0);
-    const [localFouls, setLocalFouls] = useState(0);
-    const [visitorFouls, setVisitorFouls] = useState(0);
-    const [localTimeouts, setLocalTimeouts] = useState(0);
-    const [visitorTimeouts, setVisitorTimeouts] = useState(0);
     const [maxTimeouts, setMaxTimeouts] = useState(1);
 
+    // Main Scoreboard State
+    const [localScore, setLocalScore] = useState(0);
+    const [visitorScore, setVisitorScore] = useState(0);
+    const [localPeriodFouls, setLocalPeriodFouls] = useState(0);
+    const [visitorPeriodFouls, setVisitorPeriodFouls] = useState(0);
+    const [localTimeouts, setLocalTimeouts] = useState(0);
+    const [visitorTimeouts, setVisitorTimeouts] = useState(0);
+    
+    // General Stats State
+    const [generalStats, setGeneralStats] = useState({
+        local: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
+        visitor: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
+    });
+
+    // Timer and Period State
     const [time, setTime] = useState(matchDuration);
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [period, setPeriod] = useState(1);
     
-    // Config state for the dialog
+    // Config Dialog State
     const [configDuration, setConfigDuration] = useState(25);
     const [configLocalName, setConfigLocalName] = useState('Local');
     const [configVisitorName, setConfigVisitorName] = useState('Visitante');
@@ -63,13 +177,8 @@ export default function QuickScoreboardPage() {
         return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     };
 
-    const handleScoreChange = (team: 'local' | 'visitor', increment: boolean) => {
-        const setter = team === 'local' ? setLocalScore : setVisitorScore;
-        setter(prev => (increment ? prev + 1 : Math.max(0, prev - 1)));
-    };
-    
-    const handleFoulChange = (team: 'local' | 'visitor', increment: boolean) => {
-        const setter = team === 'local' ? setLocalFouls : setVisitorFouls;
+    const handlePeriodFoulChange = (team: 'local' | 'visitor', increment: boolean) => {
+        const setter = team === 'local' ? setLocalPeriodFouls : setVisitorPeriodFouls;
         setter(prev => {
             const newValue = increment ? prev + 1 : Math.max(0, prev - 1);
             if (increment && newValue > 5) {
@@ -92,8 +201,8 @@ export default function QuickScoreboardPage() {
     const resetPeriod = () => {
         setTime(matchDuration);
         setIsTimerActive(false);
-        setLocalFouls(0);
-        setVisitorFouls(0);
+        setLocalPeriodFouls(0);
+        setVisitorPeriodFouls(0);
         setLocalTimeouts(0);
         setVisitorTimeouts(0);
     };
@@ -108,6 +217,10 @@ export default function QuickScoreboardPage() {
     const resetMatch = () => {
         setLocalScore(0);
         setVisitorScore(0);
+        setGeneralStats({
+            local: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
+            visitor: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
+        });
         handlePeriodChange(1);
     };
 
@@ -122,12 +235,36 @@ export default function QuickScoreboardPage() {
         toast({title: "Configuración guardada", description: "Se han aplicado los nuevos ajustes."})
         setIsSheetOpen(false);
     };
+
+    const handleGeneralStatChange = (team: 'local' | 'visitor', stat: string, increment: boolean) => {
+        setGeneralStats(prev => {
+            const newStats = { ...prev };
+            const currentValue = newStats[team][stat as keyof typeof newStats.local];
+            newStats[team][stat as keyof typeof newStats.local] = increment ? currentValue + 1 : Math.max(0, currentValue);
+            
+            // Sync goals with main scoreboard
+            if (stat === 'goals') {
+                if(team === 'local') setLocalScore(newStats.local.goals);
+                else setVisitorScore(newStats.visitor.goals);
+            }
+            return newStats;
+        });
+    };
     
     useEffect(() => {
         setConfigLocalName(localTeam);
         setConfigVisitorName(visitorTeam);
         setConfigDuration(matchDuration / 60);
     }, [isSheetOpen, localTeam, visitorTeam, matchDuration]);
+    
+    useEffect(() => {
+       setGeneralStats(prev => ({
+           ...prev,
+           local: { ...prev.local, goals: localScore },
+           visitor: { ...prev.visitor, goals: visitorScore }
+       }));
+    }, [localScore, visitorScore]);
+
 
     return (
         <div className="container mx-auto px-4 py-8 flex flex-col items-center">
@@ -147,7 +284,7 @@ export default function QuickScoreboardPage() {
                     <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
                         <div className="space-y-2">
                             <h2 className="text-xl md:text-2xl font-bold truncate">{localTeam}</h2>
-                             <FoulIndicator count={localFouls} />
+                             <FoulIndicator count={localPeriodFouls} />
                         </div>
                         
                         <div className="text-5xl md:text-6xl font-bold tabular-nums text-primary">
@@ -156,7 +293,7 @@ export default function QuickScoreboardPage() {
 
                         <div className="space-y-2">
                             <h2 className="text-xl md:text-2xl font-bold truncate">{visitorTeam}</h2>
-                            <FoulIndicator count={visitorFouls} />
+                            <FoulIndicator count={visitorPeriodFouls} />
                         </div>
                     </div>
                     
@@ -220,6 +357,13 @@ export default function QuickScoreboardPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <GeneralStats 
+                localStats={generalStats.local}
+                visitorStats={generalStats.visitor}
+                onStatChange={handleGeneralStatChange}
+                onResetAll={resetMatch}
+            />
         </div>
     );
 }
