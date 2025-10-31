@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -5,12 +6,9 @@ import { useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayUnion, getDoc, arrayRemove } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, addDoc, serverTimestamp, getDocs, updateDoc, deleteDoc, arrayUnion, getDoc, arrayRemove, setDoc } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
-
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,7 +124,7 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
         
         const batch = writeBatch(firestore);
         
-        const newMemberRef = doc(teamMembersRef);
+        const newMemberRef = doc(collection(firestore, 'teamMembers'));
         batch.set(newMemberRef, {
             teamId: team.id,
             userId: invitedUserId,
@@ -224,11 +222,36 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
 function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: TeamMember[], team: Team, isOwner: boolean, onDataChange: () => void }) {
     const firestore = useFirestore();
     const { toast } = useToast();
+    const user = useUser();
 
-    const handleRoleChange = async (memberId: string, newRole: string) => {
+    const handleRoleChange = async (member: TeamMember, newRole: string) => {
         try {
-            const memberRef = doc(firestore, 'teamMembers', memberId);
-            await updateDoc(memberRef, { role: newRole });
+            if (member.userId === team.ownerId) {
+                // It's the owner. Check if a teamMember doc exists, if not create one.
+                const membersRef = collection(firestore, 'teamMembers');
+                const q = query(membersRef, where("teamId", "==", team.id), where("userId", "==", member.userId));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    // Create a new document for the owner as a team member
+                    await addDoc(membersRef, {
+                        teamId: team.id,
+                        userId: member.userId,
+                        email: member.email,
+                        name: member.name,
+                        role: newRole,
+                        createdAt: serverTimestamp(),
+                    });
+                } else {
+                    // Update existing document
+                    const docId = snapshot.docs[0].id;
+                    await updateDoc(doc(firestore, 'teamMembers', docId), { role: newRole });
+                }
+            } else {
+                // It's a regular member, just update their doc
+                const memberRef = doc(firestore, 'teamMembers', member.id);
+                await updateDoc(memberRef, { role: newRole });
+            }
             toast({ title: 'Rol actualizado', description: 'El rol del miembro ha sido actualizado.'});
             onDataChange();
         } catch (error) {
@@ -287,7 +310,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                                         <TableCell>
                                             <Select 
                                                 defaultValue={member.role}
-                                                onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
+                                                onValueChange={(newRole) => handleRoleChange(member, newRole)}
                                                 disabled={!isOwner}
                                             >
                                                 <SelectTrigger>
@@ -375,27 +398,24 @@ export default function StaffPage() {
 
     setIsLoadingOwner(true);
     try {
-        // Try to find the owner in the existing teamMembers list first
-        const ownerInMembers = teamMembers?.find(m => m.userId === team.ownerId);
-        if (ownerInMembers) {
-            setOwnerProfile(ownerInMembers);
-            return;
-        }
+        const ownerInMembersList = teamMembers?.find(m => m.userId === team.ownerId);
 
-        // If not found, fetch from the users collection
-        const userRef = doc(firestore, 'users', team.ownerId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as UserProfile;
-            // Create a temporary TeamMember-like object for the owner
-            setOwnerProfile({
-                id: userData.id, // This is user doc ID, might collide if owner is also a member
-                userId: team.ownerId,
-                name: userData.displayName || 'Propietario',
-                email: userData.email,
-                role: 'Propietario',
-                teamId: team.id
-            });
+        if (ownerInMembersList) {
+             setOwnerProfile(ownerInMembersList);
+        } else {
+            const userRef = doc(firestore, 'users', team.ownerId);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data() as UserProfile;
+                setOwnerProfile({
+                    id: '', // No document ID in teamMembers
+                    userId: team.ownerId,
+                    name: userData.displayName || 'Propietario',
+                    email: userData.email,
+                    role: 'Propietario',
+                    teamId: team.id
+                });
+            }
         }
     } catch (error) {
         console.error("Error fetching owner profile:", error);
@@ -505,3 +525,5 @@ export default function StaffPage() {
     </div>
   );
 }
+
+    
