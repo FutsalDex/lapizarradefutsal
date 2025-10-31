@@ -11,7 +11,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ClipboardList, Trophy } from 'lucide-react';
+import { ClipboardList, Trophy, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -128,9 +128,17 @@ export default function EventsCalendarPage() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold font-headline text-primary">Mis Eventos</h1>
-                <p className="text-lg text-muted-foreground mt-2">Tu calendario de partidos y sesiones de entrenamiento.</p>
+            <div className="mb-8">
+                <Button asChild variant="outline" className="mb-4">
+                    <Link href={`/equipo/gestion`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Volver al Panel
+                    </Link>
+                </Button>
+                <div className="text-center">
+                    <h1 className="text-4xl font-bold font-headline text-primary">Mis Eventos</h1>
+                    <p className="text-lg text-muted-foreground mt-2">Tu calendario de partidos y sesiones de entrenamiento.</p>
+                </div>
             </div>
             {isLoading && (
                 <div className="grid md:grid-cols-3 gap-8">
