@@ -43,7 +43,7 @@ interface Team {
 
 interface TeamMember extends UserProfile {
     role: string;
-    invitationId?: string;
+    invitationId: string;
     status?: 'pending' | 'accepted' | 'rejected';
 }
 
@@ -224,7 +224,7 @@ function AddMemberDialog({ team, onInvitationSent }: { team: Team, onInvitationS
   );
 }
 
-function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { members: TeamMember[], owner: TeamMember, team: Team, isOwner: boolean, onDataChange: () => void }) {
+function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: TeamMember[], team: Team, isOwner: boolean, onDataChange: () => void }) {
     const firestore = useFirestore();
     const { toast } = useToast();
 
@@ -268,8 +268,6 @@ function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { membe
         }
     };
 
-    const allMembers = [owner, ...members];
-
     return (
         <Card>
             <CardHeader>
@@ -290,15 +288,13 @@ function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { membe
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {allMembers.length > 0 ? (
-                                allMembers.map((member) => (
+                            {members.length > 0 ? (
+                                members.map((member) => (
                                     <TableRow key={member.email}>
                                         <TableCell className="font-medium">{member.displayName || 'N/A'}</TableCell>
                                         <TableCell>{member.email}</TableCell>
                                         <TableCell>
-                                            {member.role === 'Propietario' ? (
-                                                <Input value="Propietario" disabled />
-                                            ) : member.status === 'pending' ? (
+                                           {member.status === 'pending' ? (
                                                 <div className="text-sm text-muted-foreground italic">Invitación pendiente</div>
                                             ) : (
                                                 <Select 
@@ -318,7 +314,7 @@ function TeamStaffTable({ members, owner, team, isOwner, onDataChange }: { membe
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {member.role !== 'Propietario' && isOwner && (
+                                            {member.id !== team.ownerId && isOwner && (
                                                  <AlertDialog>
                                                     <AlertDialogTrigger asChild>
                                                         <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -391,11 +387,10 @@ export default function StaffPage() {
       return;
     }
     
-    const acceptedMemberEmails = invitations
-      .filter(inv => inv.status === 'accepted')
+    const memberEmails = invitations
       .map(inv => inv.invitedUserEmail);
       
-    if (acceptedMemberEmails.length === 0) {
+    if (memberEmails.length === 0) {
       setMemberUsers([]);
       setIsLoadingMembers(false);
       return;
@@ -403,9 +398,9 @@ export default function StaffPage() {
     
     setIsLoadingMembers(true);
     try {
-      if (acceptedMemberEmails.length > 0) {
+      if (memberEmails.length > 0) {
         // Firestore 'in' query supports up to 30 elements.
-        const q = query(collection(firestore, 'users'), where('email', 'in', acceptedMemberEmails.slice(0, 30)));
+        const q = query(collection(firestore, 'users'), where('email', 'in', memberEmails.slice(0, 30)));
         const snapshot = await getDocs(q);
         const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
         setMemberUsers(usersData);
@@ -425,20 +420,9 @@ export default function StaffPage() {
       fetchMemberUsers();
     }
   }, [invitations, isLoadingInvitations, fetchMemberUsers]);
-  
-  const owner: TeamMember | null = useMemo(() => {
-    if (!team || !user) return null;
-    // The owner isn't in the members list, construct from team and user data
-    return {
-      id: team.ownerId,
-      displayName: team.ownerName || user.displayName,
-      email: user.email!, // Assuming owner is the current user
-      role: 'Propietario'
-    };
-  }, [team, user]);
 
-  const teamMembers = useMemo(() => {
-    if (!invitations || !owner) return [];
+  const teamMembers: TeamMember[] = useMemo(() => {
+    if (!invitations) return [];
     
     return invitations.map(inv => {
       const userData = memberUsers?.find(u => u.email === inv.invitedUserEmail);
@@ -451,8 +435,12 @@ export default function StaffPage() {
         invitationId: inv.id,
         status: inv.status,
       }
-    }).filter(member => member.email !== owner.email);
-  }, [invitations, memberUsers, owner]);
+    }).sort((a, b) => {
+        if (a.id === team?.ownerId) return -1;
+        if (b.id === team?.ownerId) return 1;
+        return 0;
+    });
+  }, [invitations, memberUsers, team?.ownerId]);
 
   const isOwner = user && team && user.uid === team.ownerId;
   const isLoading = isLoadingTeam || isLoadingInvitations || isLoadingMembers;
@@ -526,8 +514,8 @@ export default function StaffPage() {
        <div className="space-y-8">
          {isLoading ? (
             <Skeleton className="h-96 w-full" />
-         ) : owner && (
-            <TeamStaffTable members={teamMembers} owner={owner} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
+         ) : (
+            <TeamStaffTable members={teamMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
          )}
        </div>
     </div>

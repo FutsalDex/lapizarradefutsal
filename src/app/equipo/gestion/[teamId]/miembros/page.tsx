@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, ArrowLeft, PlusCircle, Trash2, Save } from 'lucide-react';
+import { Users, ArrowLeft, PlusCircle, Trash2, Save, Briefcase } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -56,11 +56,26 @@ interface Team {
   ownerName?: string;
 }
 
+interface Invitation {
+    id: string;
+    name: string;
+    role: string;
+    status: 'pending' | 'accepted' | 'rejected';
+}
+
+
 // ====================
 // COMPONENTES
 // ====================
 
-function InfoCard({ team }: { team: Team }) {
+function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
+    const firestore = useFirestore();
+    const invitationsRef = useMemoFirebase(() => {
+        return query(collection(firestore, 'invitations'), where('teamId', '==', teamId), where('status', '==', 'accepted'));
+    }, [firestore, teamId]);
+
+    const { data: staff, isLoading: isLoadingStaff } = useCollection<Invitation>(invitationsRef);
+
     const InfoField = ({ label, value }: { label: string, value: string }) => (
         <div>
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
@@ -83,11 +98,21 @@ function InfoCard({ team }: { team: Team }) {
                     <InfoField label="Competición" value={team.competition || ''} />
                 </div>
                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Cuerpo Técnico</p>
-                    <div className="border rounded-md p-3 mt-1 flex items-center bg-muted/50">
-                        <div className="w-5 h-5 border-2 border-muted-foreground/50 rounded-full mr-3"></div>
-                       <span className='text-sm font-medium'>{team.ownerName || 'Nombre no disponible'}</span>
-                       <span className='text-xs text-muted-foreground ml-2'>- Entrenador</span>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Cuerpo Técnico</p>
+                    <div className="border rounded-md p-3 bg-muted/50 space-y-2">
+                        {isLoadingStaff ? (
+                           <Skeleton className="h-5 w-1/2" />
+                        ) : (staff && staff.length > 0) ? (
+                            staff.map(member => (
+                                <div key={member.id} className="flex items-center">
+                                    <Briefcase className="w-4 h-4 mr-3 text-muted-foreground" />
+                                    <span className='text-sm font-medium'>{member.name}</span>
+                                    <span className='text-xs text-muted-foreground ml-2'>- {member.role}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No hay cuerpo técnico asignado.</p>
+                        )}
                     </div>
                 </div>
             </CardContent>
@@ -393,11 +418,9 @@ export default function MembersPage() {
       </div>
 
        <div className="space-y-8">
-         <InfoCard team={team} />
+         <InfoCard team={team} teamId={teamId} />
          <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
        </div>
     </div>
   );
 }
-
-    

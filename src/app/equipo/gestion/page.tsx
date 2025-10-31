@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp, or } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, or, writeBatch } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -43,7 +43,7 @@ interface TeamInvitation {
   status: 'pending' | 'accepted' | 'rejected';
 }
 
-function CreateTeamForm() {
+function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -62,16 +62,38 @@ function CreateTeamForm() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'teams'), {
-        name: values.name,
-        club: values.club,
-        season: values.season,
-        ownerId: user.uid,
-        ownerName: user.displayName,
-        createdAt: serverTimestamp(),
-      });
-      toast({ title: 'Éxito', description: 'Equipo creado correctamente.' });
-      form.reset();
+        const batch = writeBatch(firestore);
+
+        // 1. Create the team document
+        const teamRef = doc(collection(firestore, 'teams'));
+        batch.set(teamRef, {
+            name: values.name,
+            club: values.club,
+            season: values.season,
+            ownerId: user.uid,
+            ownerName: user.displayName,
+            createdAt: serverTimestamp(),
+            memberIds: [user.uid] // Automatically add owner as a member
+        });
+
+        // 2. Create an accepted invitation for the owner
+        const invitationRef = doc(collection(firestore, 'invitations'));
+        batch.set(invitationRef, {
+            teamId: teamRef.id,
+            teamName: values.name,
+            invitedUserEmail: user.email,
+            name: user.displayName,
+            role: 'Entrenador', // Default role for owner
+            status: 'accepted',
+            createdAt: serverTimestamp(),
+            acceptedAt: serverTimestamp(),
+        });
+        
+        await batch.commit();
+
+        toast({ title: 'Éxito', description: 'Equipo creado correctamente.' });
+        form.reset();
+        onTeamCreated(); // Callback to trigger list refresh
     } catch (error) {
       console.error("Error creating team:", error);
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear el equipo.' });
@@ -141,6 +163,7 @@ function CreateTeamForm() {
 function TeamList() {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
+  const [key, setKey] = useState(0); // Add key for re-fetching
 
   const acceptedInvitationsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.email) return null;
@@ -149,7 +172,7 @@ function TeamList() {
       where('invitedUserEmail', '==', user.email),
       where('status', '==', 'accepted')
     );
-  }, [firestore, user?.email]);
+  }, [firestore, user?.email, key]);
 
   const { data: acceptedInvitations, isLoading: isLoadingInvites } = useCollection<TeamInvitation>(acceptedInvitationsQuery);
   
@@ -160,26 +183,21 @@ function TeamList() {
   const teamsQuery = useMemoFirebase(() => {
     if (!firestore || !user?.uid) return null;
 
-    // Wait until invites (and thus memberTeamIds) are loaded before creating the query.
-    // If we don't wait, an empty memberTeamIds array could result in an invalid query.
     if (isLoadingInvites) return null;
 
-    const hasMemberTeams = memberTeamIds.length > 0;
+    const allTeamIds = [...new Set(memberTeamIds)];
+    const hasMemberTeams = allTeamIds.length > 0;
 
-    // If the user isn't a member of any teams, just query for owned teams.
-    if (!hasMemberTeams) {
-      return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
+    const clauses = [where('ownerId', '==', user.uid)];
+    if(hasMemberTeams) {
+        clauses.push(where('__name__', 'in', allTeamIds));
     }
     
-    // If they are a member, create a compound OR query.
     return query(
       collection(firestore, 'teams'),
-      or(
-        where('ownerId', '==', user.uid),
-        where('__name__', 'in', memberTeamIds)
-      )
+      or(...clauses)
     );
-  }, [firestore, user?.uid, memberTeamIds, isLoadingInvites]);
+  }, [firestore, user?.uid, memberTeamIds, isLoadingInvites, key]);
 
   const { data: allTeams, isLoading: isLoadingTeams } = useCollection<Team>(teamsQuery);
   
@@ -276,6 +294,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 
 export default function GestionPage() {
+  const [key, setKey] = useState(0);
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 text-center">
@@ -291,12 +310,10 @@ export default function GestionPage() {
               <TeamList />
             </div>
             <div className="md:col-span-1">
-              <CreateTeamForm />
+              <CreateTeamForm onTeamCreated={() => setKey(k => k + 1)} />
             </div>
         </div>
       </AuthGuard>
     </div>
   );
 }
-
-    
