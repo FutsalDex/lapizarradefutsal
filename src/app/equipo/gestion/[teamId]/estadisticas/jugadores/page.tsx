@@ -63,7 +63,7 @@ const statCategories: {
     { key: 'goals', title: 'Máximo Goleador', icon: Goal, higherIsBetter: true },
     { key: 'assists', title: 'Máximo Asistente', icon: Hand, higherIsBetter: true },
     { key: 'shotsOnTarget', title: 'Más Tiros a Puerta', icon: Target, higherIsBetter: true },
-    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: true },
+    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: false },
     { key: 'recoveries', title: 'Más Recuperaciones', icon: Repeat, higherIsBetter: true },
     { key: 'turnovers', title: 'Más Pérdidas', icon: Shuffle, higherIsBetter: false },
     { key: 'fouls', title: 'Más Faltas', icon: ShieldAlert, higherIsBetter: false },
@@ -112,7 +112,7 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
     const filteredAndSortedStats = useMemo(() => {
         return aggregatedStats
             .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+            .sort((a, b) => (b.minutesPlayed || 0) - (a.minutesPlayed || 0));
     }, [aggregatedStats, searchTerm]);
     
     const tableHeaders = [
@@ -227,7 +227,7 @@ export default function PlayerStatsPage() {
     const aggregatedStats = useMemo(() => {
         if (!players || !filteredMatches) return [];
 
-        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
+        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string; number: string } } = {};
 
         players.forEach(p => {
             statsMap[p.id] = { 
@@ -271,55 +271,47 @@ export default function PlayerStatsPage() {
     }, [players, filteredMatches]);
 
     const statLeaders = useMemo(() => {
-        const leaders: { [key: string]: { player: string; value: number } } = {};
-        if (_.isEmpty(aggregatedStats) || !players) return leaders;
-    
-        statCategories.forEach(cat => {
-            let leaderPlayer: { name: string; value: number } | null = null;
-    
-            for (const playerStats of aggregatedStats) {
-                const playerInfo = players.find(p => p.number === playerStats.number);
-                if (!playerInfo) continue;
-    
-                const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
-                const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
+    const leaders: { [key: string]: { player: string; value: number } } = {};
+    if (_.isEmpty(aggregatedStats) || !players) return leaders;
 
-                if (isGoalkeeperCategory && playerInfo.position !== 'Portero') continue;
-                if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
+    statCategories.forEach(cat => {
+        let leaderPlayer: { name: string; value: number } | null = null;
 
-                const statValue = playerStats[cat.key] ?? 0;
-    
-                if (leaderPlayer === null) {
-                    leaderPlayer = { name: playerStats.name, value: statValue };
-                    continue;
-                }
+        for (const playerStats of aggregatedStats) {
+            const playerInfo = players.find(p => p.number === playerStats.number);
+            if (!playerInfo) continue;
 
-                if (cat.higherIsBetter) {
-                    if (statValue > leaderPlayer.value) {
-                        leaderPlayer = { name: playerStats.name, value: statValue };
-                    }
-                } else {
-                     if (leaderPlayer.value === 0 && statValue > 0) { // First player with a non-zero stat
-                        leaderPlayer = { name: playerStats.name, value: statValue };
-                     } else if (statValue < leaderPlayer.value && statValue > 0) {
-                        leaderPlayer = { name: playerStats.name, value: statValue };
-                    } else if (statValue < leaderPlayer.value && leaderPlayer.value === 0) { // Handle cases where all values are 0
-                        leaderPlayer = { name: playerStats.name, value: statValue };
-                    } else if (statValue < leaderPlayer.value) {
-                        leaderPlayer = { name: playerStats.name, value: statValue };
-                    }
-                }
-            }
+            const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
+            const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
+
+            if (isGoalkeeperCategory && playerInfo.position !== 'Portero') continue;
+            if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
             
-            if (leaderPlayer) {
-                leaders[cat.title] = { player: leaderPlayer.name, value: leaderPlayer.value };
-            } else {
-                leaders[cat.title] = { player: 'N/A', value: 0 };
+            const statValue = playerStats[cat.key] ?? 0;
+
+            if (leaderPlayer === null) {
+                leaderPlayer = { name: playerStats.name, value: statValue };
+                continue;
             }
-        });
-    
-        return leaders;
-    }, [aggregatedStats, players]);
+
+            const isBetter = cat.higherIsBetter
+                ? statValue > leaderPlayer.value
+                : statValue < leaderPlayer.value;
+
+            if (isBetter) {
+                leaderPlayer = { name: playerStats.name, value: statValue };
+            }
+        }
+        
+        if (leaderPlayer) {
+            leaders[cat.title] = { player: leaderPlayer.name, value: leaderPlayer.value };
+        } else {
+            leaders[cat.title] = { player: 'N/A', value: 0 };
+        }
+    });
+
+    return leaders;
+}, [aggregatedStats, players]);
 
 
     const isLoading = isLoadingTeam || isLoadingPlayers || isLoadingMatches;
