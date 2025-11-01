@@ -27,6 +27,7 @@ import { PlusCircle, Calendar as CalendarIcon, ListChecks, Search } from 'lucide
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
 
 const sessionSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
@@ -37,9 +38,12 @@ const sessionSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionSchema>;
 
-interface Session extends SessionFormValues {
+interface Session {
     id: string;
-    exercises: string[]; // array of exercise IDs
+    name: string;
+    date: any;
+    exercises: { initial: string[], main: string[], final: string[] } | any;
+    sessionType?: 'basic' | 'pro';
 }
 
 function CreateSessionDialog({ onSessionCreated }: { onSessionCreated: () => void }) {
@@ -168,6 +172,19 @@ export default function SesionesPage() {
 
     const { data: sessions, isLoading } = useCollection<Session>(sessionsQuery);
 
+    const getExerciseCount = (session: Session) => {
+        if (!session.exercises) return 0;
+        if (Array.isArray(session.exercises)) {
+            return session.exercises.length;
+        }
+        if (typeof session.exercises === 'object') {
+            return (session.exercises.initial?.length || 0) +
+                   (session.exercises.main?.length || 0) +
+                   (session.exercises.final?.length || 0);
+        }
+        return 0;
+    }
+
     return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -176,7 +193,13 @@ export default function SesionesPage() {
           <p className="text-lg text-muted-foreground mt-2">Organiza y planifica tus entrenamientos.</p>
         </div>
         <div className='mt-4 md:mt-0 w-full md:w-auto'>
-            {user && <CreateSessionDialog onSessionCreated={() => setKey(k => k + 1)} />}
+            {user && (
+                <Button asChild>
+                    <Link href="/sesiones">
+                         <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Sesión
+                    </Link>
+                </Button>
+            )}
         </div>
       </div>
 
@@ -204,16 +227,23 @@ export default function SesionesPage() {
             {sessions.map((session) => (
               <Card key={session.id} className="flex flex-col hover:border-primary transition-colors">
                 <CardHeader>
-                  <CardTitle className="font-headline text-xl">{session.name}</CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="font-headline text-xl">{session.name}</CardTitle>
+                    {session.sessionType && (
+                        <Badge variant={session.sessionType === 'pro' ? 'default' : 'secondary'}>
+                            {session.sessionType.charAt(0).toUpperCase() + session.sessionType.slice(1)}
+                        </Badge>
+                    )}
+                  </div>
                   <CardDescription className="flex items-center pt-2">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(new Date(session.date), 'PPP', { locale: es })}
+                    {format(session.date.toDate ? session.date.toDate() : new Date(session.date), 'PPP', { locale: es })}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <ListChecks className="mr-2 h-4 w-4" />
-                    <span>{session.exercises.length} ejercicios</span>
+                    <span>{getExerciseCount(session)} ejercicios</span>
                   </div>
                 </CardContent>
                 <CardFooter>

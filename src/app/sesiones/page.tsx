@@ -6,7 +6,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -206,17 +206,41 @@ export default function CreateSessionPage() {
         setIsSubmitting(true);
         try {
             const values = form.getValues();
+            
+            let exercisesData: any = {
+                initial: values.initialExercises,
+                main: values.mainExercises,
+                final: values.finalExercises,
+            };
+
+            if (sessionType === 'pro') {
+                const allIds = [...values.initialExercises, ...values.mainExercises, ...values.finalExercises];
+                const exerciseDocs = await Promise.all(
+                    allIds.map(id => getDoc(doc(firestore, 'exercises', id)))
+                );
+                
+                const exercisesById = exerciseDocs.reduce((acc, docSnap) => {
+                    if (docSnap.exists()) {
+                        acc[docSnap.id] = mapExercise(docSnap.data());
+                    }
+                    return acc;
+                }, {} as { [id: string]: Exercise });
+                
+                exercisesData = {
+                    initial: values.initialExercises.map(id => exercisesById[id]).filter(Boolean),
+                    main: values.mainExercises.map(id => exercisesById[id]).filter(Boolean),
+                    final: values.finalExercises.map(id => exercisesById[id]).filter(Boolean),
+                };
+            }
+
+
             await addDoc(collection(firestore, `users/${user.uid}/sessions`), {
                 name: values.name,
                 date: values.date,
                 objectives: values.objectives,
                 time: values.time,
                 facility: values.facility,
-                exercises: {
-                    initial: values.initialExercises,
-                    main: values.mainExercises,
-                    final: values.finalExercises,
-                },
+                exercises: exercisesData,
                 sessionType: sessionType,
                 userId: user.uid,
                 createdAt: serverTimestamp(),
@@ -260,7 +284,7 @@ export default function CreateSessionPage() {
                                 <DialogHeader>
                                     <DialogTitle>Elige el tipo de sesión</DialogTitle>
                                     <DialogDescription>
-                                        Selecciona cómo quieres guardar esta sesión de entrenamiento.
+                                        Selecciona cómo quieres guardar esta sesión de entrenamiento. La versión Pro guarda todos los detalles de cada ejercicio.
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid grid-cols-2 gap-4 py-4">
@@ -278,7 +302,7 @@ export default function CreateSessionPage() {
                                     </DialogClose>
                                 </div>
                                 <DialogFooter>
-                                    <p className="text-xs text-muted-foreground">La versión Pro podría incluir análisis avanzados en futuras actualizaciones.</p>
+                                    <p className="text-xs text-muted-foreground">Podrás descargar ambas versiones en PDF más adelante.</p>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
