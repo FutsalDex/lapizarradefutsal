@@ -28,6 +28,127 @@ interface Team {
   memberIds?: string[];
 }
 
+const createTeamSchema = z.object({
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  club: z.string().optional(),
+  competition: z.string().optional(),
+});
+
+type CreateTeamValues = z.infer<typeof createTeamSchema>;
+
+
+function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<CreateTeamValues>({
+    resolver: zodResolver(createTeamSchema),
+    defaultValues: { name: '', club: '', competition: '' },
+  });
+
+  const onSubmit = async (values: CreateTeamValues) => {
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Debes iniciar sesión para crear un equipo.',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const teamRef = await addDoc(collection(firestore, 'teams'), {
+        ...values,
+        ownerId: user.uid,
+        ownerName: user.displayName || user.email,
+        memberIds: [user.uid],
+        createdAt: serverTimestamp(),
+      });
+      
+      toast({
+        title: 'Éxito',
+        description: 'Equipo creado correctamente.',
+      });
+      form.reset();
+      onTeamCreated(); // Callback to refresh the list
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo crear el equipo.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <PlusCircle className="mr-2 h-5 w-5" />
+          Crear Nuevo Equipo
+        </CardTitle>
+        <CardDescription>
+          Añade un nuevo equipo para empezar a gestionarlo.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del Equipo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: Futsal Kings" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="club"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Club (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: City Futsal Club" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="competition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Competición (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: 1ª División Nacional" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? 'Creando...' : 'Crear Equipo'}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function OwnedTeamList({ refreshKey }: { refreshKey: number }) {
   const { user, isUserLoading: isAuthLoading } = useUser();
@@ -122,46 +243,36 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
                     <h4 className="font-semibold">{team.name}</h4>
                     <p className="text-sm text-muted-foreground">{team.club || 'Sin club'}</p>
                 </div>
-                {!isOwner && (
-                    <Button asChild>
+                <div className="flex items-center gap-2">
+                     <Button asChild>
                         <Link href={`/equipo/gestion/${team.id}`}>
-                            <Settings className="mr-2 h-4 w-4" /> Gestionar Equipo
+                           <Settings className="mr-2 h-4 w-4" /> Gestionar
                         </Link>
                     </Button>
-                )}
-            </div>
-            {isOwner && (
-                <div className="mt-4 pt-4 border-t flex items-center justify-end gap-2">
-                    <Button asChild>
-                        <Link href={`/equipo/gestion/${team.id}`}>
-                           <Settings className="mr-2" /> Gestionar
-                        </Link>
-                    </Button>
-                    <Button asChild variant="outline">
-                         <Link href={`/equipo/gestion/${team.id}/cuerpo-tecnico`}>
-                            <Users className="mr-2" /> Miembros
-                        </Link>
-                    </Button>
-                    <Button variant="ghost" size="icon" disabled><Edit /></Button>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro de que quieres eliminar el equipo?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Se eliminará permanentemente el equipo y todos sus datos asociados (jugadores, partidos, etc.).
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                    {isOwner && (
+                        <>
+                           <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4"/></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Estás seguro de que quieres eliminar el equipo?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción no se puede deshacer. Se eliminará permanentemente el equipo y todos sus datos asociados (jugadores, partidos, etc.).
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     )
 }
@@ -172,8 +283,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isUserLoading) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
                 <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-48 w-full" /></div>
+                <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
             </div>
         );
     }
@@ -199,7 +310,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 
 export default function GestionEquiposPage() {
-  const [key, setKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -220,9 +336,14 @@ export default function GestionEquiposPage() {
             </div>
         </div>
       <AuthGuard>
-        <div className="lg:col-span-2 space-y-8">
-            <OwnedTeamList refreshKey={key} />
-            <SharedTeamList refreshKey={key} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="md:col-span-2 space-y-8">
+                <OwnedTeamList refreshKey={refreshKey} />
+                <SharedTeamList refreshKey={refreshKey} />
+            </div>
+             <div className="md:col-span-1">
+                <CreateTeamForm onTeamCreated={handleRefresh} />
+             </div>
         </div>
       </AuthGuard>
     </div>
