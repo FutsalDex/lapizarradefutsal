@@ -23,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield, Eye } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield, Eye, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -282,8 +282,8 @@ export default function CreateSessionPage() {
                         <Dialog>
                             <DialogTrigger asChild>
                                  <Button size="lg">
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Guardar Sesión
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver Sesión
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
@@ -317,14 +317,17 @@ export default function CreateSessionPage() {
                                         </Button>
                                     </div>
                                 </div>
-                                <DialogFooter className="flex-col gap-2">
+                                <DialogFooter className="sm:justify-end gap-2">
+                                     <Button variant="outline" disabled>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Descargar PDF
+                                    </Button>
                                      <DialogClose asChild>
-                                        <Button onClick={handleSave} disabled={isSubmitting} className="w-full">
+                                        <Button onClick={handleSave} disabled={isSubmitting}>
                                             <Save className="mr-2 h-4 w-4"/>
                                             {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
                                         </Button>
                                     </DialogClose>
-                                    <p className="text-xs text-muted-foreground text-center">Podrás descargar ambas versiones en PDF más adelante.</p>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
