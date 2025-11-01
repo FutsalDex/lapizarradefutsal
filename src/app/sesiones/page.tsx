@@ -46,6 +46,7 @@ const sessionSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionSchema>;
 type Phase = 'initialExercises' | 'mainExercises' | 'finalExercises';
+type SessionType = 'basic' | 'pro';
 
 
 // ====================
@@ -168,6 +169,7 @@ export default function CreateSessionPage() {
     const { user } = useUser();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('pro');
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -199,7 +201,7 @@ export default function CreateSessionPage() {
         form.setValue(phase, newIds, { shouldValidate: true });
     };
 
-    const handleSave = async (sessionType: 'basic' | 'pro') => {
+    const handleSave = async () => {
         if (!user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear una sesión.' });
             return;
@@ -210,7 +212,7 @@ export default function CreateSessionPage() {
             
             let exercisesData: any;
 
-            if (sessionType === 'pro') {
+            if (selectedSessionType === 'pro') {
                  const allIds = [...values.initialExercises, ...values.mainExercises, ...values.finalExercises];
                 const exerciseDocs = await Promise.all(
                     allIds.map(id => getDoc(doc(firestore, 'exercises', id)))
@@ -245,11 +247,11 @@ export default function CreateSessionPage() {
                 time: values.time,
                 facility: values.facility,
                 exercises: exercisesData,
-                sessionType: sessionType,
+                sessionType: selectedSessionType,
                 userId: user.uid,
                 createdAt: serverTimestamp(),
             });
-            toast({ title: 'Éxito', description: `Sesión de entrenamiento ${sessionType === 'pro' ? 'Pro' : 'Básica'} creada.` });
+            toast({ title: 'Éxito', description: `Sesión de entrenamiento ${selectedSessionType === 'pro' ? 'Pro' : 'Básica'} creada.` });
             form.reset();
         } catch (error) {
             console.error("Error creating session:", error);
@@ -280,8 +282,8 @@ export default function CreateSessionPage() {
                         <Dialog>
                             <DialogTrigger asChild>
                                  <Button size="lg">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Ver Sesión
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Guardar Sesión
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
@@ -294,29 +296,35 @@ export default function CreateSessionPage() {
                                 <div className="py-4 space-y-4">
                                     <div className="relative aspect-[4/3] w-full rounded-md border bg-muted">
                                         <Image
-                                          src="https://placehold.co/800x600.png?text=Vista+Previa+PDF"
-                                          alt="Previsualización del PDF"
+                                          src={selectedSessionType === 'basic' ? "https://placehold.co/800x600/e2e8f0/64748b?text=Sesi%C3%B3n%0AB%C3%A1sica" : "https://placehold.co/800x600/d1fae5/10b981?text=Sesi%C3%B3n%0APro"}
+                                          alt={`Previsualización de sesión ${selectedSessionType}`}
                                           fill
-                                          className="object-contain p-2"
+                                          className="object-contain p-2 transition-all"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <DialogClose asChild>
-                                            <Button variant="outline" onClick={() => handleSave('basic')} disabled={isSubmitting}>
-                                                <Shield className="mr-2 h-4 w-4" />
-                                                Básica
-                                            </Button>
-                                        </DialogClose>
-                                        <DialogClose asChild>
-                                            <Button onClick={() => handleSave('pro')} disabled={isSubmitting}>
-                                                <Star className="mr-2 h-4 w-4" />
-                                                Pro
-                                            </Button>
-                                        </DialogClose>
+                                        <Button 
+                                            variant={selectedSessionType === 'basic' ? 'default' : 'outline'}
+                                            onClick={() => setSelectedSessionType('basic')}>
+                                            <Shield className="mr-2 h-4 w-4" />
+                                            Básica
+                                        </Button>
+                                        <Button 
+                                            variant={selectedSessionType === 'pro' ? 'default' : 'outline'}
+                                            onClick={() => setSelectedSessionType('pro')}>
+                                            <Star className="mr-2 h-4 w-4" />
+                                            Pro
+                                        </Button>
                                     </div>
                                 </div>
-                                <DialogFooter>
-                                    <p className="text-xs text-muted-foreground">Podrás descargar ambas versiones en PDF más adelante.</p>
+                                <DialogFooter className="flex-col gap-2">
+                                     <DialogClose asChild>
+                                        <Button onClick={handleSave} disabled={isSubmitting} className="w-full">
+                                            <Save className="mr-2 h-4 w-4"/>
+                                            {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
+                                        </Button>
+                                    </DialogClose>
+                                    <p className="text-xs text-muted-foreground text-center">Podrás descargar ambas versiones en PDF más adelante.</p>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
