@@ -28,6 +28,8 @@ import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
+import { FutsalCourt } from '@/components/futsal-court';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -52,56 +54,112 @@ type SessionType = 'basic' | 'pro';
 // COMPONENTES
 // ====================
 
-function ExercisePickerSheet({ allExercises, selectedIds, onSelect, phase, children }: { allExercises: Exercise[], selectedIds: string[], onSelect: (id: string, phase: Phase) => void, phase: Phase, children: React.ReactNode }) {
+function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: string, phase: Phase) => void, phase: Phase, children: React.ReactNode }) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('Todas');
+    const [ageFilter, setAgeFilter] = useState('Todas');
+
+    const categories = useMemo(() => {
+        if (!allExercises) return [];
+        return [...new Set(allExercises.map(e => e.category).filter(Boolean))];
+    }, [allExercises]);
+    
+    const ages = useMemo(() => {
+        if (!allExercises) return [];
+        const allAges = allExercises.flatMap(e => e.edad || []);
+        return [...new Set(allAges)].sort();
+    }, [allExercises]);
 
     const filteredExercises = useMemo(() => {
         if (!allExercises) return [];
-        return allExercises.filter(ex => ex.name.toLowerCase().includes(searchTerm.toLowerCase()) && ex.visible);
-    }, [allExercises, searchTerm]);
-
+        return allExercises.filter(ex => {
+            const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = categoryFilter === 'Todas' || ex.category === categoryFilter;
+            const matchesAge = ageFilter === 'Todas' || (Array.isArray(ex.edad) && ex.edad.includes(ageFilter));
+            return matchesSearch && matchesCategory && matchesAge && ex.visible;
+        });
+    }, [allExercises, searchTerm, categoryFilter, ageFilter]);
+    
     return (
-        <Sheet>
-            <SheetTrigger asChild>{children}</SheetTrigger>
-            <SheetContent className="w-full sm:max-w-lg">
-                <SheetHeader>
-                    <SheetTitle>Seleccionar Ejercicios</SheetTitle>
-                </SheetHeader>
-                <div className="py-4">
-                    <div className="relative mb-4">
+        <Dialog>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Seleccionar Ejercicio</DialogTitle>
+                    <DialogDescription>Busca y selecciona un ejercicio de tu biblioteca.</DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="relative">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Buscar ejercicios..."
+                            placeholder="Buscar ejercicio por nombre..."
                             className="pl-9"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <ScrollArea className="h-[calc(100vh-12rem)] rounded-md border">
-                        <div className="p-4 space-y-2">
-                            {filteredExercises.map(exercise => (
-                                <div
-                                    key={exercise.id}
-                                    className="flex items-center gap-3 rounded-md p-2 hover:bg-muted"
-                                >
-                                    <Checkbox
-                                        id={`${phase}-${exercise.id}`}
-                                        checked={selectedIds.includes(exercise.id)}
-                                        onCheckedChange={() => onSelect(exercise.id, phase)}
-                                    />
-                                    <label htmlFor={`${phase}-${exercise.id}`} className="w-full cursor-pointer">
-                                        <p className="font-semibold">{exercise.name}</p>
-                                        <p className="text-xs text-muted-foreground">{exercise.category}</p>
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
+                     <div className="grid grid-cols-2 gap-4">
+                       <Select onValueChange={setCategoryFilter} defaultValue="Todas">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todas las categorías" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Todas">Todas las Categorías</SelectItem>
+                            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                         <Select onValueChange={setAgeFilter} defaultValue="Todas">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Todas las edades" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Todas">Todas las Edades</SelectItem>
+                            {ages.map(age => <SelectItem key={age} value={age} className="capitalize">{age}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-            </SheetContent>
-        </Sheet>
+                <ScrollArea className="flex-grow rounded-md border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                        {filteredExercises.map(exercise => (
+                            <Card key={exercise.id} className="overflow-hidden group">
+                                <CardContent className="p-0 relative">
+                                     <div className="relative aspect-video w-full bg-muted">
+                                         {exercise.image ? (
+                                            <Image
+                                                src={exercise.image}
+                                                alt={exercise.name}
+                                                fill
+                                                className="object-contain"
+                                                data-ai-hint={exercise.aiHint}
+                                            />
+                                        ) : (
+                                            <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
+                                        )}
+                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <DialogClose asChild>
+                                                <Button size="icon" className="rounded-full h-12 w-12" onClick={() => onSelect(exercise.id, phase)}>
+                                                    <PlusCircle className="h-6 w-6" />
+                                                </Button>
+                                            </DialogClose>
+                                        </div>
+                                     </div>
+                                </CardContent>
+                                <CardFooter className="p-3">
+                                    <div className='w-full'>
+                                        <p className="font-semibold truncate text-sm">{exercise.name}</p>
+                                        <p className="text-xs text-muted-foreground">{exercise.category} - {exercise.duration} min</p>
+                                    </div>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                </ScrollArea>
+            </DialogContent>
+        </Dialog>
     );
 }
+
 
 function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: () => void }) {
     return (
@@ -143,14 +201,13 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                         <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                     ))}
 
-                    <ExercisePickerSheet
+                    <ExercisePickerDialog
                         allExercises={allExercises}
-                        selectedIds={selectedIds}
                         onSelect={onExerciseToggle}
                         phase={phase}
                     >
                         <AddExerciseCard onClick={() => {}}/>
-                    </ExercisePickerSheet>
+                    </ExercisePickerDialog>
                 </div>
              </ScrollArea>
         </div>
@@ -279,52 +336,48 @@ export default function CreateSessionPage() {
                             <DialogTrigger asChild>
                                  <Button size="lg">
                                     <Eye className="mr-2 h-4 w-4" />
-                                    Ver Sesión
+                                    Ver ficha de la sesión
                                 </Button>
                             </DialogTrigger>
                              <DialogContent className="sm:max-w-2xl">
                                 <DialogHeader>
                                     <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
-                                    <DialogDescription>
-                                        Elige el formato que mejor se adapte a tus necesidades.
-                                    </DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 flex justify-center gap-6">
+                                <div className="py-4 grid grid-cols-2 gap-4">
                                      <div
                                         className={cn(
-                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors w-56 space-y-3",
+                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
                                             selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
                                         )}
                                         onClick={() => setSelectedSessionType('basic')}
                                     >
-                                        <div className="relative mx-auto h-32 w-full rounded-md border bg-muted p-2">
+                                        <h3 className="font-semibold text-lg">Básico</h3>
+                                        <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/200x150/e2e8f0/64748b?text=B%C3%A1sico"
+                                                src="https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sico"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
                                             />
                                         </div>
-                                        <h3 className="font-semibold text-lg">Básico</h3>
                                     </div>
 
                                     <div
                                         className={cn(
-                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors w-56 space-y-3 relative",
+                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2 relative",
                                             selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
                                         )}
                                         onClick={() => setSelectedSessionType('pro')}
                                     >
-                                        <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">PRO</div>
-                                         <div className="relative mx-auto h-32 w-full rounded-md border bg-muted p-2">
+                                        <h3 className="font-semibold text-lg">Pro</h3>
+                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/200x150/d1fae5/10b981?text=Pro"
+                                                src="https://placehold.co/200x300/d1fae5/10b981?text=Pro"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
                                             />
                                         </div>
-                                        <h3 className="font-semibold text-lg">Pro</h3>
                                     </div>
                                 </div>
                                 <DialogFooter className="sm:justify-end gap-2 pt-4">
