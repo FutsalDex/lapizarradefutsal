@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, forwardRef } from 'react';
@@ -249,12 +250,12 @@ function MatchFormDialog({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Equipo Local</FormLabel>
-                        <div className="flex gap-2">
-                           <FormControl>
+                        <FormControl>
+                            <div className="flex gap-2">
                                 <Input placeholder="Nombre del equipo" {...field} />
-                           </FormControl>
-                           <Button type="button" variant="outline" onClick={() => form.setValue('localTeam', team.name)}>Mi Equipo</Button>
-                        </div>
+                                <Button type="button" variant="outline" onClick={() => form.setValue('localTeam', team.name)}>Mi Equipo</Button>
+                            </div>
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -265,12 +266,12 @@ function MatchFormDialog({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Equipo Visitante</FormLabel>
-                        <div className="flex gap-2">
-                           <FormControl>
+                        <FormControl>
+                            <div className="flex gap-2">
                                 <Input placeholder="Nombre del equipo" {...field} />
-                           </FormControl>
-                           <Button type="button" variant="outline" onClick={() => form.setValue('visitorTeam', team.name)}>Mi Equipo</Button>
-                        </div>
+                                <Button type="button" variant="outline" onClick={() => form.setValue('visitorTeam', team.name)}>Mi Equipo</Button>
+                            </div>
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}
