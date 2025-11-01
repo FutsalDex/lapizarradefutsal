@@ -294,12 +294,12 @@ export default function CreateSessionPage() {
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="py-4 space-y-4">
-                                    <div className="relative aspect-[3/4] w-full rounded-md border bg-muted">
+                                    <div className="relative mx-auto h-64 w-48 rounded-md border bg-muted">
                                         <Image
-                                          src={selectedSessionType === 'basic' ? "https://placehold.co/600x800/e2e8f0/64748b?text=B%C3%A1sica%0A(2+Columnas)" : "https://placehold.co/600x800/d1fae5/10b981?text=Pro%0A(1+Columna)"}
+                                          src={selectedSessionType === 'basic' ? "https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sica%0A(2+Col)" : "https://placehold.co/200x300/d1fae5/10b981?text=Pro%0A(1+Col)"}
                                           alt={`Previsualización de sesión ${selectedSessionType}`}
                                           fill
-                                          className="object-contain p-4 transition-all"
+                                          className="object-contain p-2 transition-all"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
