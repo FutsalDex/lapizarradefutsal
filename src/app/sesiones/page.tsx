@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -53,6 +53,66 @@ type SessionType = 'basic' | 'pro';
 // ====================
 // COMPONENTES
 // ====================
+
+function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
+    const getExercisesForPhase = (phase: Phase) => {
+        return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+    };
+    
+    const PhasePreview = ({ title, exercises }: { title: string, exercises: Exercise[] }) => {
+        if (exercises.length === 0) return null;
+        return (
+            <>
+                <div className="bg-primary/10 text-primary-foreground p-2 text-center">
+                    <h3 className="font-bold text-sm text-primary">{title}</h3>
+                </div>
+                {exercises.map(ex => (
+                    <div key={ex.id} className="p-4 border-b">
+                         <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
+                         <div className="grid grid-cols-2 gap-4 pt-2">
+                             <div className="relative aspect-video bg-muted rounded-md">
+                                  {ex.image ? (
+                                    <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
+                                ) : (
+                                    <FutsalCourt className="w-full h-full p-1" />
+                                )}
+                             </div>
+                             <div>
+                                 <h5 className="font-semibold text-sm">Descripción</h5>
+                                 <p className="text-xs text-muted-foreground mb-2">{ex.description}</p>
+                                 <h5 className="font-semibold text-sm">Objetivos</h5>
+                                 <p className="text-xs text-muted-foreground">{ex.objectives}</p>
+                             </div>
+                         </div>
+                         <div className="grid grid-cols-4 gap-px mt-2 bg-border rounded-b-md overflow-hidden text-xs text-center">
+                             <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
+                             <div className="bg-background p-1"><span className="font-semibold block">Descanso</span>N/A</div>
+                             <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
+                             <div className="bg-background p-1"><span className="font-semibold block">Espacio</span>N/A</div>
+                         </div>
+                    </div>
+                ))}
+            </>
+        );
+    }
+
+    return (
+        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
+            <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
+                <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
+                <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
+                <div><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
+                <div className="col-span-1"><span>Objetivos</span><Input className="w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
+                <div><span>Jugadores</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
+            </div>
+             <ScrollArea className="h-[60vh]">
+                <PhasePreview title="FASE INICIAL" exercises={getExercisesForPhase('initialExercises')} />
+                <PhasePreview title="FASE PRINCIPAL" exercises={getExercisesForPhase('mainExercises')} />
+                <PhasePreview title="FASE FINAL" exercises={getExercisesForPhase('finalExercises')} />
+             </ScrollArea>
+        </div>
+    );
+}
 
 function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: string, phase: Phase) => void, phase: Phase, children: React.ReactNode }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -117,7 +177,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                     </div>
                 </div>
                 <ScrollArea className="flex-grow rounded-md border">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    <div className="grid grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
                             <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
@@ -233,6 +293,7 @@ export default function CreateSessionPage() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('basic');
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -275,33 +336,13 @@ export default function CreateSessionPage() {
             
             let exercisesData: any;
 
-            if (selectedSessionType === 'pro') {
-                 const allIds = [...values.initialExercises, ...values.mainExercises, ...values.finalExercises];
-                const exerciseDocs = await Promise.all(
-                    allIds.map(id => getDoc(doc(firestore, 'exercises', id)))
-                );
-                
-                const exercisesById = exerciseDocs.reduce((acc, docSnap) => {
-                    if (docSnap.exists()) {
-                        acc[docSnap.id] = mapExercise(docSnap.data());
-                    }
-                    return acc;
-                }, {} as { [id: string]: Exercise });
-                
-                exercisesData = {
-                    initial: values.initialExercises.map(id => exercisesById[id]).filter(Boolean),
-                    main: values.mainExercises.map(id => exercisesById[id]).filter(Boolean),
-                    final: values.finalExercises.map(id => exercisesById[id]).filter(Boolean),
-                };
-
-            } else { // Basic session
-                 exercisesData = {
-                    initial: values.initialExercises,
-                    main: values.mainExercises,
-                    final: values.finalExercises,
-                };
-            }
-
+             // For both 'basic' and 'pro', we just store IDs for now.
+             // PDF generation logic will fetch full data for 'pro'.
+             exercisesData = {
+                initial: values.initialExercises,
+                main: values.mainExercises,
+                final: values.finalExercises,
+            };
 
             await addDoc(collection(firestore, `users/${user.uid}/sessions`), {
                 name: values.name,
@@ -316,6 +357,7 @@ export default function CreateSessionPage() {
             });
             toast({ title: 'Éxito', description: `Sesión de entrenamiento ${selectedSessionType === 'pro' ? 'Pro' : 'Básica'} creada.` });
             form.reset();
+            setIsPreviewOpen(false);
         } catch (error) {
             console.error("Error creating session:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear la sesión.' });
@@ -342,16 +384,19 @@ export default function CreateSessionPage() {
                             <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
                         </div>
                         
-                        <Dialog>
+                        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                             <DialogTrigger asChild>
                                  <Button size="lg">
                                     <Eye className="mr-2 h-4 w-4" />
                                     Ver ficha de la sesión
                                 </Button>
                             </DialogTrigger>
-                           <DialogContent className="sm:max-w-xl">
+                           <DialogContent className="max-w-4xl">
                                 <DialogHeader>
                                     <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
+                                    <DialogDescription>
+                                        Elige el formato para tu ficha de sesión. La versión Pro requiere una suscripción.
+                                    </DialogDescription>
                                 </DialogHeader>
                                 <div className="py-4 grid grid-cols-2 gap-4">
                                     <div
@@ -364,7 +409,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Básico</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                             <Image
-                                                src="https://i.ibb.co/6JnKWtLV/basico.png"
+                                                src="https://i.ibb.co/L97XJ2b/basico.png"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
@@ -389,6 +434,16 @@ export default function CreateSessionPage() {
                                         </div>
                                     </div>
                                 </div>
+                                {selectedSessionType === 'pro' && (
+                                     <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="link">Ver previsualización del PDF</Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-5xl h-[90vh]">
+                                           <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                        </DialogContent>
+                                    </Dialog>
+                                )}
                                 <DialogFooter className="sm:justify-end gap-2 pt-4">
                                      <Button onClick={handleSave} disabled={isSubmitting}>
                                         <Save className="mr-2 h-4 w-4"/>
