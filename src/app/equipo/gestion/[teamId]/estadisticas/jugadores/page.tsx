@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck, Users, Timer } from 'lucide-react';
+import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck, Timer, Users } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import _ from 'lodash';
@@ -298,14 +298,18 @@ export default function PlayerStatsPage() {
                 if (!playerInfo) continue;
     
                 const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
-    
+                const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
+
                 if (isGoalkeeperCategory && playerInfo.position !== 'Portero') {
                     continue; // Skip non-goalkeepers for goalkeeper-specific stats
                 }
-    
+                
+                if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') {
+                    continue; // Skip goalkeepers for outfield-player-specific stats
+                }
+
                 let statValue = player[cat.key] || 0;
                 
-                // For "less minutes", we need to consider only players who played
                 if (cat.key === 'minutesPlayed' && !cat.higherIsBetter && statValue === 0) {
                     continue;
                 }
@@ -323,7 +327,6 @@ export default function PlayerStatsPage() {
                 }
             }
             
-            // Only show if a valid leader was found
             if (leaderValue !== Infinity && leaderValue !== -1) {
                 leaders[cat.title] = { player: leaderPlayer, value: leaderValue };
             } else {
