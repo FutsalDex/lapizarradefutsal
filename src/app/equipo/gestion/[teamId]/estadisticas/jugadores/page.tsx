@@ -255,33 +255,50 @@ export default function PlayerStatsPage() {
     }, [finishedMatches, filter]);
     
     const aggregatedStats = useMemo(() => {
-        if (!players) return {};
-
-        const playerStats: { [playerId: string]: Partial<PlayerStats> & { name: string } } = {};
-
+        if (!players || !filteredMatches) return {};
+    
+        const playerStats: { [playerId: string]: PlayerStats & { name: string } } = {};
+    
+        // Initialize stats for all players
         players.forEach(p => {
-            playerStats[p.id] = { name: p.name };
+            playerStats[p.id] = {
+                name: p.name,
+                goals: 0,
+                assists: 0,
+                yellowCards: 0,
+                redCards: 0,
+                fouls: 0,
+                shotsOnTarget: 0,
+                shotsOffTarget: 0,
+                recoveries: 0,
+                turnovers: 0,
+                saves: 0,
+                goalsConceded: 0,
+                unoVsUno: 0,
+                minutesPlayed: 0,
+                pj: 0,
+            };
         });
-
+    
         filteredMatches.forEach(match => {
             if (!match.playerStats) return;
             for (const period of ['1H', '2H'] as const) {
                 const periodStats = match.playerStats[period];
                 if (!periodStats) continue;
-
+    
                 for (const playerId in periodStats) {
                     if (playerStats[playerId]) {
                         const stats = periodStats[playerId];
                         for (const statKey in stats) {
-                             const key = statKey as StatCategory;
-                             playerStats[playerId][key] = (playerStats[playerId][key] || 0) + (stats[key] || 0);
+                            const key = statKey as StatCategory;
+                            playerStats[playerId][key] = (playerStats[playerId][key] || 0) + (stats[key] || 0);
                         }
                     }
                 }
             }
         });
         return playerStats;
-
+    
     }, [players, filteredMatches]);
 
     const statLeaders = useMemo(() => {
