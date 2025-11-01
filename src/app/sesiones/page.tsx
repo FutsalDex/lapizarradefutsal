@@ -68,12 +68,19 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                 </div>
                 {exercises.map(ex => (
                     <div key={ex.id} className="p-4 border-b grid grid-cols-3 gap-4">
-                         <div className="relative aspect-video bg-muted rounded-md col-span-1">
-                              {ex.image ? (
-                                <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
-                            ) : (
-                                <FutsalCourt className="w-full h-full p-1" />
-                            )}
+                         <div className="col-span-1 space-y-2">
+                             <div className="relative aspect-video bg-muted rounded-md">
+                                  {ex.image ? (
+                                    <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
+                                ) : (
+                                    <FutsalCourt className="w-full h-full p-1" />
+                                )}
+                             </div>
+                             <div className="grid grid-cols-3 gap-px bg-border rounded-md overflow-hidden text-xs text-center">
+                                 <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
+                                 <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
+                                 <div className="bg-background p-1 truncate" title={ex.consejos || ''}><span className="font-semibold block">Materiales</span>{ex.consejos || 'N/A'}</div>
+                             </div>
                          </div>
                          <div className="col-span-2 space-y-2">
                              <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
@@ -84,12 +91,6 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                               <div>
                                 <h5 className="font-semibold text-sm">Objetivos</h5>
                                 <p className="text-xs text-muted-foreground">{ex.objectives}</p>
-                             </div>
-                             <div className="grid grid-cols-4 gap-px mt-2 bg-border rounded-b-md overflow-hidden text-xs text-center">
-                                 <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
-                                 <div className="bg-background p-1"><span className="font-semibold block">Descanso</span>N/A</div>
-                                 <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
-                                 <div className="bg-background p-1"><span className="font-semibold block">Espacio</span>N/A</div>
                              </div>
                          </div>
                     </div>
@@ -483,7 +484,7 @@ export default function CreateSessionPage() {
                                         </DialogTrigger>
                                         <DialogContent className="max-w-5xl h-[90vh]">
                                            <DialogHeader>
-                                              <DialogTitle>Previsualización de Ficha Pro</DialogTitle>
+                                                <DialogTitle>Previsualización de Ficha Pro</DialogTitle>
                                            </DialogHeader>
                                            <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
                                         </DialogContent>
