@@ -388,7 +388,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                              {players.length > 0 ? players.map(player => {
                                 const stats = _.get(match.playerStats, `${period}.${player.id}`, {});
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20 border-2 border-primary")}>
+                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20")}>
                                         <TableCell className="py-1 px-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
