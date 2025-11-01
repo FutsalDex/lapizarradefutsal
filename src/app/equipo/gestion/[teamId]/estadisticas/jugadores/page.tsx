@@ -119,19 +119,8 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
             statsMap[p.id] = { 
                 name: p.name, 
                 number: p.number, 
-                pj: 0, 
-                minutesPlayed: 0, 
-                goals: 0, 
-                assists: 0, 
-                yellowCards: 0, 
-                redCards: 0, 
-                fouls: 0, 
-                shotsOnTarget: 0, 
-                shotsOffTarget: 0, 
-                recoveries: 0, 
-                turnovers: 0, 
-                saves: 0, 
-                goalsConceded: 0,
+                pj: 0, minutesPlayed: 0, goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
+                recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, fouls: 0, yellowCards: 0, redCards: 0,
                 unoVsUno: 0,
             };
         });
@@ -146,11 +135,10 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
                     const playerStats1H = match.playerStats?.['1H']?.[playerId] || {};
                     const playerStats2H = match.playerStats?.['2H']?.[playerId] || {};
 
-                    for (const key of Object.keys(playerStats1H) as Array<keyof PlayerStats>) {
-                        statsMap[playerId][key] = (statsMap[playerId][key] || 0) + (playerStats1H[key] || 0);
-                    }
-                     for (const key of Object.keys(playerStats2H) as Array<keyof PlayerStats>) {
-                        statsMap[playerId][key] = (statsMap[playerId][key] || 0) + (playerStats2H[key] || 0);
+                    for (const key of Object.keys(statsMap[playerId])) {
+                         if (key !== 'name' && key !== 'number' && key !== 'pj') {
+                            (statsMap[playerId] as any)[key] = ((statsMap[playerId] as any)[key] || 0) + (playerStats1H[key as keyof PlayerStats] || 0) + (playerStats2H[key as keyof PlayerStats] || 0);
+                        }
                     }
                 }
             });
@@ -167,7 +155,6 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
             .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
     }, [aggregatedStats, searchTerm]);
     
-
     const tableHeaders = [
         { key: 'Dorsal', label: '#' },
         { key: 'Nombre', label: 'Nombre' },
@@ -175,16 +162,17 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
         { key: 'pj', label: 'PJ' },
         { key: 'goals', label: 'Goles' },
         { key: 'assists', label: 'Asist.' },
-        { key: 'yellowCards', label: 'TA' },
-        { key: 'redCards', label: 'TR' },
-        { key: 'fouls', label: 'Faltas' },
         { key: 'shotsOnTarget', label: 'TP' },
         { key: 'shotsOffTarget', label: 'TF' },
         { key: 'recoveries', label: 'R' },
         { key: 'turnovers', label: 'P' },
         { key: 'saves', label: 'Paradas' },
         { key: 'goalsConceded', label: 'G. Rec.' },
+        { key: 'fouls', label: 'Faltas' },
+        { key: 'yellowCards', label: 'TA' },
+        { key: 'redCards', label: 'TR' },
     ];
+
 
     return (
         <Card>
@@ -209,15 +197,15 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
                                         <TableCell>{player.pj || 0}</TableCell>
                                         <TableCell>{player.goals || 0}</TableCell>
                                         <TableCell>{player.assists || 0}</TableCell>
-                                        <TableCell>{player.yellowCards || 0}</TableCell>
-                                        <TableCell>{player.redCards || 0}</TableCell>
-                                        <TableCell>{player.fouls || 0}</TableCell>
                                         <TableCell>{player.shotsOnTarget || 0}</TableCell>
                                         <TableCell>{player.shotsOffTarget || 0}</TableCell>
                                         <TableCell>{player.recoveries || 0}</TableCell>
                                         <TableCell>{player.turnovers || 0}</TableCell>
                                         <TableCell>{player.saves || 0}</TableCell>
                                         <TableCell>{player.goalsConceded || 0}</TableCell>
+                                        <TableCell>{player.fouls || 0}</TableCell>
+                                        <TableCell>{player.yellowCards || 0}</TableCell>
+                                        <TableCell>{player.redCards || 0}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
@@ -276,25 +264,14 @@ export default function PlayerStatsPage() {
         players.forEach(p => {
             statsMap[p.id] = { 
                 name: p.name,
-                pj: 0, 
-                minutesPlayed: 0, 
-                goals: 0, 
-                assists: 0, 
-                yellowCards: 0, 
-                redCards: 0, 
-                fouls: 0, 
-                shotsOnTarget: 0, 
-                shotsOffTarget: 0,
-                recoveries: 0, 
-                turnovers: 0, 
-                saves: 0, 
-                goalsConceded: 0,
+                pj: 0, minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, 
+                shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0,
                 unoVsUno: 0,
             };
         });
 
         filteredMatches.forEach(match => {
-            if (!match.squad) return;
+            if (!match.squad || !match.playerStats) return;
 
             match.squad.forEach(playerId => {
                 if (statsMap[playerId]) {
@@ -303,19 +280,11 @@ export default function PlayerStatsPage() {
 
                     statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
                     
-                    statsMap[playerId].minutesPlayed = (statsMap[playerId].minutesPlayed || 0) + (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0);
-                    statsMap[playerId].goals = (statsMap[playerId].goals || 0) + (stats1H.goals || 0) + (stats2H.goals || 0);
-                    statsMap[playerId].assists = (statsMap[playerId].assists || 0) + (stats1H.assists || 0) + (stats2H.assists || 0);
-                    statsMap[playerId].yellowCards = (statsMap[playerId].yellowCards || 0) + (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0);
-                    statsMap[playerId].redCards = (statsMap[playerId].redCards || 0) + (stats1H.redCards || 0) + (stats2H.redCards || 0);
-                    statsMap[playerId].fouls = (statsMap[playerId].fouls || 0) + (stats1H.fouls || 0) + (stats2H.fouls || 0);
-                    statsMap[playerId].shotsOnTarget = (statsMap[playerId].shotsOnTarget || 0) + (stats1H.shotsOnTarget || 0) + (stats2H.shotsOnTarget || 0);
-                    statsMap[playerId].shotsOffTarget = (statsMap[playerId].shotsOffTarget || 0) + (stats1H.shotsOffTarget || 0) + (stats2H.shotsOffTarget || 0);
-                    statsMap[playerId].recoveries = (statsMap[playerId].recoveries || 0) + (stats1H.recoveries || 0) + (stats2H.recoveries || 0);
-                    statsMap[playerId].turnovers = (statsMap[playerId].turnovers || 0) + (stats1H.turnovers || 0) + (stats2H.turnovers || 0);
-                    statsMap[playerId].saves = (statsMap[playerId].saves || 0) + (stats1H.saves || 0) + (stats2H.saves || 0);
-                    statsMap[playerId].goalsConceded = (statsMap[playerId].goalsConceded || 0) + (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0);
-                    statsMap[playerId].unoVsUno = (statsMap[playerId].unoVsUno || 0) + (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0);
+                    for (const key of Object.keys(statsMap[playerId])) {
+                        if (key !== 'name' && key !== 'pj') {
+                            (statsMap[playerId] as any)[key] = ((statsMap[playerId] as any)[key] || 0) + (stats1H[key as keyof PlayerStats] || 0) + (stats2H[key as keyof PlayerStats] || 0);
+                        }
+                    }
                 }
             });
         });
@@ -464,4 +433,3 @@ export default function PlayerStatsPage() {
         </div>
     );
 }
-
