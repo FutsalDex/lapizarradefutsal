@@ -339,7 +339,7 @@ export default function CreateSessionPage() {
                                     Ver ficha de la sesión
                                 </Button>
                             </DialogTrigger>
-                             <DialogContent className="sm:max-w-2xl">
+                             <DialogContent className="sm:max-w-xl">
                                 <DialogHeader>
                                     <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
                                 </DialogHeader>
@@ -372,7 +372,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                          <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/200x300/d1fae5/10b981?text=Pro"
+                                                src="https://placehold.co/400x300/dcfce7/166534?text=Pro"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
