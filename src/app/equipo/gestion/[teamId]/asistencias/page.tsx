@@ -62,6 +62,7 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
   const [playerStatuses, setPlayerStatuses] = useState<Record<string, AttendanceStatus>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const sortedPlayers = useMemo(() => {
     if (!players) return [];
@@ -164,7 +165,7 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
         <CardContent className="p-6 space-y-6">
             <div className="flex items-center gap-4">
                 <Label htmlFor="training-date" className="font-semibold">Fecha del entrenamiento:</Label>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                         <Button
                             id="training-date"
@@ -179,7 +180,10 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
                         <Calendar
                             mode="single"
                             selected={selectedDate}
-                            onSelect={setSelectedDate}
+                            onSelect={(date) => {
+                                setSelectedDate(date);
+                                setIsCalendarOpen(false);
+                            }}
                             initialFocus
                             locale={es}
                             modifiers={{ registered: existingRecordDays }}
