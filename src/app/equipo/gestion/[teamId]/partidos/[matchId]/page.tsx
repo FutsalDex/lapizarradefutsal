@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -336,7 +337,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
 
         players.forEach(player => {
             const min1H = _.get(match.playerStats, `1H.${player.id}.minutesPlayed`, 0);
-            const min2H = _.get(match.playerStats, `2H.${p.id}.minutesPlayed`, 0);
+            const min2H = _.get(match.playerStats, `2H.${player.id}.minutesPlayed`, 0);
             totalMinutes[player.id] = min1H + min2H;
         });
 
