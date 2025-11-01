@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -286,48 +285,61 @@ export default function CreateSessionPage() {
                                     Ver Sesión
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
+                             <DialogContent className="sm:max-w-lg">
                                 <DialogHeader>
                                     <DialogTitle>Elige el tipo de sesión</DialogTitle>
                                     <DialogDescription>
-                                        Selecciona cómo quieres guardar la sesión. La versión Pro guarda todos los detalles de cada ejercicio.
+                                        Selecciona cómo quieres guardar la sesión.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 space-y-4">
-                                    <div className="relative mx-auto h-64 w-48 rounded-md border bg-muted">
-                                        <Image
-                                          src={selectedSessionType === 'basic' ? "https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sica%0A(2+Col)" : "https://placehold.co/200x300/d1fae5/10b981?text=Pro%0A(1+Col)"}
-                                          alt={`Previsualización de sesión ${selectedSessionType}`}
-                                          fill
-                                          className="object-contain p-2 transition-all"
-                                        />
+                                <div className="py-4 grid grid-cols-2 gap-4">
+                                    <div
+                                        className={cn(
+                                            "cursor-pointer rounded-md border-2 p-4 text-center transition-colors",
+                                            selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-muted'
+                                        )}
+                                        onClick={() => setSelectedSessionType('basic')}
+                                    >
+                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted">
+                                            <Image
+                                                src="https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sico"
+                                                alt="Previsualización de sesión Básica"
+                                                fill
+                                                className="object-contain p-2 transition-all"
+                                            />
+                                        </div>
+                                        <h3 className="mt-4 font-semibold text-lg">Básico</h3>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Button 
-                                            variant={selectedSessionType === 'basic' ? 'default' : 'outline'}
-                                            onClick={() => setSelectedSessionType('basic')}>
-                                            <Shield className="mr-2 h-4 w-4" />
-                                            Básica
-                                        </Button>
-                                        <Button 
-                                            variant={selectedSessionType === 'pro' ? 'default' : 'outline'}
-                                            onClick={() => setSelectedSessionType('pro')}>
-                                            <Star className="mr-2 h-4 w-4" />
-                                            Pro
-                                        </Button>
+
+                                    <div
+                                        className={cn(
+                                            "cursor-pointer rounded-md border-2 p-4 text-center transition-colors",
+                                            selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-muted'
+                                        )}
+                                        onClick={() => setSelectedSessionType('pro')}
+                                    >
+                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted">
+                                            <Image
+                                                src="https://placehold.co/200x300/d1fae5/10b981?text=Pro"
+                                                alt="Previsualización de sesión Pro"
+                                                fill
+                                                className="object-contain p-2 transition-all"
+                                            />
+                                        </div>
+                                        <h3 className="mt-4 font-semibold text-lg">Pro</h3>
                                     </div>
                                 </div>
                                 <DialogFooter className="sm:justify-end gap-2">
-                                     <Button variant="outline" disabled>
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Descargar PDF
-                                    </Button>
                                      <DialogClose asChild>
                                         <Button onClick={handleSave} disabled={isSubmitting}>
                                             <Save className="mr-2 h-4 w-4"/>
                                             {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
                                         </Button>
                                     </DialogClose>
+                                     <Button variant="outline" disabled>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Descargar PDF
+                                    </Button>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
