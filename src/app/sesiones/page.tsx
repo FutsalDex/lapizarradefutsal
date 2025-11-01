@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield, Eye, Download } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -105,23 +105,28 @@ function ExercisePickerSheet({ allExercises, selectedIds, onSelect, phase, child
 
 function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: () => void }) {
     return (
-        <Card className="bg-muted/50">
-            <CardContent className="p-3 flex items-center justify-between">
-                <div>
-                    <p className="font-semibold text-sm">{exercise.name}</p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-                        <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{exercise.category}</span>
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{exercise.duration} min</span>
-                        <span className="flex items-center gap-1"><Users className="h-3 w-3" />{exercise.numberOfPlayers}</span>
-                    </div>
-                </div>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={onRemove}>
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-            </CardContent>
+        <Card className="w-48 h-36 flex flex-col items-center justify-center text-center p-2 relative group">
+             <p className="font-semibold text-sm leading-tight">{exercise.name}</p>
+             <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
+                <Trash2 className="h-3 w-3" />
+             </Button>
         </Card>
     )
 }
+
+function AddExerciseCard({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-48 h-36 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-colors"
+    >
+      <PlusCircle className="h-8 w-8 mb-2" />
+      <span className="text-sm font-medium">Añadir Tarea</span>
+    </button>
+  );
+}
+
 
 function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any }) {
 
@@ -130,33 +135,23 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
     }, [allExercises, selectedIds]);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {selectedExercises.length > 0 ? (
-                    selectedExercises.map(ex => (
-                        <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
-                    ))
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No has añadido ejercicios a esta fase.</p>
-                )}
-            </CardContent>
-            <CardFooter>
+        <div className="space-y-4">
+             <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+             <div className="flex flex-wrap gap-4">
+                {selectedExercises.map(ex => (
+                    <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
+                ))}
+
                  <ExercisePickerSheet
                     allExercises={allExercises}
                     selectedIds={selectedIds}
                     onSelect={onExerciseToggle}
                     phase={phase}
                 >
-                    <Button variant="outline" type="button">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Añadir Ejercicio
-                    </Button>
+                    <AddExerciseCard onClick={() => {}}/>
                 </ExercisePickerSheet>
-            </CardFooter>
-        </Card>
+             </div>
+        </div>
     );
 }
 
@@ -285,7 +280,7 @@ export default function CreateSessionPage() {
                                     Ver Sesión
                                 </Button>
                             </DialogTrigger>
-                             <DialogContent className="sm:max-w-lg">
+                             <DialogContent className="sm:max-w-xl">
                                 <DialogHeader>
                                     <DialogTitle>Elige el tipo de sesión</DialogTitle>
                                     <DialogDescription>
@@ -293,22 +288,23 @@ export default function CreateSessionPage() {
                                     </DialogDescription>
                                 </DialogHeader>
                                 <div className="py-4 grid grid-cols-2 gap-4">
-                                    <div
+                                     <div
                                         className={cn(
                                             "cursor-pointer rounded-md border-2 p-4 text-center transition-colors",
                                             selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-muted'
                                         )}
                                         onClick={() => setSelectedSessionType('basic')}
                                     >
-                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted">
-                                            <Image
-                                                src="https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sico"
+                                        <h3 className="font-semibold text-lg mb-2">Básico</h3>
+                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted p-2">
+                                             <Image
+                                                src="https://placehold.co/144x192/e2e8f0/64748b?text=B%C3%A1sico"
                                                 alt="Previsualización de sesión Básica"
-                                                fill
-                                                className="object-contain p-2 transition-all"
+                                                width={144}
+                                                height={192}
+                                                className="object-contain"
                                             />
                                         </div>
-                                        <h3 className="mt-4 font-semibold text-lg">Básico</h3>
                                     </div>
 
                                     <div
@@ -318,15 +314,16 @@ export default function CreateSessionPage() {
                                         )}
                                         onClick={() => setSelectedSessionType('pro')}
                                     >
-                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted">
-                                            <Image
-                                                src="https://placehold.co/200x300/d1fae5/10b981?text=Pro"
+                                        <h3 className="font-semibold text-lg mb-2">Pro</h3>
+                                         <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted p-2">
+                                             <Image
+                                                src="https://placehold.co/144x192/d1fae5/10b981?text=Pro"
                                                 alt="Previsualización de sesión Pro"
-                                                fill
-                                                className="object-contain p-2 transition-all"
+                                                width={144}
+                                                height={192}
+                                                className="object-contain"
                                             />
                                         </div>
-                                        <h3 className="mt-4 font-semibold text-lg">Pro</h3>
                                     </div>
                                 </div>
                                 <DialogFooter className="sm:justify-end gap-2">
@@ -357,7 +354,7 @@ export default function CreateSessionPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="space-y-8">
                          <PhaseSection
                             title="Fase Inicial (Calentamiento)"
                             phase="initialExercises"
