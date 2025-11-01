@@ -51,13 +51,14 @@ export default function CreateTeamForm() {
     },
   })
 
-  function onSubmit(values) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values)
   }
 
   return (
+    <div className="container mx-auto p-8">
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-lg mx-auto">
         {/* Nombre del equipo */}
         <FormField
           control={form.control}
@@ -99,17 +100,17 @@ export default function CreateTeamForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo de equipo</FormLabel>
-              <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tipo" />
-                  </SelectTrigger>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tipo" />
+                    </SelectTrigger>
+                  </FormControl>
                   <SelectContent>
                     <SelectItem value="futsal">Fútbol Sala</SelectItem>
                     <SelectItem value="futbol">Fútbol 11</SelectItem>
                   </SelectContent>
                 </Select>
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -124,7 +125,6 @@ export default function CreateTeamForm() {
               <FormLabel>Fecha del partido</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
-                  {/* 👇 FormControl debe tener solo 1 hijo: el Button */}
                   <FormControl>
                     <Button
                       variant="outline"
@@ -160,5 +160,6 @@ export default function CreateTeamForm() {
         <Button type="submit">Crear equipo</Button>
       </form>
     </Form>
+    </div>
   )
 }
