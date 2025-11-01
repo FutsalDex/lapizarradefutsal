@@ -137,20 +137,22 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
     return (
         <div className="space-y-4">
              <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-             <div className="flex flex-wrap gap-4">
-                {selectedExercises.map(ex => (
-                    <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
-                ))}
+             <ScrollArea>
+                <div className="flex space-x-4 pb-4">
+                    {selectedExercises.map(ex => (
+                        <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
+                    ))}
 
-                 <ExercisePickerSheet
-                    allExercises={allExercises}
-                    selectedIds={selectedIds}
-                    onSelect={onExerciseToggle}
-                    phase={phase}
-                >
-                    <AddExerciseCard onClick={() => {}}/>
-                </ExercisePickerSheet>
-             </div>
+                    <ExercisePickerSheet
+                        allExercises={allExercises}
+                        selectedIds={selectedIds}
+                        onSelect={onExerciseToggle}
+                        phase={phase}
+                    >
+                        <AddExerciseCard onClick={() => {}}/>
+                    </ExercisePickerSheet>
+                </div>
+             </ScrollArea>
         </div>
     );
 }
@@ -163,7 +165,7 @@ export default function CreateSessionPage() {
     const { user } = useUser();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('pro');
+    const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('basic');
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -280,59 +282,56 @@ export default function CreateSessionPage() {
                                     Ver Sesión
                                 </Button>
                             </DialogTrigger>
-                             <DialogContent className="sm:max-w-xl">
+                             <DialogContent className="sm:max-w-2xl">
                                 <DialogHeader>
-                                    <DialogTitle>Elige el tipo de sesión</DialogTitle>
+                                    <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
                                     <DialogDescription>
-                                        Selecciona cómo quieres guardar la sesión.
+                                        Elige el formato que mejor se adapte a tus necesidades.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 grid grid-cols-2 gap-4">
+                                <div className="py-4 flex justify-center gap-6">
                                      <div
                                         className={cn(
-                                            "cursor-pointer rounded-md border-2 p-4 text-center transition-colors",
-                                            selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-muted'
+                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors w-56 space-y-3",
+                                            selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
                                         )}
                                         onClick={() => setSelectedSessionType('basic')}
                                     >
-                                        <h3 className="font-semibold text-lg mb-2">Básico</h3>
-                                        <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted p-2">
+                                        <div className="relative mx-auto h-32 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/144x192/e2e8f0/64748b?text=B%C3%A1sico"
+                                                src="https://placehold.co/200x150/e2e8f0/64748b?text=B%C3%A1sico"
                                                 alt="Previsualización de sesión Básica"
-                                                width={144}
-                                                height={192}
+                                                fill
                                                 className="object-contain"
                                             />
                                         </div>
+                                        <h3 className="font-semibold text-lg">Básico</h3>
                                     </div>
 
                                     <div
                                         className={cn(
-                                            "cursor-pointer rounded-md border-2 p-4 text-center transition-colors",
-                                            selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-muted'
+                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors w-56 space-y-3 relative",
+                                            selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
                                         )}
                                         onClick={() => setSelectedSessionType('pro')}
                                     >
-                                        <h3 className="font-semibold text-lg mb-2">Pro</h3>
-                                         <div className="relative mx-auto h-48 w-36 rounded-md border bg-muted p-2">
+                                        <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full">PRO</div>
+                                         <div className="relative mx-auto h-32 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/144x192/d1fae5/10b981?text=Pro"
+                                                src="https://placehold.co/200x150/d1fae5/10b981?text=Pro"
                                                 alt="Previsualización de sesión Pro"
-                                                width={144}
-                                                height={192}
+                                                fill
                                                 className="object-contain"
                                             />
                                         </div>
+                                        <h3 className="font-semibold text-lg">Pro</h3>
                                     </div>
                                 </div>
-                                <DialogFooter className="sm:justify-end gap-2">
-                                     <DialogClose asChild>
-                                        <Button onClick={handleSave} disabled={isSubmitting}>
-                                            <Save className="mr-2 h-4 w-4"/>
-                                            {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
-                                        </Button>
-                                    </DialogClose>
+                                <DialogFooter className="sm:justify-end gap-2 pt-4">
+                                     <Button onClick={handleSave} disabled={isSubmitting}>
+                                        <Save className="mr-2 h-4 w-4"/>
+                                        {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
+                                    </Button>
                                      <Button variant="outline" disabled>
                                         <Download className="mr-2 h-4 w-4" />
                                         Descargar PDF
