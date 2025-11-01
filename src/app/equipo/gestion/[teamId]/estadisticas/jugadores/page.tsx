@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -108,47 +107,8 @@ const StatLeaderCard = ({ title, player, value, icon: Icon, isTime = false }: { 
 // TABLE COMPONENT
 // ====================
 
-const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }: { players: Player[], matches: Match[], teamName: string, searchTerm: string }) => {
+const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (Partial<PlayerStats> & { name: string; number: string; })[], searchTerm: string }) => {
     
-    const aggregatedStats = useMemo(() => {
-        if (!rawPlayers || !matches) return [];
-
-        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
-
-        rawPlayers.forEach(p => {
-            statsMap[p.id] = { 
-                name: p.name, 
-                number: p.number, 
-                pj: 0, minutesPlayed: 0, goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-                recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, fouls: 0, yellowCards: 0, redCards: 0,
-                unoVsUno: 0,
-            };
-        });
-
-        matches.forEach(match => {
-            if (!match.squad || !match.playerStats) return;
-
-            match.squad.forEach(playerId => {
-                if (statsMap[playerId]) {
-                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
-
-                    const playerStats1H = match.playerStats?.['1H']?.[playerId] || {};
-                    const playerStats2H = match.playerStats?.['2H']?.[playerId] || {};
-
-                    for (const key of Object.keys(statsMap[playerId])) {
-                         if (key !== 'name' && key !== 'number' && key !== 'pj') {
-                            (statsMap[playerId] as any)[key] = ((statsMap[playerId] as any)[key] || 0) + (playerStats1H[key as keyof PlayerStats] || 0) + (playerStats2H[key as keyof PlayerStats] || 0);
-                        }
-                    }
-                }
-            });
-        });
-        
-        return Object.values(statsMap);
-
-    }, [rawPlayers, matches]);
-
-
     const filteredAndSortedStats = useMemo(() => {
         return aggregatedStats
             .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -184,7 +144,12 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {tableHeaders.map(h => <TableHead key={h.key}>{h.label}</TableHead>)}
+                                {tableHeaders.map(h => {
+                                    if (h.key === 'Dorsal' || h.key === 'Nombre') {
+                                        return <TableHead key={h.key}>{h.label}</TableHead>
+                                    }
+                                    return <TableHead key={h.key} className="text-center">{h.label}</TableHead>
+                                })}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -193,19 +158,19 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
                                     <TableRow key={player.number}>
                                         <TableCell>{player.number}</TableCell>
                                         <TableCell className="font-medium">{player.name}</TableCell>
-                                        <TableCell>{formatStatTime(player.minutesPlayed || 0)}</TableCell>
-                                        <TableCell>{player.pj || 0}</TableCell>
-                                        <TableCell>{player.goals || 0}</TableCell>
-                                        <TableCell>{player.assists || 0}</TableCell>
-                                        <TableCell>{player.shotsOnTarget || 0}</TableCell>
-                                        <TableCell>{player.shotsOffTarget || 0}</TableCell>
-                                        <TableCell>{player.recoveries || 0}</TableCell>
-                                        <TableCell>{player.turnovers || 0}</TableCell>
-                                        <TableCell>{player.saves || 0}</TableCell>
-                                        <TableCell>{player.goalsConceded || 0}</TableCell>
-                                        <TableCell>{player.fouls || 0}</TableCell>
-                                        <TableCell>{player.yellowCards || 0}</TableCell>
-                                        <TableCell>{player.redCards || 0}</TableCell>
+                                        <TableCell className="text-center">{formatStatTime(player.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="text-center">{player.pj || 0}</TableCell>
+                                        <TableCell className="text-center">{player.goals || 0}</TableCell>
+                                        <TableCell className="text-center">{player.assists || 0}</TableCell>
+                                        <TableCell className="text-center">{player.shotsOnTarget || 0}</TableCell>
+                                        <TableCell className="text-center">{player.shotsOffTarget || 0}</TableCell>
+                                        <TableCell className="text-center">{player.recoveries || 0}</TableCell>
+                                        <TableCell className="text-center">{player.turnovers || 0}</TableCell>
+                                        <TableCell className="text-center">{player.saves || 0}</TableCell>
+                                        <TableCell className="text-center">{player.goalsConceded || 0}</TableCell>
+                                        <TableCell className="text-center">{player.fouls || 0}</TableCell>
+                                        <TableCell className="text-center">{player.yellowCards || 0}</TableCell>
+                                        <TableCell className="text-center">{player.redCards || 0}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
@@ -257,39 +222,44 @@ export default function PlayerStatsPage() {
     }, [finishedMatches, filter]);
     
     const aggregatedStats = useMemo(() => {
-        if (!players || !filteredMatches) return {};
+        if (!players || !filteredMatches) return [];
 
-        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string } } = {};
+        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
 
+        // 1. Initialize stats for every player in the roster
         players.forEach(p => {
             statsMap[p.id] = { 
-                name: p.name,
-                pj: 0, minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, 
-                shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0,
+                name: p.name, 
+                number: p.number, 
+                pj: 0, minutesPlayed: 0, goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
+                recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, fouls: 0, yellowCards: 0, redCards: 0,
                 unoVsUno: 0,
             };
         });
 
+        // 2. Iterate through matches and accumulate stats
         filteredMatches.forEach(match => {
-            if (!match.squad || !match.playerStats) return;
+            if (!match.squad) return;
 
             match.squad.forEach(playerId => {
                 if (statsMap[playerId]) {
+                    // Accumulate PJ
+                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
+                    
                     const stats1H = match.playerStats?.['1H']?.[playerId] || {};
                     const stats2H = match.playerStats?.['2H']?.[playerId] || {};
 
-                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
-                    
+                    // Accumulate all other stats
                     for (const key of Object.keys(statsMap[playerId])) {
-                        if (key !== 'name' && key !== 'pj') {
-                            (statsMap[playerId] as any)[key] = ((statsMap[playerId] as any)[key] || 0) + (stats1H[key as keyof PlayerStats] || 0) + (stats2H[key as keyof PlayerStats] || 0);
+                         if (key !== 'name' && key !== 'number' && key !== 'pj') {
+                            (statsMap[playerId] as any)[key] += (stats1H[key as keyof PlayerStats] || 0) + (stats2H[key as keyof PlayerStats] || 0);
                         }
                     }
                 }
             });
         });
         
-        return statsMap;
+        return Object.values(statsMap);
 
     }, [players, filteredMatches]);
 
@@ -301,20 +271,19 @@ export default function PlayerStatsPage() {
             let leaderPlayer = 'N/A';
             let leaderValue = cat.higherIsBetter ? -1 : Infinity;
     
-            for (const playerId in aggregatedStats) {
-                const player = aggregatedStats[playerId];
-                const playerInfo = players.find(p => p.id === playerId);
+            for (const player of aggregatedStats) {
+                const playerInfo = players.find(p => p.number === player.number);
                 if (!playerInfo) continue;
     
                 const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
                 const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
 
                 if (isGoalkeeperCategory && playerInfo.position !== 'Portero') {
-                    continue; // Skip non-goalkeepers for goalkeeper-specific stats
+                    continue; 
                 }
                 
                 if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') {
-                    continue; // Skip goalkeepers for outfield-player-specific stats
+                    continue; 
                 }
 
                 let statValue = player[cat.key] || 0;
@@ -425,9 +394,7 @@ export default function PlayerStatsPage() {
             </div>
 
             <PlayerStatsTable 
-                players={players || []}
-                matches={filteredMatches || []}
-                teamName={team.name}
+                aggregatedStats={aggregatedStats || []}
                 searchTerm={searchTerm}
             />
         </div>
