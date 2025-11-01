@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -110,40 +111,55 @@ const StatLeaderCard = ({ title, player, value, icon: Icon, isTime = false }: { 
 const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }: { players: Player[], matches: Match[], teamName: string, searchTerm: string }) => {
     
     const aggregatedStats = useMemo(() => {
-        const stats: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
-        if (!rawPlayers) return [];
+        if (!rawPlayers || !matches) return [];
+
+        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
 
         rawPlayers.forEach(p => {
-            stats[p.id] = { name: p.name, number: p.number, pj: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, minutesPlayed: 0 };
+            statsMap[p.id] = { 
+                name: p.name, 
+                number: p.number, 
+                pj: 0, 
+                minutesPlayed: 0, 
+                goals: 0, 
+                assists: 0, 
+                yellowCards: 0, 
+                redCards: 0, 
+                fouls: 0, 
+                shotsOnTarget: 0, 
+                shotsOffTarget: 0, 
+                recoveries: 0, 
+                turnovers: 0, 
+                saves: 0, 
+                goalsConceded: 0,
+                unoVsUno: 0,
+            };
         });
 
         matches.forEach(match => {
-            if (!match.playerStats || !match.squad) return;
+            if (!match.squad || !match.playerStats) return;
 
             match.squad.forEach(playerId => {
-                if (stats[playerId]) {
-                     stats[playerId].pj = (stats[playerId].pj || 0) + 1;
-                }
-            });
+                if (statsMap[playerId]) {
+                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
 
-            for (const period of ['1H', '2H'] as const) {
-                const periodStats = match.playerStats[period];
-                if (!periodStats) continue;
+                    const playerStats1H = match.playerStats?.['1H']?.[playerId] || {};
+                    const playerStats2H = match.playerStats?.['2H']?.[playerId] || {};
 
-                for (const playerId in periodStats) {
-                    if (stats[playerId]) {
-                        const playerMatchStats = periodStats[playerId];
-                        for (const statKey in playerMatchStats) {
-                             const key = statKey as StatCategory;
-                             stats[playerId][key] = (stats[playerId][key] || 0) + (playerMatchStats[key] || 0);
-                        }
+                    for (const key of Object.keys(playerStats1H) as Array<keyof PlayerStats>) {
+                        statsMap[playerId][key] = (statsMap[playerId][key] || 0) + (playerStats1H[key] || 0);
+                    }
+                     for (const key of Object.keys(playerStats2H) as Array<keyof PlayerStats>) {
+                        statsMap[playerId][key] = (statsMap[playerId][key] || 0) + (playerStats2H[key] || 0);
                     }
                 }
-            }
+            });
         });
-        return Object.values(stats);
+        
+        return Object.values(statsMap);
 
     }, [rawPlayers, matches]);
+
 
     const filteredAndSortedStats = useMemo(() => {
         return aggregatedStats
@@ -155,9 +171,8 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
     const tableHeaders = [
         { key: 'Dorsal', label: '#' },
         { key: 'Nombre', label: 'Nombre' },
-        { key: 'Equipo', label: 'Equipo' },
-        { key: 'pj', label: 'PJ' },
         { key: 'minutesPlayed', label: 'Min.' },
+        { key: 'pj', label: 'PJ' },
         { key: 'goals', label: 'Goles' },
         { key: 'assists', label: 'Asist.' },
         { key: 'yellowCards', label: 'TA' },
@@ -190,9 +205,8 @@ const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }
                                     <TableRow key={player.number}>
                                         <TableCell>{player.number}</TableCell>
                                         <TableCell className="font-medium">{player.name}</TableCell>
-                                        <TableCell>{teamName}</TableCell>
-                                        <TableCell>{player.pj || 0}</TableCell>
                                         <TableCell>{formatStatTime(player.minutesPlayed || 0)}</TableCell>
+                                        <TableCell>{player.pj || 0}</TableCell>
                                         <TableCell>{player.goals || 0}</TableCell>
                                         <TableCell>{player.assists || 0}</TableCell>
                                         <TableCell>{player.yellowCards || 0}</TableCell>
@@ -255,50 +269,60 @@ export default function PlayerStatsPage() {
     }, [finishedMatches, filter]);
     
     const aggregatedStats = useMemo(() => {
-    if (!players || !filteredMatches) return {};
+        if (!players || !filteredMatches) return {};
 
-    // 1. Initialize stats for all players
-    const stats: { [playerId: string]: PlayerStats & { name: string } } = {};
-    players.forEach(player => {
-        stats[player.id] = {
-            name: player.name,
-            pj: 0, minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0,
-            redCards: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-            recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, unoVsUno: 0,
-        };
-    });
+        const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string } } = {};
 
-    // 2. Iterate through filtered matches to aggregate stats
-    filteredMatches.forEach(match => {
-        // Increment games played (PJ) for players in the squad
-        if (match.squad) {
+        players.forEach(p => {
+            statsMap[p.id] = { 
+                name: p.name,
+                pj: 0, 
+                minutesPlayed: 0, 
+                goals: 0, 
+                assists: 0, 
+                yellowCards: 0, 
+                redCards: 0, 
+                fouls: 0, 
+                shotsOnTarget: 0, 
+                shotsOffTarget: 0,
+                recoveries: 0, 
+                turnovers: 0, 
+                saves: 0, 
+                goalsConceded: 0,
+                unoVsUno: 0,
+            };
+        });
+
+        filteredMatches.forEach(match => {
+            if (!match.squad) return;
+
             match.squad.forEach(playerId => {
-                if (stats[playerId]) {
-                    stats[playerId].pj = (stats[playerId].pj || 0) + 1;
+                if (statsMap[playerId]) {
+                    const stats1H = match.playerStats?.['1H']?.[playerId] || {};
+                    const stats2H = match.playerStats?.['2H']?.[playerId] || {};
+
+                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
+                    
+                    statsMap[playerId].minutesPlayed = (statsMap[playerId].minutesPlayed || 0) + (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0);
+                    statsMap[playerId].goals = (statsMap[playerId].goals || 0) + (stats1H.goals || 0) + (stats2H.goals || 0);
+                    statsMap[playerId].assists = (statsMap[playerId].assists || 0) + (stats1H.assists || 0) + (stats2H.assists || 0);
+                    statsMap[playerId].yellowCards = (statsMap[playerId].yellowCards || 0) + (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0);
+                    statsMap[playerId].redCards = (statsMap[playerId].redCards || 0) + (stats1H.redCards || 0) + (stats2H.redCards || 0);
+                    statsMap[playerId].fouls = (statsMap[playerId].fouls || 0) + (stats1H.fouls || 0) + (stats2H.fouls || 0);
+                    statsMap[playerId].shotsOnTarget = (statsMap[playerId].shotsOnTarget || 0) + (stats1H.shotsOnTarget || 0) + (stats2H.shotsOnTarget || 0);
+                    statsMap[playerId].shotsOffTarget = (statsMap[playerId].shotsOffTarget || 0) + (stats1H.shotsOffTarget || 0) + (stats2H.shotsOffTarget || 0);
+                    statsMap[playerId].recoveries = (statsMap[playerId].recoveries || 0) + (stats1H.recoveries || 0) + (stats2H.recoveries || 0);
+                    statsMap[playerId].turnovers = (statsMap[playerId].turnovers || 0) + (stats1H.turnovers || 0) + (stats2H.turnovers || 0);
+                    statsMap[playerId].saves = (statsMap[playerId].saves || 0) + (stats1H.saves || 0) + (stats2H.saves || 0);
+                    statsMap[playerId].goalsConceded = (statsMap[playerId].goalsConceded || 0) + (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0);
+                    statsMap[playerId].unoVsUno = (statsMap[playerId].unoVsUno || 0) + (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0);
                 }
             });
-        }
+        });
+        
+        return statsMap;
 
-        // Sum stats from both halves
-        for (const period of ['1H', '2H'] as const) {
-            const periodStats = match.playerStats?.[period];
-            if (!periodStats) continue;
-
-            for (const playerId in periodStats) {
-                if (stats[playerId]) {
-                    const playerMatchStats = periodStats[playerId];
-                    // Iterate over each possible stat and add it to the total
-                    (Object.keys(playerMatchStats) as Array<keyof PlayerStats>).forEach(statKey => {
-                        stats[playerId][statKey] = (stats[playerId][statKey] || 0) + (playerMatchStats[statKey] || 0);
-                    });
-                }
-            }
-        }
-    });
-
-    return stats;
-
-}, [players, filteredMatches]);
+    }, [players, filteredMatches]);
 
     const statLeaders = useMemo(() => {
         const leaders: { [key: string]: { player: string; value: number } } = {};
@@ -440,3 +464,4 @@ export default function PlayerStatsPage() {
         </div>
     );
 }
+
