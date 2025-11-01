@@ -23,10 +23,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -148,7 +149,7 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                     onSelect={onExerciseToggle}
                     phase={phase}
                 >
-                    <Button variant="outline">
+                    <Button variant="outline" type="button">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Añadir Ejercicio
                     </Button>
@@ -197,13 +198,14 @@ export default function CreateSessionPage() {
         form.setValue(phase, newIds, { shouldValidate: true });
     };
 
-    const onSubmit = async (values: SessionFormValues) => {
+    const handleSave = async (sessionType: 'basic' | 'pro') => {
         if (!user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear una sesión.' });
             return;
         }
         setIsSubmitting(true);
         try {
+            const values = form.getValues();
             await addDoc(collection(firestore, `users/${user.uid}/sessions`), {
                 name: values.name,
                 date: values.date,
@@ -215,10 +217,11 @@ export default function CreateSessionPage() {
                     main: values.mainExercises,
                     final: values.finalExercises,
                 },
+                sessionType: sessionType,
                 userId: user.uid,
                 createdAt: serverTimestamp(),
             });
-            toast({ title: 'Éxito', description: 'Sesión de entrenamiento creada.' });
+            toast({ title: 'Éxito', description: `Sesión de entrenamiento ${sessionType === 'pro' ? 'Pro' : 'Básica'} creada.` });
             form.reset();
         } catch (error) {
             console.error("Error creating session:", error);
@@ -233,7 +236,7 @@ export default function CreateSessionPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
                     <div className="flex justify-between items-center mb-8">
                         <div>
                              <Button asChild variant="outline" className="mb-4">
@@ -245,10 +248,41 @@ export default function CreateSessionPage() {
                             <h1 className="text-4xl font-bold font-headline text-primary">Crear Sesión de Entrenamiento</h1>
                             <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
                         </div>
-                        <Button type="submit" size="lg" disabled={isSubmitting}>
-                            <Save className="mr-2 h-4 w-4" />
-                            {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
-                        </Button>
+                        
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                 <Button size="lg">
+                                    <Save className="mr-2 h-4 w-4" />
+                                    Guardar Sesión
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Elige el tipo de sesión</DialogTitle>
+                                    <DialogDescription>
+                                        Selecciona cómo quieres guardar esta sesión de entrenamiento.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid grid-cols-2 gap-4 py-4">
+                                    <DialogClose asChild>
+                                        <Button variant="outline" onClick={() => handleSave('basic')} disabled={isSubmitting}>
+                                            <Shield className="mr-2 h-4 w-4" />
+                                            Básica
+                                        </Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                        <Button onClick={() => handleSave('pro')} disabled={isSubmitting}>
+                                            <Star className="mr-2 h-4 w-4" />
+                                            Pro
+                                        </Button>
+                                    </DialogClose>
+                                </div>
+                                <DialogFooter>
+                                    <p className="text-xs text-muted-foreground">La versión Pro podría incluir análisis avanzados en futuras actualizaciones.</p>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
                     </div>
 
                     <Card>
