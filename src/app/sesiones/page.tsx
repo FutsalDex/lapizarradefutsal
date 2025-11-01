@@ -89,19 +89,16 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                     <DialogDescription>Busca y selecciona un ejercicio de tu biblioteca.</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <Input
-                            placeholder="Buscar ejercicio por nombre..."
-                            className="pl-9"
+                            placeholder="Buscar por nombre..."
+                            className="sm:col-span-1"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
                        <Select onValueChange={setCategoryFilter} defaultValue="Todas">
                           <SelectTrigger>
-                            <SelectValue placeholder="Todas las categorías" />
+                            <SelectValue placeholder="Categoría" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Todas">Todas las Categorías</SelectItem>
@@ -110,7 +107,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                         </Select>
                          <Select onValueChange={setAgeFilter} defaultValue="Todas">
                           <SelectTrigger>
-                            <SelectValue placeholder="Todas las edades" />
+                            <SelectValue placeholder="Edad" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Todas">Todas las Edades</SelectItem>
@@ -138,17 +135,16 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                                         )}
                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <DialogClose asChild>
-                                                <Button size="icon" className="rounded-full h-12 w-12" onClick={() => onSelect(exercise.id, phase)}>
-                                                    <PlusCircle className="h-6 w-6" />
+                                                <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
+                                                    <PlusCircle className="h-5 w-5" />
                                                 </Button>
                                             </DialogClose>
                                         </div>
                                      </div>
                                 </CardContent>
-                                <CardFooter className="p-3">
-                                    <div className='w-full'>
-                                        <p className="font-semibold truncate text-sm">{exercise.name}</p>
-                                        <p className="text-xs text-muted-foreground">{exercise.category} - {exercise.duration} min</p>
+                                <CardFooter className="p-2">
+                                    <div className='w-full text-center'>
+                                        <p className="font-semibold truncate text-xs">{exercise.name}</p>
                                     </div>
                                 </CardFooter>
                             </Card>
@@ -368,7 +364,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Básico</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                             <Image
-                                                src="https://i.ibb.co/6gZ5yN6/basic-session-preview.png"
+                                                src="https://i.ibb.co/6JnKWtLV/basico.png"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
@@ -385,7 +381,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://i.ibb.co/3T2Y03S/pro-session-preview.png"
+                                                src="https://i.ibb.co/P9tS4gB/pro-session-preview.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
