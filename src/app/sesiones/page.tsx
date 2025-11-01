@@ -368,7 +368,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Básico</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                             <Image
-                                                src="https://placehold.co/200x300/e2e8f0/64748b?text=B%C3%A1sico"
+                                                src="https://i.ibb.co/6gZ5yN6/basic-session-preview.png"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
@@ -385,7 +385,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/200x300/dcfce7/166534?text=Pro"
+                                                src="https://placehold.co/400x520/dcfce7/166534?text=Pro&font=lato"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
