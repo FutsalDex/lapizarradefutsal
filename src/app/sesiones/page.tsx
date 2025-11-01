@@ -23,11 +23,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield } from 'lucide-react';
+import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Star, Shield, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import Image from 'next/image';
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -207,14 +208,10 @@ export default function CreateSessionPage() {
         try {
             const values = form.getValues();
             
-            let exercisesData: any = {
-                initial: values.initialExercises,
-                main: values.mainExercises,
-                final: values.finalExercises,
-            };
+            let exercisesData: any;
 
             if (sessionType === 'pro') {
-                const allIds = [...values.initialExercises, ...values.mainExercises, ...values.finalExercises];
+                 const allIds = [...values.initialExercises, ...values.mainExercises, ...values.finalExercises];
                 const exerciseDocs = await Promise.all(
                     allIds.map(id => getDoc(doc(firestore, 'exercises', id)))
                 );
@@ -230,6 +227,13 @@ export default function CreateSessionPage() {
                     initial: values.initialExercises.map(id => exercisesById[id]).filter(Boolean),
                     main: values.mainExercises.map(id => exercisesById[id]).filter(Boolean),
                     final: values.finalExercises.map(id => exercisesById[id]).filter(Boolean),
+                };
+
+            } else { // Basic session
+                 exercisesData = {
+                    initial: values.initialExercises,
+                    main: values.mainExercises,
+                    final: values.finalExercises,
                 };
             }
 
@@ -276,30 +280,40 @@ export default function CreateSessionPage() {
                         <Dialog>
                             <DialogTrigger asChild>
                                  <Button size="lg">
-                                    <Save className="mr-2 h-4 w-4" />
-                                    Guardar Sesión
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver Sesión
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="sm:max-w-md">
                                 <DialogHeader>
                                     <DialogTitle>Elige el tipo de sesión</DialogTitle>
                                     <DialogDescription>
-                                        Selecciona cómo quieres guardar esta sesión de entrenamiento. La versión Pro guarda todos los detalles de cada ejercicio.
+                                        Selecciona cómo quieres guardar la sesión. La versión Pro guarda todos los detalles de cada ejercicio.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="grid grid-cols-2 gap-4 py-4">
-                                    <DialogClose asChild>
-                                        <Button variant="outline" onClick={() => handleSave('basic')} disabled={isSubmitting}>
-                                            <Shield className="mr-2 h-4 w-4" />
-                                            Básica
-                                        </Button>
-                                    </DialogClose>
-                                    <DialogClose asChild>
-                                        <Button onClick={() => handleSave('pro')} disabled={isSubmitting}>
-                                            <Star className="mr-2 h-4 w-4" />
-                                            Pro
-                                        </Button>
-                                    </DialogClose>
+                                <div className="py-4 space-y-4">
+                                    <div className="relative aspect-[4/3] w-full rounded-md border bg-muted">
+                                        <Image
+                                          src="https://placehold.co/800x600.png?text=Vista+Previa+PDF"
+                                          alt="Previsualización del PDF"
+                                          fill
+                                          className="object-contain p-2"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <DialogClose asChild>
+                                            <Button variant="outline" onClick={() => handleSave('basic')} disabled={isSubmitting}>
+                                                <Shield className="mr-2 h-4 w-4" />
+                                                Básica
+                                            </Button>
+                                        </DialogClose>
+                                        <DialogClose asChild>
+                                            <Button onClick={() => handleSave('pro')} disabled={isSubmitting}>
+                                                <Star className="mr-2 h-4 w-4" />
+                                                Pro
+                                            </Button>
+                                        </DialogClose>
+                                    </div>
                                 </div>
                                 <DialogFooter>
                                     <p className="text-xs text-muted-foreground">Podrás descargar ambas versiones en PDF más adelante.</p>
