@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -20,15 +19,6 @@ import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
-// Schema for the team creation form
-const createTeamSchema = z.object({
-  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
-  club: z.string().optional(),
-  competition: z.string().optional(),
-});
-
-type CreateTeamValues = z.infer<typeof createTeamSchema>;
-
 interface Team {
   id: string;
   name: string;
@@ -38,75 +28,6 @@ interface Team {
   memberIds?: string[];
 }
 
-
-function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user } = useUser();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const form = useForm<CreateTeamValues>({
-    resolver: zodResolver(createTeamSchema),
-    defaultValues: { name: '', club: '', competition: '' },
-  });
-
-  const onSubmit = async (values: CreateTeamValues) => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un equipo.' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-        const batch = writeBatch(firestore);
-
-        const teamRef = doc(collection(firestore, 'teams'));
-        batch.set(teamRef, {
-            name: values.name,
-            club: values.club,
-            competition: values.competition,
-            ownerId: user.uid,
-            ownerName: user.displayName,
-            createdAt: serverTimestamp(),
-            memberIds: [user.uid] 
-        });
-        
-        await batch.commit();
-
-        toast({ title: 'Éxito', description: 'Equipo creado correctamente.' });
-        form.reset();
-        onTeamCreated();
-    } catch (error) {
-      console.error("Error creating team:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear el equipo.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Crear Nuevo Equipo</CardTitle>
-        <CardDescription>Añade un nuevo equipo para empezar a gestionarlo.</CardDescription>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-              <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Nombre del Equipo</FormLabel> <FormControl> <Input placeholder="Ej: Cadete A" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-              <FormField control={form.control} name="club" render={({ field }) => ( <FormItem> <FormLabel>Nombre del Club</FormLabel> <FormControl> <Input placeholder="Ej: Futsal Club Ejemplo" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-              <FormField control={form.control} name="competition" render={({ field }) => ( <FormItem> <FormLabel>Competición</FormLabel> <FormControl> <Input placeholder="Ej: Liga Local, Torneo Nacional" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? 'Creando...' : 'Crear Equipo'}
-            </Button>
-          </CardFooter>
-        </form>
-      </Form>
-    </Card>
-  );
-}
 
 function OwnedTeamList({ refreshKey }: { refreshKey: number }) {
   const { user, isUserLoading: isAuthLoading } = useUser();
@@ -295,7 +216,7 @@ export default function GestionEquiposPage() {
       <AuthGuard>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-              <CreateTeamForm onTeamCreated={() => setKey(k => k + 1)} />
+               {/* The form was here, but it's handled by the new match page now */}
             </div>
             <div className="lg:col-span-2 space-y-8">
               <OwnedTeamList refreshKey={key} />
