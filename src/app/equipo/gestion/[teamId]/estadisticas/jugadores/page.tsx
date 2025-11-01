@@ -63,7 +63,7 @@ const statCategories: {
     { key: 'goals', title: 'Máximo Goleador', icon: Goal, higherIsBetter: true },
     { key: 'assists', title: 'Máximo Asistente', icon: Hand, higherIsBetter: true },
     { key: 'shotsOnTarget', title: 'Más Tiros a Puerta', icon: Target, higherIsBetter: true },
-    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: false },
+    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: true },
     { key: 'recoveries', title: 'Más Recuperaciones', icon: Repeat, higherIsBetter: true },
     { key: 'turnovers', title: 'Más Pérdidas', icon: Shuffle, higherIsBetter: false },
     { key: 'fouls', title: 'Más Faltas', icon: ShieldAlert, higherIsBetter: false },
@@ -145,8 +145,11 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
                         <TableHeader>
                             <TableRow>
                                 {tableHeaders.map(h => {
-                                     if (h.label === '#' || h.label === 'Nombre') {
-                                        return <TableHead key={h.key}>{h.label}</TableHead>
+                                     if (h.label === 'Nombre') {
+                                        return <TableHead key={h.key} className="w-[150px]">{h.label}</TableHead>
+                                    }
+                                     if (h.label === '#') {
+                                        return <TableHead key={h.key} className="w-[50px]">{h.label}</TableHead>
                                     }
                                     return <TableHead key={h.key} className="text-center">{h.label}</TableHead>
                                 })}
@@ -284,7 +287,7 @@ export default function PlayerStatsPage() {
                 if (isGoalkeeperCategory && playerInfo.position !== 'Portero') continue;
                 if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
 
-                const statValue = playerStats[cat.key] || 0;
+                const statValue = playerStats[cat.key] ?? 0;
     
                 if (leaderPlayer === null) {
                     leaderPlayer = { name: playerStats.name, value: statValue };
@@ -299,6 +302,10 @@ export default function PlayerStatsPage() {
                      if (leaderPlayer.value === 0 && statValue > 0) { // First player with a non-zero stat
                         leaderPlayer = { name: playerStats.name, value: statValue };
                      } else if (statValue < leaderPlayer.value && statValue > 0) {
+                        leaderPlayer = { name: playerStats.name, value: statValue };
+                    } else if (statValue < leaderPlayer.value && leaderPlayer.value === 0) { // Handle cases where all values are 0
+                        leaderPlayer = { name: playerStats.name, value: statValue };
+                    } else if (statValue < leaderPlayer.value) {
                         leaderPlayer = { name: playerStats.name, value: statValue };
                     }
                 }
