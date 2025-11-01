@@ -267,7 +267,7 @@ function MatchFormDialog({
                     <FormItem>
                         <FormLabel>Equipo Visitante</FormLabel>
                         <FormControl>
-                            <div className="flex gap-2">
+                           <div className="flex gap-2">
                                 <Input placeholder="Nombre del equipo" {...field} />
                                 <Button type="button" variant="outline" onClick={() => form.setValue('visitorTeam', team.name)}>Mi Equipo</Button>
                             </div>
@@ -718,3 +718,5 @@ export default function MatchesPage() {
     </div>
   );
 }
+
+    
