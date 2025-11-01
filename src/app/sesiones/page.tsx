@@ -482,6 +482,9 @@ export default function CreateSessionPage() {
                                             <Button variant="link">Ver previsualización del PDF</Button>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-5xl h-[90vh]">
+                                           <DialogHeader>
+                                              <DialogTitle>Previsualización de Ficha Pro</DialogTitle>
+                                           </DialogHeader>
                                            <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
                                         </DialogContent>
                                     </Dialog>
