@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck, Users } from 'lucide-react';
+import { ArrowLeft, Award, Target, Shuffle, Repeat, ShieldAlert, Goal, Hand, User, ShieldCheck, Users, Timer } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import _ from 'lodash';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+
 
 // ====================
 // TYPES
@@ -34,18 +36,21 @@ interface PlayerStats {
     goals?: number; assists?: number; yellowCards?: number; redCards?: number; fouls?: number;
     shotsOnTarget?: number; shotsOffTarget?: number; recoveries?: number; turnovers?: number;
     saves?: number; goalsConceded?: number; unoVsUno?: number; minutesPlayed?: number;
+    pj?: number;
 }
 
 interface Match {
   id: string;
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
+  squad?: string[];
   playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
 }
 
 type StatCategory = keyof PlayerStats;
 
 const YellowCardIcon = () => <div className="w-5 h-6 bg-yellow-400 border border-black rounded-sm" />;
+const RedCardIcon = () => <div className="w-5 h-6 bg-red-600 border border-black rounded-sm" />;
 
 
 const statCategories: {
@@ -53,6 +58,7 @@ const statCategories: {
     title: string;
     icon: React.ElementType;
     higherIsBetter: boolean;
+    isTime?: boolean;
 }[] = [
     { key: 'goals', title: 'Máximo Goleador', icon: Goal, higherIsBetter: true },
     { key: 'assists', title: 'Máximo Asistente', icon: Hand, higherIsBetter: true },
@@ -62,17 +68,27 @@ const statCategories: {
     { key: 'turnovers', title: 'Más Pérdidas', icon: Shuffle, higherIsBetter: false },
     { key: 'fouls', title: 'Más Faltas', icon: ShieldAlert, higherIsBetter: false },
     { key: 'yellowCards', title: 'Más T. Amarillas', icon: YellowCardIcon, higherIsBetter: false },
+    { key: 'redCards', title: 'Más T. Rojas', icon: RedCardIcon, higherIsBetter: false },
     { key: 'saves', title: 'Portero con más Paradas', icon: ShieldCheck, higherIsBetter: true },
-    { key: 'unoVsUno', title: 'Portero mejor en 1vs1', icon: User, higherIsBetter: true },
     { key: 'goalsConceded', title: 'Portero Menos Goleado', icon: Goal, higherIsBetter: false },
-    { key: 'goalsConceded', title: 'Portero Más Goleado', icon: Goal, higherIsBetter: true },
+    { key: 'minutesPlayed', title: 'Jugador con más minutos', icon: Timer, higherIsBetter: true, isTime: true },
+    { key: 'minutesPlayed', title: 'Jugador con menos minutos', icon: Timer, higherIsBetter: false, isTime: true },
+    { key: 'minutesPlayed', title: 'Portero con más minutos', icon: Timer, higherIsBetter: true, isTime: true },
+    { key: 'minutesPlayed', title: 'Portero con menos minutos', icon: Timer, higherIsBetter: false, isTime: true },
 ];
+
+const formatStatTime = (totalSeconds: number) => {
+    if (isNaN(totalSeconds)) totalSeconds = 0;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
 
 // ====================
 // LEADER CARD COMPONENT
 // ====================
 
-const StatLeaderCard = ({ title, player, value, icon: Icon }: { title: string, player: string, value: number, icon: React.ElementType }) => (
+const StatLeaderCard = ({ title, player, value, icon: Icon, isTime = false }: { title: string, player: string, value: number, icon: React.ElementType, isTime?: boolean }) => (
     <Card className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
             <div className="bg-primary/10 text-primary p-2 rounded-lg">
@@ -83,9 +99,127 @@ const StatLeaderCard = ({ title, player, value, icon: Icon }: { title: string, p
                 <p className="font-bold text-sm">{player || 'N/A'}</p>
             </div>
         </div>
-        <p className="text-3xl font-bold">{value}</p>
+        <p className="text-3xl font-bold tabular-nums">{isTime ? formatStatTime(value) : value}</p>
     </Card>
 );
+
+// ====================
+// TABLE COMPONENT
+// ====================
+
+const PlayerStatsTable = ({ players: rawPlayers, matches, teamName, searchTerm }: { players: Player[], matches: Match[], teamName: string, searchTerm: string }) => {
+    
+    const aggregatedStats = useMemo(() => {
+        const stats: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
+        if (!rawPlayers) return [];
+
+        rawPlayers.forEach(p => {
+            stats[p.id] = { name: p.name, number: p.number, pj: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, minutesPlayed: 0 };
+        });
+
+        matches.forEach(match => {
+            if (!match.playerStats || !match.squad) return;
+
+            match.squad.forEach(playerId => {
+                if (stats[playerId]) {
+                     stats[playerId].pj = (stats[playerId].pj || 0) + 1;
+                }
+            });
+
+            for (const period of ['1H', '2H'] as const) {
+                const periodStats = match.playerStats[period];
+                if (!periodStats) continue;
+
+                for (const playerId in periodStats) {
+                    if (stats[playerId]) {
+                        const playerMatchStats = periodStats[playerId];
+                        for (const statKey in playerMatchStats) {
+                             const key = statKey as StatCategory;
+                             stats[playerId][key] = (stats[playerId][key] || 0) + (playerMatchStats[key] || 0);
+                        }
+                    }
+                }
+            }
+        });
+        return Object.values(stats);
+
+    }, [rawPlayers, matches]);
+
+    const filteredAndSortedStats = useMemo(() => {
+        return aggregatedStats
+            .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+    }, [aggregatedStats, searchTerm]);
+    
+
+    const tableHeaders = [
+        { key: 'Dorsal', label: '#' },
+        { key: 'Nombre', label: 'Nombre' },
+        { key: 'Equipo', label: 'Equipo' },
+        { key: 'pj', label: 'PJ' },
+        { key: 'minutesPlayed', label: 'Min.' },
+        { key: 'goals', label: 'Goles' },
+        { key: 'assists', label: 'Asist.' },
+        { key: 'yellowCards', label: 'TA' },
+        { key: 'redCards', label: 'TR' },
+        { key: 'fouls', label: 'Faltas' },
+        { key: 'shotsOnTarget', label: 'TP' },
+        { key: 'shotsOffTarget', label: 'TF' },
+        { key: 'recoveries', label: 'R' },
+        { key: 'turnovers', label: 'P' },
+        { key: 'saves', label: 'Paradas' },
+        { key: 'goalsConceded', label: 'G. Rec.' },
+    ];
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Tabla General de Jugadores</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="overflow-x-auto border rounded-lg">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {tableHeaders.map(h => <TableHead key={h.key}>{h.label}</TableHead>)}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {filteredAndSortedStats.length > 0 ? (
+                                filteredAndSortedStats.map(player => (
+                                    <TableRow key={player.number}>
+                                        <TableCell>{player.number}</TableCell>
+                                        <TableCell className="font-medium">{player.name}</TableCell>
+                                        <TableCell>{teamName}</TableCell>
+                                        <TableCell>{player.pj || 0}</TableCell>
+                                        <TableCell>{formatStatTime(player.minutesPlayed || 0)}</TableCell>
+                                        <TableCell>{player.goals || 0}</TableCell>
+                                        <TableCell>{player.assists || 0}</TableCell>
+                                        <TableCell>{player.yellowCards || 0}</TableCell>
+                                        <TableCell>{player.redCards || 0}</TableCell>
+                                        <TableCell>{player.fouls || 0}</TableCell>
+                                        <TableCell>{player.shotsOnTarget || 0}</TableCell>
+                                        <TableCell>{player.shotsOffTarget || 0}</TableCell>
+                                        <TableCell>{player.recoveries || 0}</TableCell>
+                                        <TableCell>{player.turnovers || 0}</TableCell>
+                                        <TableCell>{player.saves || 0}</TableCell>
+                                        <TableCell>{player.goalsConceded || 0}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={tableHeaders.length} className="h-24 text-center">
+                                        No hay jugadores que coincidan con la búsqueda.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 // ====================
 // MAIN PAGE COMPONENT
@@ -152,44 +286,51 @@ export default function PlayerStatsPage() {
 
     const statLeaders = useMemo(() => {
         const leaders: { [key: string]: { player: string; value: number } } = {};
-        if (_.isEmpty(aggregatedStats)) return leaders;
-
+        if (_.isEmpty(aggregatedStats) || !players) return leaders;
+    
         statCategories.forEach(cat => {
             let leaderPlayer = 'N/A';
             let leaderValue = cat.higherIsBetter ? -1 : Infinity;
-
+    
             for (const playerId in aggregatedStats) {
-                 const player = aggregatedStats[playerId];
-                 const statValue = player[cat.key] || 0;
-                 
-                 // Special handling for goalkeepers
-                 const playerInfo = players?.find(p => p.id === playerId);
-                 if (cat.title.toLowerCase().includes('portero') && playerInfo?.position !== 'Portero') {
-                     continue;
-                 }
-
-
-                 if (cat.higherIsBetter) {
-                     if (statValue > leaderValue) {
-                         leaderValue = statValue;
-                         leaderPlayer = player.name;
-                     }
-                 } else {
-                     if (statValue < leaderValue) {
-                         leaderValue = statValue;
-                         leaderPlayer = player.name;
-                     }
-                 }
+                const player = aggregatedStats[playerId];
+                const playerInfo = players.find(p => p.id === playerId);
+                if (!playerInfo) continue;
+    
+                const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
+    
+                if (isGoalkeeperCategory && playerInfo.position !== 'Portero') {
+                    continue; // Skip non-goalkeepers for goalkeeper-specific stats
+                }
+    
+                let statValue = player[cat.key] || 0;
+                
+                // For "less minutes", we need to consider only players who played
+                if (cat.key === 'minutesPlayed' && !cat.higherIsBetter && statValue === 0) {
+                    continue;
+                }
+    
+                if (cat.higherIsBetter) {
+                    if (statValue > leaderValue) {
+                        leaderValue = statValue;
+                        leaderPlayer = player.name;
+                    }
+                } else {
+                    if (statValue < leaderValue) {
+                        leaderValue = statValue;
+                        leaderPlayer = player.name;
+                    }
+                }
             }
             
             // Only show if a valid leader was found
             if (leaderValue !== Infinity && leaderValue !== -1) {
-                leaders[cat.key] = { player: leaderPlayer, value: leaderValue };
+                leaders[cat.title] = { player: leaderPlayer, value: leaderValue };
             } else {
-                leaders[cat.key] = { player: 'N/A', value: 0 };
+                leaders[cat.title] = { player: 'N/A', value: 0 };
             }
         });
-
+    
         return leaders;
     }, [aggregatedStats, players]);
 
@@ -204,6 +345,7 @@ export default function PlayerStatsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-20 w-full"/>)}
                 </div>
+                 <Skeleton className="h-64 w-full" />
             </div>
         );
     }
@@ -254,9 +396,9 @@ export default function PlayerStatsPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {statCategories.map(cat => {
-                    const leader = statLeaders[cat.key];
+                    const leader = statLeaders[cat.title];
                     return leader ? (
                         <StatLeaderCard 
                             key={cat.title}
@@ -264,10 +406,18 @@ export default function PlayerStatsPage() {
                             player={leader.player}
                             value={leader.value}
                             icon={cat.icon}
+                            isTime={cat.isTime}
                         />
                     ) : null;
                 })}
             </div>
+
+            <PlayerStatsTable 
+                players={players || []}
+                matches={filteredMatches || []}
+                teamName={team.name}
+                searchTerm={searchTerm}
+            />
         </div>
     );
 }
