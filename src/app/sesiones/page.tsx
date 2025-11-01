@@ -114,7 +114,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
     );
 }
 
-function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: string, phase: Phase) => void, phase: Phase, children: React.ReactNode }) {
+function ExercisePickerDialog({ allExercises, onSelect, phase, children, disabled }: { allExercises: Exercise[], onSelect: (id: string, phase: Phase) => void, phase: Phase, children: React.ReactNode, disabled?: boolean }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('Todas');
     const [ageFilter, setAgeFilter] = useState('Todas');
@@ -140,6 +140,10 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
         });
     }, [allExercises, searchTerm, categoryFilter, ageFilter]);
     
+    if (disabled) {
+        return <>{children}</>;
+    }
+
     return (
         <Dialog>
             <DialogTrigger asChild>{children}</DialogTrigger>
@@ -242,12 +246,18 @@ function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: ()
     )
 }
 
-function AddExerciseCard({ onClick }: { onClick: () => void }) {
+function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-48 h-full flex-shrink-0 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 hover:border-primary hover:text-primary transition-colors"
+      disabled={disabled}
+      className={cn(
+        "w-48 h-full flex-shrink-0 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
+        disabled 
+          ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
+          : "hover:border-primary hover:text-primary"
+      )}
     >
       <PlusCircle className="h-8 w-8 mb-2" />
       <span className="text-sm font-medium">Añadir Tarea</span>
@@ -256,15 +266,17 @@ function AddExerciseCard({ onClick }: { onClick: () => void }) {
 }
 
 
-function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any }) {
+function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any, limit: number }) {
 
     const selectedExercises = useMemo(() => {
         return allExercises.filter(ex => selectedIds.includes(ex.id));
     }, [allExercises, selectedIds]);
 
+    const atLimit = selectedIds.length >= limit;
+
     return (
         <div className="space-y-4">
-             <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+             <h2 className="text-2xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-lg font-normal">({selectedIds.length}/{limit})</span></h2>
              <ScrollArea className="w-full whitespace-nowrap">
                 <div className="flex space-x-4 pb-4 h-40">
                     {selectedExercises.map(ex => (
@@ -275,8 +287,9 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                         allExercises={allExercises}
                         onSelect={onExerciseToggle}
                         phase={phase}
+                        disabled={atLimit}
                     >
-                        <AddExerciseCard onClick={() => {}}/>
+                        <AddExerciseCard onClick={() => {}} disabled={atLimit} />
                     </ExercisePickerDialog>
                 </div>
              </ScrollArea>
@@ -319,9 +332,35 @@ export default function CreateSessionPage() {
 
     const handleExerciseToggle = (exerciseId: string, phase: Phase) => {
         const currentIds = form.getValues(phase);
-        const newIds = currentIds.includes(exerciseId)
-            ? currentIds.filter(id => id !== exerciseId)
-            : [...currentIds, exerciseId];
+        const isAdding = !currentIds.includes(exerciseId);
+
+        let limit = Infinity;
+        let phaseName = '';
+        if (phase === 'initialExercises') {
+             limit = 2;
+             phaseName = 'Fase Inicial';
+        }
+        if (phase === 'mainExercises') {
+             limit = 4;
+             phaseName = 'Fase Principal';
+        }
+        if (phase === 'finalExercises') {
+             limit = 2;
+             phaseName = 'Fase Final';
+        }
+
+        if (isAdding && currentIds.length >= limit) {
+            toast({
+                variant: 'destructive',
+                title: 'Límite de ejercicios alcanzado',
+                description: `No puedes añadir más de ${limit} ejercicios a la ${phaseName}.`,
+            });
+            return;
+        }
+
+        const newIds = isAdding
+            ? [...currentIds, exerciseId]
+            : currentIds.filter(id => id !== exerciseId);
         form.setValue(phase, newIds, { shouldValidate: true });
     };
 
@@ -409,7 +448,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Básico</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                             <Image
-                                                src="https://i.ibb.co/L97XJ2b/basico.png"
+                                                src="https://i.ibb.co/6JnKWtLV/basico.png"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
@@ -478,6 +517,7 @@ export default function CreateSessionPage() {
                             selectedIds={watchedValues.initialExercises}
                             onExerciseToggle={handleExerciseToggle}
                             control={form.control}
+                            limit={2}
                         />
                         <PhaseSection
                             title="Fase Principal"
@@ -486,6 +526,7 @@ export default function CreateSessionPage() {
                             selectedIds={watchedValues.mainExercises}
                             onExerciseToggle={handleExerciseToggle}
                             control={form.control}
+                            limit={4}
                         />
                          <PhaseSection
                             title="Fase Final (Vuelta a la Calma)"
@@ -494,6 +535,7 @@ export default function CreateSessionPage() {
                             selectedIds={watchedValues.finalExercises}
                             onExerciseToggle={handleExerciseToggle}
                             control={form.control}
+                            limit={2}
                         />
                     </div>
                 </form>
