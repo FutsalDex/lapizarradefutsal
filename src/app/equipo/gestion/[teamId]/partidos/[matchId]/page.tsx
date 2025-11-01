@@ -387,12 +387,13 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
                                 const stats = _.get(match.playerStats, `${period}.${player.id}`, {});
+                                const isActive = activePlayerIds.includes(player.id);
                                 return (
-                                    <TableRow key={player.id} className={cn(activePlayerIds.includes(player.id) && "bg-primary/20")}>
+                                    <TableRow key={player.id} className={cn(isActive && "bg-primary/20")}>
                                         <TableCell className="py-1 px-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
-                                                <span className='text-black'>{player.name}</span>
+                                                <span className={cn(isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
