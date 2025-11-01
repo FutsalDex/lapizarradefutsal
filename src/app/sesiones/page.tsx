@@ -170,7 +170,7 @@ function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: ()
                         src={exercise.image}
                         alt={exercise.name}
                         fill
-                        className="object-contain"
+                        className="object-contain p-2"
                     />
                 ) : (
                     <FutsalCourt className="w-full h-full p-1" />
@@ -353,7 +353,7 @@ export default function CreateSessionPage() {
                                     Ver ficha de la sesión
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="sm:max-w-xl">
+                           <DialogContent className="sm:max-w-xl">
                                 <DialogHeader>
                                     <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
                                 </DialogHeader>
