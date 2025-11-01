@@ -63,7 +63,7 @@ const statCategories: {
     { key: 'goals', title: 'Máximo Goleador', icon: Goal, higherIsBetter: true },
     { key: 'assists', title: 'Máximo Asistente', icon: Hand, higherIsBetter: true },
     { key: 'shotsOnTarget', title: 'Más Tiros a Puerta', icon: Target, higherIsBetter: true },
-    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: true },
+    { key: 'shotsOffTarget', title: 'Más Tiros Fuera', icon: Target, higherIsBetter: false },
     { key: 'recoveries', title: 'Más Recuperaciones', icon: Repeat, higherIsBetter: true },
     { key: 'turnovers', title: 'Más Pérdidas', icon: Shuffle, higherIsBetter: false },
     { key: 'fouls', title: 'Más Faltas', icon: ShieldAlert, higherIsBetter: false },
@@ -258,46 +258,57 @@ export default function PlayerStatsPage() {
         const stats: { [playerId: string]: PlayerStats & { name: string } } = {};
         if (!players || !filteredMatches) return stats;
     
-        // Initialize stats for all players in the team
-        players.forEach(p => {
-            stats[p.id] = {
-                name: p.name,
-                goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-                shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
-                saves: 0, goalsConceded: 0, unoVsUno: 0, minutesPlayed: 0, pj: 0,
+        players.forEach(player => {
+            stats[player.id] = {
+                name: player.name,
+                pj: 0,
+                minutesPlayed: 0,
+                goals: 0,
+                assists: 0,
+                yellowCards: 0,
+                redCards: 0,
+                fouls: 0,
+                shotsOnTarget: 0,
+                shotsOffTarget: 0,
+                recoveries: 0,
+                turnovers: 0,
+                saves: 0,
+                goalsConceded: 0,
+                unoVsUno: 0,
             };
         });
-    
-        // Iterate through each match and aggregate stats
+
         filteredMatches.forEach(match => {
-            if (!match.playerStats || !match.squad) return;
+            if (!match.playerStats) return;
 
-             // Aggregate PJ
-            match.squad.forEach(playerId => {
-                if (stats[playerId]) {
-                     stats[playerId].pj = (stats[playerId].pj || 0) + 1;
-                }
-            });
-
-            // Aggregate detailed stats from both halves
-            for (const period of ['1H', '2H'] as const) {
-                const periodStats = match.playerStats[period];
-                if (!periodStats) continue;
-    
-                for (const playerId in periodStats) {
-                    if (stats[playerId]) { // Check if the player is in the team roster
-                        const playerMatchStats = periodStats[playerId];
-                        // Iterate over each stat in the match for that player
-                        for (const statKey in playerMatchStats) {
-                            const key = statKey as keyof PlayerStats;
-                            if (typeof stats[playerId][key] === 'number') {
-                                stats[playerId][key] = (stats[playerId][key] || 0) + (playerMatchStats[key] || 0);
-                            }
-                        }
+            if (match.squad) {
+                match.squad.forEach(playerId => {
+                    if (stats[playerId]) {
+                        stats[playerId].pj = (stats[playerId].pj || 0) + 1;
                     }
-                }
+                });
+            }
+
+            for (const playerId in stats) {
+                const playerStats1H = match.playerStats['1H']?.[playerId] || {};
+                const playerStats2H = match.playerStats['2H']?.[playerId] || {};
+
+                stats[playerId].minutesPlayed = (stats[playerId].minutesPlayed || 0) + (playerStats1H.minutesPlayed || 0) + (playerStats2H.minutesPlayed || 0);
+                stats[playerId].goals = (stats[playerId].goals || 0) + (playerStats1H.goals || 0) + (playerStats2H.goals || 0);
+                stats[playerId].assists = (stats[playerId].assists || 0) + (playerStats1H.assists || 0) + (playerStats2H.assists || 0);
+                stats[playerId].yellowCards = (stats[playerId].yellowCards || 0) + (playerStats1H.yellowCards || 0) + (playerStats2H.yellowCards || 0);
+                stats[playerId].redCards = (stats[playerId].redCards || 0) + (playerStats1H.redCards || 0) + (playerStats2H.redCards || 0);
+                stats[playerId].fouls = (stats[playerId].fouls || 0) + (playerStats1H.fouls || 0) + (playerStats2H.fouls || 0);
+                stats[playerId].shotsOnTarget = (stats[playerId].shotsOnTarget || 0) + (playerStats1H.shotsOnTarget || 0) + (playerStats2H.shotsOnTarget || 0);
+                stats[playerId].shotsOffTarget = (stats[playerId].shotsOffTarget || 0) + (playerStats1H.shotsOffTarget || 0) + (playerStats2H.shotsOffTarget || 0);
+                stats[playerId].recoveries = (stats[playerId].recoveries || 0) + (playerStats1H.recoveries || 0) + (playerStats2H.recoveries || 0);
+                stats[playerId].turnovers = (stats[playerId].turnovers || 0) + (playerStats1H.turnovers || 0) + (playerStats2H.turnovers || 0);
+                stats[playerId].saves = (stats[playerId].saves || 0) + (playerStats1H.saves || 0) + (playerStats2H.saves || 0);
+                stats[playerId].goalsConceded = (stats[playerId].goalsConceded || 0) + (playerStats1H.goalsConceded || 0) + (playerStats2H.goalsConceded || 0);
+                stats[playerId].unoVsUno = (stats[playerId].unoVsUno || 0) + (playerStats1H.unoVsUno || 0) + (playerStats2H.unoVsUno || 0);
             }
         });
+
         return stats;
     
     }, [players, filteredMatches]);
