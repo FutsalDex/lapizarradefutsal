@@ -18,8 +18,8 @@ import { useUser } from '@/firebase/use-auth-user';
 
 const menuItems = [
   {
-    title: 'Gestión de Equipos',
-    description: 'Crea nuevos equipos, gestiona sus miembros y accede a sus paneles de control.',
+    title: 'Mis Equipos',
+    description: 'Crea nuevos equipos y accede a sus paneles de control.',
     icon: <Shield className="w-8 h-8 text-primary" />,
     href: '/equipo/gestion/equipos',
     disabled: false,
