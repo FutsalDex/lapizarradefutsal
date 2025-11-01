@@ -76,11 +76,16 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                                     <FutsalCourt className="w-full h-full p-1" />
                                 )}
                              </div>
-                             <div className="grid grid-cols-3 gap-px bg-border rounded-md overflow-hidden text-xs text-center">
-                                 <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
-                                 <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
-                                 <div className="bg-background p-1 truncate" title={ex.consejos || ''}><span className="font-semibold block">Materiales</span>{ex.consejos || 'N/A'}</div>
-                             </div>
+                             <div className="space-y-px bg-border rounded-md overflow-hidden text-xs text-center">
+                                <div className="grid grid-cols-2 gap-px">
+                                    <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
+                                    <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
+                                </div>
+                                <div className="bg-background p-1 truncate" title={ex['Espacio y materiales necesarios'] || ''}>
+                                    <span className="font-semibold block">Materiales</span>
+                                    {ex['Espacio y materiales necesarios'] || 'N/A'}
+                                </div>
+                            </div>
                          </div>
                          <div className="col-span-2 space-y-2">
                              <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
