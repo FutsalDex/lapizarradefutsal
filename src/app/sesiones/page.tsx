@@ -63,32 +63,34 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
         if (exercises.length === 0) return null;
         return (
             <>
-                <div className="bg-primary/10 text-primary-foreground p-2 text-center">
-                    <h3 className="font-bold text-sm text-primary">{title}</h3>
+                <div className="bg-gray-200 text-gray-800 p-2 text-center">
+                    <h3 className="font-bold text-sm">{title}</h3>
                 </div>
                 {exercises.map(ex => (
-                    <div key={ex.id} className="p-4 border-b">
-                         <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
-                         <div className="grid grid-cols-2 gap-4 pt-2">
-                             <div className="relative aspect-video bg-muted rounded-md">
-                                  {ex.image ? (
-                                    <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
-                                ) : (
-                                    <FutsalCourt className="w-full h-full p-1" />
-                                )}
-                             </div>
+                    <div key={ex.id} className="p-4 border-b grid grid-cols-3 gap-4">
+                         <div className="relative aspect-video bg-muted rounded-md col-span-1">
+                              {ex.image ? (
+                                <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
+                            ) : (
+                                <FutsalCourt className="w-full h-full p-1" />
+                            )}
+                         </div>
+                         <div className="col-span-2 space-y-2">
+                             <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
                              <div>
                                  <h5 className="font-semibold text-sm">Descripción</h5>
                                  <p className="text-xs text-muted-foreground mb-2">{ex.description}</p>
-                                 <h5 className="font-semibold text-sm">Objetivos</h5>
-                                 <p className="text-xs text-muted-foreground">{ex.objectives}</p>
                              </div>
-                         </div>
-                         <div className="grid grid-cols-4 gap-px mt-2 bg-border rounded-b-md overflow-hidden text-xs text-center">
-                             <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
-                             <div className="bg-background p-1"><span className="font-semibold block">Descanso</span>N/A</div>
-                             <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
-                             <div className="bg-background p-1"><span className="font-semibold block">Espacio</span>N/A</div>
+                              <div>
+                                <h5 className="font-semibold text-sm">Objetivos</h5>
+                                <p className="text-xs text-muted-foreground">{ex.objectives}</p>
+                             </div>
+                             <div className="grid grid-cols-4 gap-px mt-2 bg-border rounded-b-md overflow-hidden text-xs text-center">
+                                 <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
+                                 <div className="bg-background p-1"><span className="font-semibold block">Descanso</span>N/A</div>
+                                 <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
+                                 <div className="bg-background p-1"><span className="font-semibold block">Espacio</span>N/A</div>
+                             </div>
                          </div>
                     </div>
                 ))}
@@ -135,7 +137,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
         return allExercises.filter(ex => {
             const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesCategory = categoryFilter === 'Todas' || ex.category === categoryFilter;
-            const matchesAge = ageFilter === 'Todas' || (Array.isArray(ex.edad) && ex.edad.includes(ageFilter));
+            const matchesAge = ageFilter === 'Todas' || (Array.isArray(ex.edad) && ex.edad.some(e => e.toLowerCase() === ageFilter.toLowerCase()));
             return matchesSearch && matchesCategory && matchesAge && ex.visible;
         });
     }, [allExercises, searchTerm, categoryFilter, ageFilter]);
@@ -283,14 +285,15 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                         <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                     ))}
 
-                    <ExercisePickerDialog
-                        allExercises={allExercises}
-                        onSelect={onExerciseToggle}
-                        phase={phase}
-                        disabled={atLimit}
-                    >
-                        <AddExerciseCard onClick={() => {}} disabled={atLimit} />
-                    </ExercisePickerDialog>
+                    {!atLimit && (
+                        <ExercisePickerDialog
+                            allExercises={allExercises}
+                            onSelect={onExerciseToggle}
+                            phase={phase}
+                        >
+                            <AddExerciseCard onClick={() => {}} />
+                        </ExercisePickerDialog>
+                    )}
                 </div>
              </ScrollArea>
         </div>
