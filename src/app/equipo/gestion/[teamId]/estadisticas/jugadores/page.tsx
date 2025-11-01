@@ -145,7 +145,7 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
                         <TableHeader>
                             <TableRow>
                                 {tableHeaders.map(h => {
-                                    if (h.key === 'Dorsal' || h.key === 'Nombre') {
+                                     if (h.label === '#' || h.label === 'Nombre') {
                                         return <TableHead key={h.key}>{h.label}</TableHead>
                                     }
                                     return <TableHead key={h.key} className="text-center">{h.label}</TableHead>
@@ -240,22 +240,28 @@ export default function PlayerStatsPage() {
         // 2. Iterate through matches and accumulate stats
         filteredMatches.forEach(match => {
             if (!match.squad) return;
-
+            
             match.squad.forEach(playerId => {
-                if (statsMap[playerId]) {
-                    // Accumulate PJ
-                    statsMap[playerId].pj = (statsMap[playerId].pj || 0) + 1;
-                    
-                    const stats1H = match.playerStats?.['1H']?.[playerId] || {};
-                    const stats2H = match.playerStats?.['2H']?.[playerId] || {};
+                if (!statsMap[playerId]) return;
+                
+                statsMap[playerId].pj! += 1;
 
-                    // Accumulate all other stats
-                    for (const key of Object.keys(statsMap[playerId])) {
-                         if (key !== 'name' && key !== 'number' && key !== 'pj') {
-                            (statsMap[playerId] as any)[key] += (stats1H[key as keyof PlayerStats] || 0) + (stats2H[key as keyof PlayerStats] || 0);
-                        }
-                    }
-                }
+                const stats1H = match.playerStats?.['1H']?.[playerId] || {};
+                const stats2H = match.playerStats?.['2H']?.[playerId] || {};
+
+                statsMap[playerId].minutesPlayed! += (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0);
+                statsMap[playerId].goals! += (stats1H.goals || 0) + (stats2H.goals || 0);
+                statsMap[playerId].assists! += (stats1H.assists || 0) + (stats2H.assists || 0);
+                statsMap[playerId].shotsOnTarget! += (stats1H.shotsOnTarget || 0) + (stats2H.shotsOnTarget || 0);
+                statsMap[playerId].shotsOffTarget! += (stats1H.shotsOffTarget || 0) + (stats2H.shotsOffTarget || 0);
+                statsMap[playerId].recoveries! += (stats1H.recoveries || 0) + (stats2H.recoveries || 0);
+                statsMap[playerId].turnovers! += (stats1H.turnovers || 0) + (stats2H.turnovers || 0);
+                statsMap[playerId].saves! += (stats1H.saves || 0) + (stats2H.saves || 0);
+                statsMap[playerId].goalsConceded! += (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0);
+                statsMap[playerId].fouls! += (stats1H.fouls || 0) + (stats2H.fouls || 0);
+                statsMap[playerId].yellowCards! += (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0);
+                statsMap[playerId].redCards! += (stats1H.redCards || 0) + (stats2H.redCards || 0);
+                statsMap[playerId].unoVsUno! += (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0);
             });
         });
         
@@ -268,45 +274,42 @@ export default function PlayerStatsPage() {
         if (_.isEmpty(aggregatedStats) || !players) return leaders;
     
         statCategories.forEach(cat => {
-            let leaderPlayer = 'N/A';
-            let leaderValue = cat.higherIsBetter ? -1 : Infinity;
+            let leaderPlayer: { name: string; value: number } | null = null;
     
-            for (const player of aggregatedStats) {
-                const playerInfo = players.find(p => p.number === player.number);
+            for (const playerStats of aggregatedStats) {
+                const playerInfo = players.find(p => p.number === playerStats.number);
                 if (!playerInfo) continue;
     
                 const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
                 const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
 
-                if (isGoalkeeperCategory && playerInfo.position !== 'Portero') {
-                    continue; 
-                }
-                
-                if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') {
-                    continue; 
-                }
+                if (isGoalkeeperCategory && playerInfo.position !== 'Portero') continue;
+                if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
 
-                let statValue = player[cat.key] || 0;
+                const statValue = playerStats[cat.key] || 0;
                 
                 if (cat.key === 'minutesPlayed' && !cat.higherIsBetter && statValue === 0) {
                     continue;
                 }
     
+                if (leaderPlayer === null) {
+                    leaderPlayer = { name: playerStats.name, value: statValue };
+                    continue;
+                }
+
                 if (cat.higherIsBetter) {
-                    if (statValue > leaderValue) {
-                        leaderValue = statValue;
-                        leaderPlayer = player.name;
+                    if (statValue > leaderPlayer.value) {
+                        leaderPlayer = { name: playerStats.name, value: statValue };
                     }
                 } else {
-                    if (statValue < leaderValue) {
-                        leaderValue = statValue;
-                        leaderPlayer = player.name;
+                    if (statValue < leaderPlayer.value) {
+                        leaderPlayer = { name: playerStats.name, value: statValue };
                     }
                 }
             }
             
-            if (leaderValue !== Infinity && leaderValue !== -1) {
-                leaders[cat.title] = { player: leaderPlayer, value: leaderValue };
+            if (leaderPlayer) {
+                leaders[cat.title] = { player: leaderPlayer.name, value: leaderPlayer.value };
             } else {
                 leaders[cat.title] = { player: 'N/A', value: 0 };
             }
