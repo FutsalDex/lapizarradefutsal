@@ -385,7 +385,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://placehold.co/400x520/dcfce7/166534?text=Pro&font=lato"
+                                                src="https://i.ibb.co/3T2Y03S/pro-session-preview.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
