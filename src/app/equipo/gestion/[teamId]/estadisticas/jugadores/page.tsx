@@ -226,7 +226,6 @@ export default function PlayerStatsPage() {
 
         const statsMap: { [playerId: string]: Partial<PlayerStats> & { name: string, number: string } } = {};
 
-        // 1. Initialize stats for every player in the roster
         players.forEach(p => {
             statsMap[p.id] = { 
                 name: p.name, 
@@ -237,7 +236,6 @@ export default function PlayerStatsPage() {
             };
         });
 
-        // 2. Iterate through matches and accumulate stats
         filteredMatches.forEach(match => {
             if (!match.squad) return;
             
@@ -248,7 +246,7 @@ export default function PlayerStatsPage() {
 
                 const stats1H = match.playerStats?.['1H']?.[playerId] || {};
                 const stats2H = match.playerStats?.['2H']?.[playerId] || {};
-
+                
                 statsMap[playerId].minutesPlayed! += (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0);
                 statsMap[playerId].goals! += (stats1H.goals || 0) + (stats2H.goals || 0);
                 statsMap[playerId].assists! += (stats1H.assists || 0) + (stats2H.assists || 0);
@@ -287,10 +285,6 @@ export default function PlayerStatsPage() {
                 if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
 
                 const statValue = playerStats[cat.key] || 0;
-                
-                if (cat.key === 'minutesPlayed' && !cat.higherIsBetter && statValue === 0) {
-                    continue;
-                }
     
                 if (leaderPlayer === null) {
                     leaderPlayer = { name: playerStats.name, value: statValue };
@@ -302,7 +296,9 @@ export default function PlayerStatsPage() {
                         leaderPlayer = { name: playerStats.name, value: statValue };
                     }
                 } else {
-                    if (statValue < leaderPlayer.value) {
+                     if (leaderPlayer.value === 0 && statValue > 0) { // First player with a non-zero stat
+                        leaderPlayer = { name: playerStats.name, value: statValue };
+                     } else if (statValue < leaderPlayer.value && statValue > 0) {
                         leaderPlayer = { name: playerStats.name, value: statValue };
                     }
                 }
