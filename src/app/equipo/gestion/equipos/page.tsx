@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, PlusCircle, Settings, UserCog, Edit, Trash2 } from 'lucide-react';
+import { Shield, Users, PlusCircle, Settings, UserCog, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -202,7 +202,13 @@ export default function GestionEquiposPage() {
   const [key, setKey] = useState(0);
   return (
     <div className="container mx-auto px-4 py-8">
-       <div className="mb-8">
+        <div className="mb-8">
+            <Button asChild variant="outline" className="mb-4">
+                <Link href={`/equipo/gestion`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver al Panel
+                </Link>
+            </Button>
             <div className="flex items-center gap-3">
                 <div className="bg-primary/10 text-primary rounded-full p-3 border border-primary/20">
                     <Shield className="h-6 w-6" />
@@ -214,14 +220,9 @@ export default function GestionEquiposPage() {
             </div>
         </div>
       <AuthGuard>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1">
-               {/* The form was here, but it's handled by the new match page now */}
-            </div>
-            <div className="lg:col-span-2 space-y-8">
-              <OwnedTeamList refreshKey={key} />
-              <SharedTeamList refreshKey={key} />
-            </div>
+        <div className="lg:col-span-2 space-y-8">
+            <OwnedTeamList refreshKey={key} />
+            <SharedTeamList refreshKey={key} />
         </div>
       </AuthGuard>
     </div>
