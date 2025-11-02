@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -494,7 +495,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Básico</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                             <Image
-                                                src="https://i.ibb.co/6JnKWtLV/basico.png"
+                                                src="https://i.ibb.co/hJ2DscG7/basico.png"
                                                 alt="Previsualización de sesión Básica"
                                                 fill
                                                 className="object-contain"
@@ -511,7 +512,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://i.ibb.co/pBKy6D20/pro.png"
+                                                src="https://i.ibb.co/pBKy6D0/pro.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
