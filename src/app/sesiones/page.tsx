@@ -112,8 +112,8 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                                     <FutsalCourt className="w-full h-full p-1" />
                                 )}
                              </div>
-                            <div className="space-y-px bg-border rounded-md overflow-hidden text-xs text-center">
-                                <div className="grid grid-cols-2 gap-px">
+                            <div className="rounded-md overflow-hidden text-xs text-center border">
+                                <div className="grid grid-cols-2 gap-px bg-border">
                                     <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
                                     <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
                                 </div>
@@ -511,7 +511,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://i.ibb.co/pBKy6D2/pro.png"
+                                                src="https://i.ibb.co/pBKy6D20/pro.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
