@@ -112,7 +112,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                                     <FutsalCourt className="w-full h-full p-1" />
                                 )}
                              </div>
-                             <div className="space-y-px bg-border rounded-md overflow-hidden text-xs text-center">
+                            <div className="space-y-px bg-border rounded-md overflow-hidden text-xs text-center">
                                 <div className="grid grid-cols-2 gap-px">
                                     <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
                                     <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
@@ -333,7 +333,7 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                             onSelect={onExerciseToggle}
                             phase={phase}
                         >
-                            <AddExerciseCard onClick={() => {}} />
+                             <AddExerciseCard onClick={() => {}} />
                         </ExercisePickerDialog>
                     )}
                 </div>
