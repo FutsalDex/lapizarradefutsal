@@ -327,16 +327,15 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                     {selectedExercises.map(ex => (
                         <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                     ))}
-
-                    {!atLimit && (
+                    {!atLimit &&
                         <ExercisePickerDialog
                             allExercises={allExercises}
                             onSelect={onExerciseToggle}
                             phase={phase}
                         >
-                             <AddExerciseCard onClick={() => {}} />
+                            <AddExerciseCard onClick={() => {}} />
                         </ExercisePickerDialog>
-                    )}
+                    }
                 </div>
              </ScrollArea>
         </div>
@@ -512,7 +511,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://i.ibb.co/pBKy6D0/pro.png"
+                                                src="https://i.ibb.co/pBKy6D20/pro.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
