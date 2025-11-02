@@ -54,6 +54,42 @@ type SessionType = 'basic' | 'pro';
 // COMPONENTES
 // ====================
 
+function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
+    const getExercisesForPhase = (phase: Phase) => {
+        return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+    };
+    
+    const allSessionExercises = [
+        ...getExercisesForPhase('initialExercises'),
+        ...getExercisesForPhase('mainExercises'),
+        ...getExercisesForPhase('finalExercises')
+    ];
+
+    return (
+        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
+            <div className="p-4 bg-gray-100 border-b">
+                <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
+                <p className="text-sm text-muted-foreground text-center">{format(sessionData.date, 'PPP', { locale: es })}</p>
+            </div>
+            <ScrollArea className="h-[60vh]">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    {allSessionExercises.map(ex => (
+                        <Card key={ex.id} className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-base">{ex.name}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-grow space-y-2 text-xs">
+                                <p><span className='font-semibold'>Objetivos:</span> {ex.objectives}</p>
+                                <p><span className='font-semibold'>Duración:</span> {ex.duration} min</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                 </div>
+            </ScrollArea>
+        </div>
+    )
+}
+
 function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
     const getExercisesForPhase = (phase: Phase) => {
         return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
@@ -277,7 +313,7 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
 function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any, limit: number }) {
 
     const selectedExercises = useMemo(() => {
-        return allExercises.filter(ex => selectedIds.includes(ex.id));
+        return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
 
     const atLimit = selectedIds.length >= limit;
@@ -316,6 +352,7 @@ export default function CreateSessionPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('basic');
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -474,7 +511,7 @@ export default function CreateSessionPage() {
                                         <h3 className="font-semibold text-lg">Pro</h3>
                                         <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                              <Image
-                                                src="https://i.ibb.co/P9tS4gB/pro-session-preview.png"
+                                                src="https://i.ibb.co/pBKy6D2/pro.png"
                                                 alt="Previsualización de sesión Pro"
                                                 fill
                                                 className="object-contain"
@@ -482,28 +519,29 @@ export default function CreateSessionPage() {
                                         </div>
                                     </div>
                                 </div>
-                                {selectedSessionType === 'pro' && (
-                                     <Dialog>
-                                        <DialogTrigger asChild>
-                                            <Button variant="link">Ver previsualización del PDF</Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-5xl h-[90vh]">
-                                           <DialogHeader>
-                                                <DialogTitle>Previsualización de Ficha Pro</DialogTitle>
-                                           </DialogHeader>
-                                           <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                        </DialogContent>
-                                    </Dialog>
-                                )}
                                 <DialogFooter className="sm:justify-end gap-2 pt-4">
                                      <Button onClick={handleSave} disabled={isSubmitting}>
                                         <Save className="mr-2 h-4 w-4"/>
                                         {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
                                     </Button>
-                                     <Button variant="outline" disabled>
-                                        <Download className="mr-2 h-4 w-4" />
-                                        Descargar PDF
-                                    </Button>
+                                    <Dialog open={isPdfPreviewOpen} onOpenChange={setIsPdfPreviewOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline">
+                                                <Download className="mr-2 h-4 w-4" />
+                                                Descargar PDF
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-5xl h-[90vh]">
+                                           <DialogHeader>
+                                                <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
+                                           </DialogHeader>
+                                           {selectedSessionType === 'pro' ? (
+                                                <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                           ) : (
+                                                <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                           )}
+                                        </DialogContent>
+                                    </Dialog>
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
