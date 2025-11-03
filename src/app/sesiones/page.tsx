@@ -136,11 +136,11 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
 
 
     const ExercisePreview = ({ exercise }: { exercise: Exercise }) => (
-         <div className="p-4 border-b grid grid-cols-3 gap-4">
+         <div className="p-4 border-b grid grid-cols-1 md:grid-cols-3 gap-4">
              <div className="col-span-1 space-y-2">
                  <div className="relative aspect-video bg-muted rounded-md">
                       {exercise.image ? (
-                        <Image src={exercise.image} alt={exercise.name} fill objectFit="contain" className="p-2" />
+                        <Image src={exercise.image} alt={exercise.name} fill className="object-contain p-2" />
                     ) : (
                         <FutsalCourt className="w-full h-full p-1" />
                     )}
@@ -156,7 +156,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                     </div>
                 </div>
              </div>
-             <div className="col-span-2 space-y-2">
+             <div className="md:col-span-2 space-y-2">
                  <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{exercise.name}</h4>
                  <div>
                      <h5 className="font-semibold text-sm">Descripción</h5>
@@ -258,7 +258,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                     </div>
                 </div>
                 <ScrollArea className="flex-grow rounded-md border">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
                              <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
