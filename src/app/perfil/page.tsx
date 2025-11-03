@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUser, useAuth, useStorage } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -64,12 +64,22 @@ function ProfileForm() {
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
-        values: {
-        displayName: user?.displayName || '',
-        email: user?.email || '',
-        photoURL: user?.photoURL || '',
-        },
+        defaultValues: {
+            displayName: '',
+            email: '',
+            photoURL: '',
+        }
     });
+    
+    useEffect(() => {
+        if (user) {
+            form.reset({
+                displayName: user.displayName || '',
+                email: user.email || '',
+                photoURL: user.photoURL || '',
+            });
+        }
+    }, [user, form]);
 
     const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!user || !event.target.files || event.target.files.length === 0) return;
@@ -84,10 +94,6 @@ function ProfileForm() {
             
             await updateProfile(user, { photoURL: downloadURL });
             
-            // The user object will be updated by the onAuthStateChanged listener
-            // no need to manually set form value as the component will re-render
-            // with the new user.photoURL from the hook.
-
             toast({
                 title: 'Foto de perfil actualizada',
                 description: 'Tu nueva foto de perfil se ha guardado.',
@@ -373,4 +379,4 @@ export default function PerfilPage() {
     </div>
   );
 }
-
+ 
