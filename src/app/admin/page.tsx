@@ -22,6 +22,12 @@ const adminItems = [
     href: '/admin/usuarios',
   },
   {
+    title: 'Gestión de Invitaciones',
+    description: 'Revisa y aprueba las invitaciones de usuarios para el programa de puntos.',
+    icon: <Gift className="w-6 h-6 text-primary" />,
+    href: '/admin/invitaciones',
+  },
+  {
     title: 'Gestión de Equipos',
     description: 'Visualiza y gestiona todos los equipos creados en la plataforma.',
     icon: <Users className="w-6 h-6 text-primary" />,
@@ -32,12 +38,6 @@ const adminItems = [
     description: 'Añade ejercicios a la biblioteca, individualmente o en lote.',
     icon: <Upload className="w-6 h-6 text-primary" />,
     href: '/admin/ejercicios',
-  },
-   {
-    title: 'Gestión de Invitaciones',
-    description: 'Revisa y aprueba las invitaciones de usuarios para el programa de puntos.',
-    icon: <Gift className="w-6 h-6 text-primary" />,
-    href: '/admin/invitaciones',
   },
 ];
 
