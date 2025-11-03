@@ -11,8 +11,6 @@ import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/fires
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { default as html2pdf } from 'html2pdf.js';
-
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -69,7 +67,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
         if (phaseExercises.length === 0) return null;
 
         return (
-            <div className="space-y-3">
+            <div className="space-y-2">
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
                 <div className="grid grid-cols-2 gap-2">
                     {phaseExercises.map((ex, index) => (
@@ -99,10 +97,10 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     };
 
     return (
-        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col">
-            <div className="p-4 bg-gray-100 border-b">
+        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-4 rounded-lg shadow-lg overflow-hidden border flex flex-col">
+            <div className="p-2 bg-gray-100 border-b">
                 <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
-                 <div className="flex justify-center items-center gap-4 text-sm text-gray-600 mt-1">
+                 <div className="flex justify-center items-center gap-4 text-xs text-gray-600 mt-1">
                     <span>{format(sessionData.date, 'PPP', { locale: es })}</span>
                     {sessionData.time && <span>- {sessionData.time}</span>}
                     {sessionData.facility && <span>- {sessionData.facility}</span>}
@@ -660,3 +658,4 @@ export default function CreateSessionPage() {
         </div>
     );
 }
+
