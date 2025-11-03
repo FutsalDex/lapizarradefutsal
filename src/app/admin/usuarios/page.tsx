@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -44,24 +43,32 @@ function ManageSubscriptionDialog({ user, onSubscriptionUpdated }: { user: UserP
             return;
         }
         setIsSubmitting(true);
-        try {
-            const userRef = doc(firestore, 'users', user.id);
-            const startDate = new Date();
-            const endDate = new Date(startDate);
-            endDate.setFullYear(endDate.getFullYear() + 1);
+        const userRef = doc(firestore, 'users', user.id);
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setFullYear(endDate.getFullYear() + 1);
 
-            await updateDoc(userRef, {
-                subscription: plan,
-                subscriptionStartDate: serverTimestamp(),
-                subscriptionEndDate: endDate,
-            });
+        const updateData = {
+            subscription: plan,
+            subscriptionStartDate: serverTimestamp(),
+            subscriptionEndDate: endDate,
+        };
+
+        try {
+            await updateDoc(userRef, updateData);
             
             toast({ title: 'Suscripción Activada', description: `El plan ${plan} ha sido activado para ${user.email}.` });
             onSubscriptionUpdated();
             setIsOpen(false);
         } catch (error) {
             console.error("Error activating subscription:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo activar la suscripción.' });
+            const contextualError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'update',
+                requestResourceData: updateData
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            toast({ variant: 'destructive', title: 'Error de Permisos', description: 'No tienes permiso para actualizar la suscripción.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -139,11 +146,6 @@ export default function AdminUsersPage() {
                 operation: 'delete',
             });
             errorEmitter.emit('permission-error', contextualError);
-            toast({
-                variant: 'destructive',
-                title: 'Error de permisos',
-                description: 'No tienes permiso para eliminar este usuario.',
-            });
         }
     };
 
