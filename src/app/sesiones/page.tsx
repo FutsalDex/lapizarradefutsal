@@ -258,7 +258,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                     </div>
                 </div>
                 <ScrollArea className="flex-grow rounded-md border">
-                    <div className="grid grid-cols-3 gap-4 p-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
                              <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
@@ -616,7 +616,7 @@ export default function CreateSessionPage() {
                     <Card>
                         <CardHeader><CardTitle>Detalles de la Sesión</CardTitle></CardHeader>
                         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Ej: Mejora de la finalización" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Ej: Sesión 01" {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="date" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')} >{field.value ? format(field.value, 'PPP', { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="time" render={({ field }) => ( <FormItem><FormLabel>Hora</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="facility" render={({ field }) => ( <FormItem><FormLabel>Instalación</FormLabel><FormControl><Input placeholder="Ej: Polideportivo Municipal" {...field} /></FormControl><FormMessage /></FormItem> )} />
