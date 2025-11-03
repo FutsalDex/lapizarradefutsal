@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, PlusCircle, Repeat, CalendarCheck, Euro, FileUp, Users } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -162,7 +162,7 @@ export default function SuscripcionPage() {
                         title="Ahorro en renovación" 
                         value={`${renewalSavings} €`}
                         icon={Euro}
-                        subtext="Basado en el Plan Pro Anual"
+                        subtext={`Basado en el plan ${userSubscription.plan}`}
                     />
                     <StatCard 
                         title="Próxima Renovación" 
