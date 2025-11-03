@@ -87,6 +87,8 @@ export default function SuscripcionPage() {
         points: userProfile?.points || 0,
         endDate: userProfile?.subscriptionEndDate?.toDate(),
     };
+    
+    const isSubscribed = userSubscription.plan === 'Básico' || userSubscription.plan === 'Pro';
 
     const uploadedExercisesCount = userExercises?.length ?? 0;
     const renewalSavings = ((userSubscription.points / 1200) * 39.95).toFixed(2);
@@ -196,7 +198,7 @@ export default function SuscripcionPage() {
                                     <Book className="mx-auto h-8 w-8 text-primary mb-2" />
                                     <h4 className="font-semibold">Aporta Ejercicios</h4>
                                     <p className="text-sm text-muted-foreground mb-3">Gana 10 puntos por cada ejercicio que subas a la comunidad.</p>
-                                    <Button variant="outline" size="sm" asChild>
+                                    <Button variant="outline" size="sm" asChild disabled={!isSubscribed}>
                                         <Link href="/equipo/mis-ejercicios">
                                             <PlusCircle className="mr-2 h-4 w-4" />
                                             Subir Ejercicio
@@ -208,13 +210,18 @@ export default function SuscripcionPage() {
                                     <h4 className="font-semibold">Invita a tus Amigos</h4>
                                     <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
                                     <div className="flex w-full max-w-sm items-center space-x-2">
-                                        <Input type="email" placeholder="Email del amigo" className="text-xs" />
-                                        <Button type="submit" size="sm">
+                                        <Input type="email" placeholder="Email del amigo" className="text-xs" disabled={!isSubscribed} />
+                                        <Button type="submit" size="sm" disabled={!isSubscribed}>
                                             <Mail className="mr-2 h-4 w-4" />
                                             Invitar
                                         </Button>
                                     </div>
                                 </div>
+                                 {!isSubscribed && (
+                                    <p className="text-center text-sm text-muted-foreground">
+                                        Necesitas un plan de suscripción para empezar a ganar puntos.
+                                    </p>
+                                )}
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -274,7 +281,7 @@ export default function SuscripcionPage() {
                             <div>
                                 <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
                                 <div className="bg-muted p-3 rounded-md">
-                                    <code className="text-sm font-mono">LaPizarra (entrenadordefutsal@gmail.com)</code>
+                                    <code className="text-sm font-mono">LaPizarra ({user.email})</code>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
                             </div>
