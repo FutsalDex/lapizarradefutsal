@@ -147,7 +147,8 @@ export default function SuscripcionPage() {
                 createdAt: serverTimestamp(),
             });
 
-            const link = `${window.location.origin}/acceso?invitationId=${newInvitationRef.id}`;
+            const baseUrl = 'https://my-web-app--lapizarra-95eqd.europe-west4.hosted.app';
+            const link = `${baseUrl}/acceso?invitationId=${newInvitationRef.id}`;
             const message = `¡Hola! Te invito a unirte a LaPizarra, una app genial para entrenadores de futsal. Regístrate usando este enlace: ${link}`;
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
