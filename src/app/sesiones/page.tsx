@@ -11,7 +11,7 @@ import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/fires
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import html2pdf from 'html2pdf.js';
+
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -72,7 +72,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
                 <div className="grid grid-cols-3 gap-2">
                     {phaseExercises.map((ex, index) => (
-                        <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
+                         <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
                              <CardContent className="p-0">
                                 <div className="relative aspect-video w-full bg-muted">
                                     {ex.image ? (
@@ -484,10 +484,11 @@ export default function CreateSessionPage() {
         }
     };
     
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         const element = pdfPreviewRef.current;
         if (element) {
             toast({ title: 'Generando PDF...', description: 'Esto puede tardar unos segundos.' });
+            const html2pdf = (await import('html2pdf.js')).default;
             const opt = {
                 margin: 0,
                 filename: `${form.getValues('name') || 'sesion'}.pdf`,
@@ -658,4 +659,3 @@ export default function CreateSessionPage() {
         </div>
     );
 }
-
