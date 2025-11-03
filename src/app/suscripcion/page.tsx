@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, PlusCircle, Repeat, CalendarCheck, Euro, FileUp } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, PlusCircle, Repeat, CalendarCheck, Euro, FileUp, Users } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -91,6 +91,11 @@ export default function SuscripcionPage() {
     const uploadedExercisesCount = userExercises?.length ?? 0;
     const renewalSavings = ((userSubscription.points / 1200) * 39.95).toFixed(2);
     
+    // Placeholder data for new cards
+    const invitedFriendsCount = 0;
+    const pointsFromFriends = invitedFriendsCount * 25;
+
+
     if (isUserLoading || isLoadingProfile || isLoadingExercises) {
         return (
             <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
@@ -127,21 +132,27 @@ export default function SuscripcionPage() {
                 <p className="text-lg text-muted-foreground mt-2">Gestiona tu plan y comprueba cómo ganar y canjear tus puntos.</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-12">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-12">
                 <StatCard 
-                    title="Ejercicios Subidos" 
+                    title="Ejercicios subidos" 
                     value={uploadedExercisesCount} 
                     icon={FileUp} 
                     subtext={`${uploadedExercisesCount * 10} puntos ganados`}
                 />
+                 <StatCard 
+                    title="Amigos invitados" 
+                    value={invitedFriendsCount} 
+                    icon={Users}
+                    subtext={`${pointsFromFriends} puntos ganados`}
+                />
                 <StatCard 
-                    title="Puntos Acumulados" 
+                    title="Puntos acumulados" 
                     value={userSubscription.points} 
                     icon={Star}
                     subtext="¡Sigue sumando!" 
                 />
                 <StatCard 
-                    title="Ahorro en Renovación" 
+                    title="Ahorro en renovación" 
                     value={`${renewalSavings} €`}
                     icon={Euro}
                     subtext="Basado en el Plan Pro Anual"
