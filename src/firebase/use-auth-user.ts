@@ -8,6 +8,7 @@ import { User } from 'firebase/auth';
 export interface UserHookResult {
   user: User | null;
   isUserLoading: boolean;
+  setUser: (user: User | null) => void;
 }
 
 /**
@@ -20,5 +21,8 @@ export const useUser = (): UserHookResult => {
   if (context === undefined) {
     throw new Error('useUser must be used within a FirebaseProvider.');
   }
-  return { user: context.user, isUserLoading: context.isUserLoading };
+  // This is a bit of a hack, but it's the only way to expose the setter
+  // to update the user object from outside the provider.
+  return { user: context.user, isUserLoading: context.isUserLoading, setUser: (context as any)._setUser };
 };
+

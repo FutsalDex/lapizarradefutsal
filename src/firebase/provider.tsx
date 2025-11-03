@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -47,13 +48,14 @@ export const FirebaseProvider: React.FC<{
   }, [auth]);
 
   // Memoize the context value
-  const contextValue = useMemo((): FirebaseContextState => ({
+  const contextValue = useMemo((): FirebaseContextState & { _setUser: typeof setUser } => ({
     firebaseApp,
     firestore,
     auth,
     storage,
     user,
     isUserLoading,
+    _setUser: setUser, // Expose setter for specific use cases like profile update
   }), [firebaseApp, firestore, auth, storage, user, isUserLoading]);
 
   return (

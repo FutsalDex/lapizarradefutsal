@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef } from 'react';
@@ -54,7 +55,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 type SecurityFormValues = z.infer<typeof securitySchema>;
 
 function ProfileForm() {
-    const { user } = useUser();
+    const { user, isUserLoading, setUser } = useUser();
     const storage = useStorage();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +84,9 @@ function ProfileForm() {
             
             await updateProfile(user, { photoURL: downloadURL });
             
-            form.setValue('photoURL', downloadURL, { shouldValidate: true });
+            // The user object will be updated by the onAuthStateChanged listener
+            // no need to manually set form value as the component will re-render
+            // with the new user.photoURL from the hook.
 
             toast({
                 title: 'Foto de perfil actualizada',
@@ -125,7 +128,7 @@ function ProfileForm() {
         }
     };
     
-    const watchedPhotoUrl = form.watch('photoURL');
+    const watchedPhotoUrl = user?.photoURL;
 
     return (
         <Form {...form}>
@@ -370,3 +373,4 @@ export default function PerfilPage() {
     </div>
   );
 }
+
