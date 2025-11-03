@@ -134,7 +134,7 @@ export default function SuscripcionPage() {
                  <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-center gap-2"><Star className="text-amber-400"/>Mis Puntos</CardTitle>
-                         <CardDescription>Gana puntos aportando ejercicios, invita a tus amigos (50 puntos por cada amigo que se suscriba) y canjéalos por meses gratis.</CardDescription>
+                         <CardDescription>¡Tu esfuerzo tiene recompensa! Aporta ejercicios a la comunidad, invita a tus amigos a unirse (¡y llévate 50 puntos si se suscriben!) y canjea tus puntos por meses gratis de suscripción.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-center">
