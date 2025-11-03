@@ -271,16 +271,16 @@ export default function QuickScoreboardPage() {
                     {/* Score Display */}
                     <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
                         <div className="space-y-2">
-                            <h2 className="text-xl md:text-2xl font-bold truncate">{localTeam}</h2>
+                            <h2 className="text-lg md:text-xl font-bold truncate">{localTeam}</h2>
                              <FoulIndicator count={generalStats.local.fouls} />
                         </div>
                         
-                        <div className="text-5xl md:text-6xl font-bold tabular-nums text-primary">
+                        <div className="text-4xl md:text-5xl font-bold tabular-nums text-primary">
                             {generalStats.local.goals} - {generalStats.visitor.goals}
                         </div>
 
                         <div className="space-y-2">
-                            <h2 className="text-xl md:text-2xl font-bold truncate">{visitorTeam}</h2>
+                            <h2 className="text-lg md:text-xl font-bold truncate">{visitorTeam}</h2>
                             <FoulIndicator count={generalStats.visitor.fouls} />
                         </div>
                     </div>
