@@ -70,7 +70,7 @@ function ProfileForm() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(user?.photoURL || null);
+    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const userProfileRef = useMemoFirebase(() => {
@@ -112,11 +112,13 @@ function ProfileForm() {
             const downloadURL = await getDownloadURL(snapshot.ref);
             
             await updateProfile(user, { photoURL: downloadURL });
-            await updateDoc(doc(firestore, "users", user.uid), { photoURL: downloadURL });
+            const userDocRef = doc(firestore, "users", user.uid);
+            await updateDoc(userDocRef, { photoURL: downloadURL });
             
+            // This will trigger the onAuthStateChanged listener and update the user object globally
+            // For immediate UI feedback, we can also update the local state here
             setUser({ ...user, photoURL: downloadURL });
-            setLocalPhotoURL(downloadURL);
-            
+
             toast({
                 title: 'Foto de perfil actualizada',
                 description: 'Tu nueva foto de perfil se ha guardado.',
@@ -171,7 +173,7 @@ function ProfileForm() {
                         </CardHeader>
                         <CardContent className="flex flex-col items-center gap-4">
                                 <Avatar className="h-32 w-32 border-4 border-muted">
-                                <AvatarImage src={localPhotoURL || undefined} alt={user?.displayName || 'Avatar'} />
+                                <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'Avatar'} />
                                 <AvatarFallback className="text-4xl">
                                     <UserIcon/>
                                 </AvatarFallback>
