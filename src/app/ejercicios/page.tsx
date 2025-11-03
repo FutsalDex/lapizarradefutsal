@@ -4,18 +4,22 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User } from 'lucide-react';
+import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { FutsalCourt } from '@/components/futsal-court';
 import Image from 'next/image';
+
+interface UserProfileData {
+    subscription?: string;
+}
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +36,11 @@ export default function EjerciciosPage() {
     if (!firestore) return null;
     return collection(firestore, 'exercises');
   }, [firestore]);
+  
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
 
   const favoritesCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -39,6 +48,7 @@ export default function EjerciciosPage() {
   }, [firestore, user]);
 
   const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfileData>(userProfileRef);
   const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
 
   const exercises = useMemo(() => {
@@ -58,13 +68,15 @@ export default function EjerciciosPage() {
       await setDoc(favoriteRef, { favorited: true });
     }
   };
+  
+  const isGuestUser = userProfile?.subscription === 'Invitado';
 
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     let processableExercises = exercises.filter(e => e.visible);
 
     // Si el usuario no está logueado o es anónimo, solo mostramos 12 ejercicios
-    if (!user || user.isAnonymous) {
+    if (!user || user.isAnonymous || isGuestUser) {
         return processableExercises.slice(0, 12);
     }
 
@@ -78,18 +90,18 @@ export default function EjerciciosPage() {
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user]);
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user, isGuestUser]);
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
-      // Para usuarios no registrados o anónimos, la paginación no aplica ya que solo ven 12
-      if (!user || user.isAnonymous) {
+      // Para usuarios no registrados, anónimos o invitados, la paginación no aplica ya que solo ven 12
+      if (!user || user.isAnonymous || isGuestUser) {
           return filteredExercises;
       }
       const startIndex = (currentPage - 1) * exercisesPerPage;
       const endIndex = startIndex + exercisesPerPage;
       return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage, user]);
+  }, [filteredExercises, currentPage, exercisesPerPage, user, isGuestUser]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -97,7 +109,7 @@ export default function EjerciciosPage() {
     }
   }
   
-  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading;
+  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -164,7 +176,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && user && !user.isAnonymous && (
+        {!isLoading && user && !user.isAnonymous && !isGuestUser && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -198,6 +210,18 @@ export default function EjerciciosPage() {
                   <Link href="/acceso">
                     <User className="mr-2 h-4 w-4" />
                     Regístrate Gratis
+                  </Link>
+                </Button>
+              </div>
+          )}
+           {user && !user.isAnonymous && isGuestUser && (
+              <div className="text-center py-10 my-6 text-primary-foreground bg-primary rounded-lg">
+                <h2 className="text-xl font-semibold mb-2">Estás usando una cuenta de invitado</h2>
+                <p className="mb-6 max-w-xl mx-auto">Suscríbete a un plan para acceder a la biblioteca completa, guardar favoritos y desbloquear todas las funcionalidades.</p>
+                <Button asChild variant="secondary">
+                  <Link href="/suscripcion">
+                    <Star className="mr-2 h-4 w-4" />
+                    Ver Planes
                   </Link>
                 </Button>
               </div>
@@ -252,7 +276,7 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
-           {totalPages > 1 && user && !user.isAnonymous && (
+           {totalPages > 1 && user && !user.isAnonymous && !isGuestUser && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <Button 
                         onClick={() => handlePageChange(currentPage - 1)} 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -23,11 +24,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, Calendar as CalendarIcon, ListChecks, Search } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, ListChecks, Search, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
+import { useDoc } from '@/firebase';
 
 const sessionSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
@@ -44,6 +46,10 @@ interface Session {
     date: any;
     exercises: { initial: string[], main: string[], final: string[] } | any;
     sessionType?: 'basic' | 'pro';
+}
+
+interface UserProfileData {
+    subscription?: string;
 }
 
 function CreateSessionDialog({ onSessionCreated }: { onSessionCreated: () => void }) {
@@ -162,15 +168,24 @@ function CreateSessionDialog({ onSessionCreated }: { onSessionCreated: () => voi
 
 export default function SesionesPage() {
     const firestore = useFirestore();
-    const { user } = useUser();
+    const { user, isUserLoading } = useUser();
     const [key, setKey] = useState(0);
 
     const sessionsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(collection(firestore, `users/${user.uid}/sessions`));
     }, [firestore, user, key]);
+    
+    const userProfileRef = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
 
-    const { data: sessions, isLoading } = useCollection<Session>(sessionsQuery);
+    const { data: sessions, isLoading: isLoadingSessions } = useCollection<Session>(sessionsQuery);
+    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfileData>(userProfileRef);
+    
+    const isLoading = isLoadingSessions || isUserLoading || isLoadingProfile;
+    const isGuestUser = userProfile?.subscription === 'Invitado';
 
     const getExerciseCount = (session: Session) => {
         if (!session.exercises) return 0;
@@ -202,6 +217,25 @@ export default function SesionesPage() {
             )}
         </div>
       </div>
+      
+      {user && !isUserLoading && isGuestUser && (
+          <Card className="mb-8 border-primary bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-primary">
+                    <Star/>
+                    Funcionalidad Limitada
+                </CardTitle>
+                <CardDescription>
+                   Estás usando una cuenta de invitado. Suscríbete para desbloquear la creación de sesiones PRO (con imágenes, descripciones) y la exportación a PDF.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Button asChild>
+                      <Link href="/suscripcion">Ver Planes</Link>
+                  </Button>
+              </CardContent>
+          </Card>
+      )}
 
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
