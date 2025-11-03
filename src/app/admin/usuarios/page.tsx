@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -10,13 +10,14 @@ import { es } from 'date-fns/locale';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Edit } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
@@ -102,6 +103,7 @@ export default function AdminUsersPage() {
     const isAdmin = adminUser?.email === 'futsaldex@gmail.com';
     const [searchTerm, setSearchTerm] = useState('');
     const [key, setKey] = useState(0);
+    const { toast } = useToast();
 
     const usersCollectionRef = useMemoFirebase(() => {
         if (!firestore || !isAdmin) return null;
@@ -119,6 +121,21 @@ export default function AdminUsersPage() {
     }, [users, searchTerm]);
     
     const isLoading = isAuthLoading || isLoadingUsers;
+
+    const handleDeleteUser = async (userToDelete: UserProfile) => {
+        if (!isAdmin) {
+            toast({ variant: "destructive", title: "Acción no permitida." });
+            return;
+        }
+        try {
+            await deleteDoc(doc(firestore, "users", userToDelete.id));
+            toast({ title: "Usuario eliminado", description: `El usuario ${userToDelete.email} ha sido eliminado.` });
+            setKey(k => k + 1); // Refresh the list
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el usuario." });
+        }
+    };
 
     if (isAuthLoading) {
         return <div className="container mx-auto px-4 py-8 text-center"><p>Cargando...</p></div>;
@@ -190,8 +207,29 @@ export default function AdminUsersPage() {
                                             <TableCell className="text-muted-foreground">{user.email}</TableCell>
                                             <TableCell><Badge variant={user.subscription === 'Invitado' ? 'secondary' : 'default'}>{user.subscription || 'Invitado'}</Badge></TableCell>
                                             <TableCell>{endDate ? format(endDate, 'dd/MM/yyyy') : '-'}</TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right flex justify-end items-center">
                                                 <ManageSubscriptionDialog user={user} onSubscriptionUpdated={() => setKey(k => k + 1)} />
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Esta acción no se puede deshacer. Se eliminará el perfil del usuario de la base de datos, pero no se eliminará su cuenta de autenticación de Firebase.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteUser(user)} className="bg-destructive hover:bg-destructive/90">
+                                                                Sí, eliminar
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
                                             </TableCell>
                                         </TableRow>
                                     )
