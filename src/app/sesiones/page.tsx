@@ -58,7 +58,8 @@ type SessionType = 'basic' | 'pro';
 
 function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
     const getExercisesForPhase = (phase: Phase) => {
-        return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+        const exerciseIds = sessionData[phase] || [];
+        return exerciseIds.map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     };
 
     const PhaseSection = ({ title, phase }: { title: string; phase: Phase }) => {
@@ -69,9 +70,9 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
             <div className="space-y-3">
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {phaseExercises.map((ex, index) => (
-                        <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
-                            <CardContent className="p-0">
+                    {phaseExercises.map((ex) => (
+                        <Card key={`${ex.id}-${phase}`} className="flex flex-col overflow-hidden">
+                             <CardContent className="p-0">
                                 <div className="relative aspect-video w-full bg-muted">
                                     {ex.image ? (
                                         <Image
@@ -269,11 +270,9 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                                             <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
                                         )}
                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <DialogClose asChild>
-                                                <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
-                                                    <PlusCircle className="h-5 w-5" />
-                                                </Button>
-                                            </DialogClose>
+                                            <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
+                                                <PlusCircle className="h-5 w-5" />
+                                            </Button>
                                         </div>
                                      </div>
                                 </CardContent>
