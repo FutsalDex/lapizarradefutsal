@@ -69,9 +69,9 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
         return (
             <div className="space-y-3">
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {phaseExercises.map((ex) => (
-                        <Card key={`${ex.id}-${phase}`} className="flex flex-col overflow-hidden">
+                <div className="grid grid-cols-2 gap-4">
+                    {phaseExercises.map((ex, index) => (
+                        <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
                              <CardContent className="p-0">
                                 <div className="relative aspect-video w-full bg-muted">
                                     {ex.image ? (
@@ -97,7 +97,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     };
 
     return (
-        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
+        <div className="bg-white text-black w-[210mm] h-[297mm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
             <div className="p-4 bg-gray-100 border-b">
                 <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
                  <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground mt-1">
@@ -106,7 +106,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                     {sessionData.facility && <span>- {sessionData.facility}</span>}
                 </div>
             </div>
-            <ScrollArea className="h-[60vh]">
+            <ScrollArea className="flex-grow">
                  <div className="p-4 space-y-6">
                     <PhaseSection title="Fase Inicial" phase="initialExercises" />
                     <PhaseSection title="Fase Principal" phase="mainExercises" />
@@ -169,7 +169,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
     }
 
     return (
-        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
+        <div className="bg-white text-black w-[210mm] h-[297mm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
             <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
                 <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
                 <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
@@ -177,7 +177,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                 <div className="col-span-1"><span>Objetivos</span><Input className="w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
                 <div><span>Jugadores</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
             </div>
-             <ScrollArea className="h-[60vh]">
+             <ScrollArea className="flex-grow">
                 <PhasePreview title="FASE INICIAL" exercises={getExercisesForPhase('initialExercises')} />
                 <PhasePreview title="FASE PRINCIPAL" exercises={getExercisesForPhase('mainExercises')} />
                 <PhasePreview title="FASE FINAL" exercises={getExercisesForPhase('finalExercises')} />
@@ -255,7 +255,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                 <ScrollArea className="flex-grow rounded-md border">
                     <div className="grid grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
-                            <Card key={exercise.id} className="overflow-hidden group">
+                             <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
                                      <div className="relative aspect-video w-full bg-muted">
                                          {exercise.image ? (
@@ -270,7 +270,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                                             <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
                                         )}
                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
+                                             <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
                                                 <PlusCircle className="h-5 w-5" />
                                             </Button>
                                         </div>
@@ -556,15 +556,17 @@ export default function CreateSessionPage() {
                                                 Descargar PDF
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="max-w-5xl h-[90vh]">
+                                        <DialogContent className="max-w-5xl h-[95vh]">
                                            <DialogHeader>
                                                 <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
                                            </DialogHeader>
-                                           {selectedSessionType === 'pro' ? (
-                                                <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                           ) : (
-                                                <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                           )}
+                                           <div className="overflow-auto py-4">
+                                               {selectedSessionType === 'pro' ? (
+                                                    <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                               ) : (
+                                                    <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                               )}
+                                           </div>
                                         </DialogContent>
                                     </Dialog>
                                 </DialogFooter>
