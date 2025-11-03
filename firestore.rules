@@ -33,11 +33,6 @@ service cloud.firestore {
       return isAuth() && authEmail() == 'futsaldex@gmail.com';
     }
 
-    function isNewUser() {
-      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             !exists(/databases/$(database)/documents/users/{userId} where email == request.resource.data.email);
-    }
-
 
     // =============================
     // 🧩 TEAMS
@@ -93,7 +88,8 @@ service cloud.firestore {
       allow get: if isAuth() && request.auth.uid == userId;
       allow update: if isAuth() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid && isNewUser();
+      // Allow creation if the user is authenticated and the UID in the document matches their own.
+      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
       allow list: if isAdmin();
     }
 
