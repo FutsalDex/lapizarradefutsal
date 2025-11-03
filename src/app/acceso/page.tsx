@@ -69,12 +69,12 @@ export default function AccesoPage() {
       switch (error.code) {
           case 'auth/email-already-in-use':
               friendlyMessage = 'Este correo electrónico ya está en uso. Por favor, inicia sesión o usa otro correo.';
+              setEmail('');
+              setPassword('');
               break;
           case 'auth/wrong-password':
-              friendlyMessage = 'La contraseña es incorrecta.';
-              break;
           case 'auth/user-not-found':
-              friendlyMessage = 'No se ha encontrado ningún usuario con este correo.';
+              friendlyMessage = 'El correo electrónico o la contraseña son incorrectos.';
               break;
           case 'auth/invalid-email':
               friendlyMessage = 'El formato del correo electrónico no es válido.';
