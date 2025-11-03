@@ -93,6 +93,9 @@ function ProfileForm() {
             const downloadURL = await getDownloadURL(snapshot.ref);
             
             await updateProfile(user, { photoURL: downloadURL });
+
+            // Force a state update in the user context
+            setUser({ ...user, photoURL: downloadURL });
             
             toast({
                 title: 'Foto de perfil actualizada',
@@ -118,6 +121,7 @@ function ProfileForm() {
             await updateProfile(user, {
                 displayName: data.displayName,
             });
+             setUser({ ...user, displayName: data.displayName });
             toast({
                 title: 'Perfil actualizado',
                 description: 'Tus datos se han guardado correctamente.',
@@ -195,7 +199,7 @@ function ProfileForm() {
                                         <FormControl>
                                             <Input type="email" {...field} disabled />
                                         </FormControl>
-                                            <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
+                                        <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -379,4 +383,5 @@ export default function PerfilPage() {
     </div>
   );
 }
- 
+
+    
