@@ -62,13 +62,7 @@ function ManageSubscriptionDialog({ user, onSubscriptionUpdated }: { user: UserP
             setIsOpen(false);
         } catch (error) {
             console.error("Error activating subscription:", error);
-            const contextualError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'update',
-                requestResourceData: updateData
-            });
-            errorEmitter.emit('permission-error', contextualError);
-            toast({ variant: 'destructive', title: 'Error de Permisos', description: 'No tienes permiso para actualizar la suscripción.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la suscripción.' });
         } finally {
             setIsSubmitting(false);
         }
@@ -141,11 +135,8 @@ export default function AdminUsersPage() {
             toast({ title: "Usuario eliminado", description: `El usuario ${userToDelete.email} ha sido eliminado.` });
             setKey(k => k + 1); // Refresh the list
         } catch (error) {
-            const contextualError = new FirestorePermissionError({
-                path: `users/${userToDelete.id}`,
-                operation: 'delete',
-            });
-            errorEmitter.emit('permission-error', contextualError);
+            console.error('Error deleting user:', error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar al usuario.' });
         }
     };
 
