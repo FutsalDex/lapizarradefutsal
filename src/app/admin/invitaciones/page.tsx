@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, increment, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, increment, writeBatch, deleteDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -10,13 +10,15 @@ import { es } from 'date-fns/locale';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, CheckCircle, Clock, Gift, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Gift, ThumbsUp, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 interface Invitation {
   id: string;
@@ -33,7 +35,7 @@ interface UserProfile {
   subscription: 'Invitado' | 'Básico' | 'Pro';
 }
 
-function InvitationRow({ invitation, allUsers, onApprove, isProcessing }: { invitation: Invitation, allUsers: UserProfile[], onApprove: (invitation: Invitation, invitee: UserProfile) => void, isProcessing: boolean }) {
+function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing }: { invitation: Invitation, allUsers: UserProfile[], onApprove: (invitation: Invitation, invitee: UserProfile) => void, onDelete: (invitationId: string) => void, isProcessing: boolean }) {
     const invitee = useMemo(() => allUsers.find(u => u.email === invitation.inviteeEmail), [allUsers, invitation.inviteeEmail]);
     const isInviteeSubscribed = invitee?.subscription === 'Básico' || invitee?.subscription === 'Pro';
 
@@ -56,7 +58,7 @@ function InvitationRow({ invitation, allUsers, onApprove, isProcessing }: { invi
                     {invitation.status}
                 </Badge>
             </TableCell>
-            <TableCell className="text-right">
+            <TableCell className="text-right flex items-center justify-end">
                 <Button 
                     size="sm"
                     onClick={() => invitee && onApprove(invitation, invitee)}
@@ -64,6 +66,27 @@ function InvitationRow({ invitation, allUsers, onApprove, isProcessing }: { invi
                 >
                     {isProcessing ? 'Procesando...' : <><ThumbsUp className="mr-2 h-4 w-4" /> Aprobar</>}
                 </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={isProcessing}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción es irreversible y eliminará la invitación permanentemente.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(invitation.id)} className="bg-destructive hover:bg-destructive/90">
+                                Eliminar
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </TableCell>
         </TableRow>
     );
@@ -120,6 +143,20 @@ export default function AdminInvitationsPage() {
     } catch (error) {
         console.error("Error approving invitation:", error);
         toast({ variant: "destructive", title: "Error", description: "No se pudo aprobar la invitación." });
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+  
+  const handleDelete = async (invitationId: string) => {
+    setIsProcessing(true);
+    try {
+        await deleteDoc(doc(firestore, 'invitations', invitationId));
+        toast({ title: 'Invitación eliminada' });
+        setKey(k => k + 1);
+    } catch (error) {
+        console.error("Error deleting invitation:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar la invitación.' });
     } finally {
         setIsProcessing(false);
     }
@@ -194,6 +231,7 @@ export default function AdminInvitationsPage() {
                       invitation={invitation}
                       allUsers={allUsers || []}
                       onApprove={handleApprove}
+                      onDelete={handleDelete}
                       isProcessing={isProcessing}
                     />
                   ))
