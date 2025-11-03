@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc } from 'firebase/firestore';
+import { Input } from '@/components/ui/input';
 
 interface UserProfile {
     subscription?: string;
@@ -139,7 +140,6 @@ export default function SuscripcionPage() {
                  <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-center gap-2"><Star className="text-amber-400"/>Mis Puntos</CardTitle>
-                         <CardDescription>Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-center">
@@ -165,16 +165,39 @@ export default function SuscripcionPage() {
                                 ))}
                             </div>
                         </div>
+                         <div className="pt-4">
+                            <h3 className="font-semibold text-center mb-4">Programa de Fidelización</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="rounded-lg border bg-card p-4 text-center">
+                                    <Book className="mx-auto h-8 w-8 text-primary mb-2" />
+                                    <h4 className="font-semibold">Aporta Ejercicios</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">Gana 10 puntos por cada ejercicio que subas a la comunidad.</p>
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href="/equipo/mis-ejercicios">
+                                            <PlusCircle className="mr-2 h-4 w-4" />
+                                            Subir Ejercicio
+                                        </Link>
+                                    </Button>
+                                </div>
+                                <div className="rounded-lg border bg-card p-4 text-center">
+                                    <UserPlus className="mx-auto h-8 w-8 text-primary mb-2" />
+                                    <h4 className="font-semibold">Invita a tus Amigos</h4>
+                                    <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
+                                    <div className="flex w-full max-w-sm items-center space-x-2">
+                                        <Input type="email" placeholder="Email del amigo" className="text-xs" />
+                                        <Button type="submit" size="sm">
+                                            <Mail className="mr-2 h-4 w-4" />
+                                            Invitar
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </CardContent>
-                    <CardFooter className='flex flex-col sm:flex-row gap-2'>
+                    <CardFooter>
                        <Button className="w-full" disabled={userSubscription.points < 100}>
                             <Gift className="mr-2 h-4 w-4"/>
-                            Canjear 1 Mes (100 pts)
-                       </Button>
-                       <Button variant="outline" className="w-full" asChild>
-                            <Link href="/equipo/mis-ejercicios">
-                            <Book className="mr-2 h-4 w-4"/>Aportar ejercicio
-                            </Link>
+                            Canjear 1 Mes de Suscripción (100 pts)
                        </Button>
                     </CardFooter>
                 </Card>
