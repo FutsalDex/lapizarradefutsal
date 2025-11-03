@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -128,19 +129,21 @@ export default function TeamDashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Button asChild variant="outline" className="mb-4">
-          <Link href="/equipo/gestion">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a Mis Equipos
-          </Link>
-        </Button>
-        <h1 className="text-4xl font-bold font-headline text-primary">
-          Panel de {team.name}
-        </h1>
-        <p className="text-lg text-muted-foreground mt-2">
-          Selecciona una sección para empezar a gestionar tu equipo.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-8">
+        <div>
+            <Button asChild variant="outline" className="mb-4">
+            <Link href="/equipo/gestion">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver a Mis Equipos
+            </Link>
+            </Button>
+            <h1 className="text-4xl font-bold font-headline text-primary">
+            Panel de {team.name}
+            </h1>
+            <p className="text-lg text-muted-foreground mt-2">
+            Selecciona una sección para empezar a gestionar tu equipo.
+            </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

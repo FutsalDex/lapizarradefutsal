@@ -30,7 +30,7 @@ const plans = [
             'Gestión de hasta 3 equipos',
             'Añadir miembros al cuerpo técnico',
             'Estadísticas avanzadas',
-            'Exportar sesiones a PDF Pro',
+            'Descargar sesiones a PDF Pro',
         ],
         cta: 'Suscribirse a Pro',
     }

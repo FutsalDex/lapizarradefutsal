@@ -664,7 +664,7 @@ export default function MatchesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <div>
           <Button asChild variant="outline" className="mb-4">
             <Link href={`/equipo/gestion/${teamId}`}>

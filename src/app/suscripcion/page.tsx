@@ -68,7 +68,7 @@ const plans = [
             'Gestión de hasta 3 equipos',
             'Añadir miembros al cuerpo técnico',
             'Estadísticas avanzadas',
-            'Exportar sesiones a PDF Pro',
+            'Descargar sesiones a PDF Pro',
         ],
         cta: 'Suscribirse a Pro',
     }
@@ -140,8 +140,7 @@ export default function SuscripcionPage() {
                 return;
             }
 
-            const invitationsRef = collection(firestore, 'invitations');
-            await addDoc(invitationsRef, {
+            await addDoc(collection(firestore, 'invitations'), {
                 inviterId: user.uid,
                 inviterEmail: user.email,
                 inviteeEmail: inviteEmail,
@@ -254,7 +253,7 @@ export default function SuscripcionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                         <div className="flex flex-col sm:flex-row w-full max-w-sm items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                         <div className="flex flex-col sm:flex-row w-full max-w-md items-center space-y-2 sm:space-y-0 sm:space-x-2">
                              <Input 
                                 type="email" 
                                 placeholder="Email del amigo"
