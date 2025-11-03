@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -128,7 +128,7 @@ export default function SuscripcionPage() {
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 {isGuest 
-                                    ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 30 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
+                                    ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 7 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
                                     : `Tu suscripción se renueva el ${userSubscription.endDate}.`
                                 }
                             </p>
