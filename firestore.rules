@@ -85,11 +85,11 @@ service cloud.firestore {
     // 👤 USERS
     // =============================
     match /users/{userId} {
-      allow get: if isAuth() && request.auth.uid == userId;
+      allow get: if isAuth() && (request.auth.uid == userId || isAdmin());
       allow update: if isAuth() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
       // Allow creation if the user is authenticated and the UID in the document matches their own.
-      allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
+      allow create: if isAuth() && userId == request.auth.uid;
       allow list: if isAdmin();
     }
 

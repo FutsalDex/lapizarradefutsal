@@ -46,30 +46,43 @@ export default function AccesoPage() {
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const newUser = userCredential.user;
-        if (newUser) {
-          await updateProfile(newUser, { displayName: name });
-          // Create a user document in Firestore
-          const userDocRef = doc(firestore, 'users', newUser.uid);
-          await setDoc(userDocRef, {
-              uid: newUser.uid,
-              displayName: name,
-              email: newUser.email,
-              createdAt: serverTimestamp(),
-              photoURL: newUser.photoURL,
-              subscription: 'Invitado', // Initial subscription status
-          });
-        }
+        
+        await updateProfile(newUser, { displayName: name });
+        
+        // Create a user document in Firestore
+        const userDocRef = doc(firestore, 'users', newUser.uid);
+        await setDoc(userDocRef, {
+            uid: newUser.uid,
+            displayName: name,
+            email: newUser.email,
+            createdAt: serverTimestamp(),
+            photoURL: newUser.photoURL,
+            subscription: 'Invitado', // Initial subscription status
+        });
+        
         toast({ title: '¡Registro completado!', description: 'Ya puedes iniciar sesión.' });
       }
     } catch (error: any) {
-      console.error(error);
-      const friendlyMessage = error.code === 'auth/email-already-in-use' 
-        ? 'Este correo electrónico ya está en uso.'
-        : error.code === 'auth/wrong-password'
-        ? 'La contraseña es incorrecta.'
-        : error.code === 'auth/user-not-found'
-        ? 'No se ha encontrado ningún usuario con este correo.'
-        : 'Ha ocurrido un error. Por favor, inténtalo de nuevo.';
+      console.error("Authentication error:", error.code, error.message);
+      
+      let friendlyMessage = 'Ha ocurrido un error. Por favor, inténtalo de nuevo.';
+      switch (error.code) {
+          case 'auth/email-already-in-use':
+              friendlyMessage = 'Este correo electrónico ya está en uso. Por favor, inicia sesión o usa otro correo.';
+              break;
+          case 'auth/wrong-password':
+              friendlyMessage = 'La contraseña es incorrecta.';
+              break;
+          case 'auth/user-not-found':
+              friendlyMessage = 'No se ha encontrado ningún usuario con este correo.';
+              break;
+          case 'auth/invalid-email':
+              friendlyMessage = 'El formato del correo electrónico no es válido.';
+              break;
+           case 'auth/weak-password':
+              friendlyMessage = 'La contraseña es demasiado débil. Debe tener al menos 6 caracteres.';
+              break;
+      }
       
       toast({
         variant: 'destructive',
