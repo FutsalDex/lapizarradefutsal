@@ -16,6 +16,7 @@ const plans = [
             'Crear sesiones de entrenamiento',
             'Gestión de 1 equipo',
             'Marcador rápido',
+            'Guardar mis ejercicios favoritos',
         ],
         cta: 'Suscribirse a Básico',
     },
