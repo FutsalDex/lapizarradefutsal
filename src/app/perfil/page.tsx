@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useUser, useAuth } from '@/firebase';
+import { useState, useRef } from 'react';
+import { useUser, useAuth, useStorage } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -54,8 +55,11 @@ type SecurityFormValues = z.infer<typeof securitySchema>;
 
 function ProfileForm() {
     const { user } = useUser();
+    const storage = useStorage();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -66,27 +70,58 @@ function ProfileForm() {
         },
     });
 
+    const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!user || !event.target.files || event.target.files.length === 0) return;
+        
+        const file = event.target.files[0];
+        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+        setIsUploading(true);
+
+        try {
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            
+            form.setValue('photoURL', downloadURL);
+            
+            await updateProfile(user, { photoURL: downloadURL });
+            
+            toast({
+                title: 'Foto de perfil actualizada',
+                description: 'Tu nueva foto de perfil se ha guardado.',
+            });
+        } catch (error) {
+            console.error("Error uploading photo:", error);
+             toast({
+                variant: 'destructive',
+                title: 'Error al subir la foto',
+                description: 'No se pudo subir tu foto de perfil.',
+            });
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user) return;
         setIsSubmitting(true);
         try {
-        await updateProfile(user, {
-            displayName: data.displayName,
-            photoURL: data.photoURL,
-        });
-        toast({
-            title: 'Perfil actualizado',
-            description: 'Tus datos se han guardado correctamente.',
-        });
+            await updateProfile(user, {
+                displayName: data.displayName,
+            });
+            toast({
+                title: 'Perfil actualizado',
+                description: 'Tus datos se han guardado correctamente.',
+            });
         } catch (error) {
-        console.error(error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No se pudo actualizar tu perfil.',
-        });
+            console.error(error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo actualizar tu perfil.',
+            });
         } finally {
-        setIsSubmitting(false);
+            setIsSubmitting(false);
         }
     };
     
@@ -107,22 +142,17 @@ function ProfileForm() {
                                     <UserIcon/>
                                 </AvatarFallback>
                             </Avatar>
-                                <FormField
-                                control={form.control}
-                                name="photoURL"
-                                render={({ field }) => (
-                                    <FormItem className="w-full">
-                                        <FormLabel className="sr-only">URL de tu imagen</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <Camera className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                <Input placeholder="URL de tu imagen" className="pl-9" {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
+                            <Input 
+                                type="file" 
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/png, image/jpeg"
+                                onChange={handlePhotoUpload}
+                            />
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full">
+                                <Camera className="mr-2 h-4 w-4" />
+                                {isUploading ? 'Subiendo...' : 'Cambiar Foto'}
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
