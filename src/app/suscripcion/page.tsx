@@ -12,20 +12,20 @@ import { Progress } from '@/components/ui/progress';
 
 const plans = [
     {
-        name: 'Basic',
-        price: 0,
+        name: 'Plan Básico',
+        price: 19.95,
         features: [
             'Acceso a la biblioteca de ejercicios',
             'Crear sesiones de entrenamiento',
             'Gestión de 1 equipo',
             'Marcador rápido',
         ],
-        cta: 'Plan Actual',
-        isCurrent: true,
+        cta: 'Mejorar a Básico',
+        isCurrent: false,
     },
     {
         name: 'Pro',
-        price: 9.99,
+        price: 39.95,
         features: [
             'Todo lo del plan Basic',
             'Gestión de equipos ilimitados',
@@ -38,17 +38,32 @@ const plans = [
     }
 ];
 
+const guestPlan = {
+    name: 'Invitado',
+    price: 0,
+    features: [
+        'Acceso a la aplicación en modo demo'
+    ],
+    cta: 'Plan Actual',
+    isCurrent: true,
+};
+
 export default function SuscripcionPage() {
     const { user, isUserLoading } = useUser();
     
     // Mock data, to be replaced with Firestore data
     const userSubscription = {
-        plan: 'Basic',
+        plan: 'Invitado',
         status: 'Activa',
         endDate: 'N/A',
         points: 450,
         nextReward: 500,
     };
+    
+    const displayPlans = userSubscription.plan === 'Invitado' 
+        ? [guestPlan, plans[0], plans[1]] 
+        : plans.map(p => ({ ...p, isCurrent: p.name === 'Plan Básico' }));
+
 
     if (isUserLoading) {
         return (
@@ -98,7 +113,7 @@ export default function SuscripcionPage() {
                                 </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {userSubscription.plan === 'Basic' ? 'Tu prueba gratuita está activa.' : `Tu suscripción se renueva el ${userSubscription.endDate}.`}
+                                {userSubscription.plan === 'Invitado' ? 'Estás en el modo de demostración.' : `Tu suscripción se renueva el ${userSubscription.endDate}.`}
                             </p>
                         </CardContent>
                     </Card>
@@ -141,7 +156,7 @@ export default function SuscripcionPage() {
                             <CardDescription>Elige el plan que mejor se adapte a tus necesidades como entrenador.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
-                            {plans.map(plan => (
+                            {displayPlans.map(plan => (
                                 <Card key={plan.name} className={plan.isCurrent ? 'border-primary' : ''}>
                                     <CardHeader>
                                         <CardTitle className="font-headline">{plan.name}</CardTitle>
