@@ -17,6 +17,7 @@ interface UserProfile {
     subscription?: string;
     createdAt?: { toDate: () => Date };
     points?: number;
+    subscriptionEndDate?: { toDate: () => Date };
 }
 
 
@@ -65,15 +66,13 @@ export default function SuscripcionPage() {
         return (new Date().getTime() - registrationDate.getTime()) < thirtyDaysInMillis;
     }, [userProfile]);
 
-    const currentPlan = userProfile?.subscription === 'Basic' || userProfile?.subscription === 'Pro' 
-        ? userProfile.subscription 
-        : 'Invitado';
+    const currentPlan = userProfile?.subscription || 'Invitado';
 
     const userSubscription = {
         plan: currentPlan,
-        status: 'Activa',
-        endDate: 'N/A', // To be implemented
-        points: userProfile?.points || 450,
+        status: userProfile?.subscription && userProfile?.subscription !== 'Invitado' ? 'Activa' : 'Prueba',
+        endDate: userProfile?.subscriptionEndDate?.toDate()?.toLocaleDateString('es-ES'),
+        points: userProfile?.points || 0,
         nextReward: 1200,
     };
     
@@ -103,6 +102,15 @@ export default function SuscripcionPage() {
 
     const pointsProgress = (userSubscription.points / userSubscription.nextReward) * 100;
     const isGuest = userSubscription.plan === 'Invitado';
+    let planDescription = '';
+
+    if (isGuest) {
+      planDescription = 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 7 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%';
+    } else if (userSubscription.endDate) {
+        planDescription = `Tu suscripción se renueva el ${userSubscription.endDate}.`;
+    } else {
+        planDescription = "Gestiona tu suscripción y tus puntos."
+    }
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -119,15 +127,12 @@ export default function SuscripcionPage() {
                     <CardContent className="space-y-4">
                         <div className="flex justify-between items-baseline">
                             <span className="text-3xl font-bold">{userSubscription.plan}</span>
-                            <Badge variant={userSubscription.status === 'Activa' ? 'default' : 'destructive'}>
+                            <Badge variant={userSubscription.status === 'Activa' ? 'default' : 'secondary'}>
                                 {userSubscription.status}
                             </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            {isGuest 
-                                ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 7 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
-                                : `Tu suscripción se renueva el ${userSubscription.endDate}.`
-                            }
+                            {planDescription}
                         </p>
                     </CardContent>
                 </Card>
