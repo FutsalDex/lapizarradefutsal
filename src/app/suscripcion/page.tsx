@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Star, CheckCircle, ArrowRight, Book, HelpCircle, Gift } from 'lucide-react';
+import { Star, CheckCircle, ArrowRight, Book, Gift } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const plans = [
@@ -38,16 +38,6 @@ const plans = [
     }
 ];
 
-const guestPlan = {
-    name: 'Invitado',
-    price: 0,
-    features: [
-        'Acceso a la aplicación en modo demo'
-    ],
-    cta: 'Plan Actual',
-    isCurrent: true,
-};
-
 export default function SuscripcionPage() {
     const { user, isUserLoading } = useUser();
     
@@ -60,10 +50,7 @@ export default function SuscripcionPage() {
         nextReward: 500,
     };
     
-    const displayPlans = userSubscription.plan === 'Invitado' 
-        ? [guestPlan, plans[0], plans[1]] 
-        : plans.map(p => ({ ...p, isCurrent: p.name === 'Plan Básico' }));
-
+    const displayPlans = plans.map(p => ({ ...p, isCurrent: p.name === userSubscription.plan }));
 
     if (isUserLoading) {
         return (
@@ -91,6 +78,7 @@ export default function SuscripcionPage() {
     }
 
     const pointsProgress = (userSubscription.points / userSubscription.nextReward) * 100;
+    const isGuest = userSubscription.plan === 'Invitado';
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -113,7 +101,10 @@ export default function SuscripcionPage() {
                                 </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {userSubscription.plan === 'Invitado' ? 'Estás en el modo de demostración.' : `Tu suscripción se renueva el ${userSubscription.endDate}.`}
+                                {isGuest 
+                                    ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 7 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
+                                    : `Tu suscripción se renueva el ${userSubscription.endDate}.`
+                                }
                             </p>
                         </CardContent>
                     </Card>
@@ -177,7 +168,7 @@ export default function SuscripcionPage() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button className="w-full" disabled={plan.isCurrent}>
-                                            {plan.cta}
+                                            {plan.isCurrent ? 'Plan Actual' : plan.cta}
                                             {!plan.isCurrent && <ArrowRight className="ml-2 h-4 w-4"/>}
                                         </Button>
                                     </CardFooter>
