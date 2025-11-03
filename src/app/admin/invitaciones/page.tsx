@@ -36,7 +36,12 @@ interface UserProfile {
 }
 
 function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing }: { invitation: Invitation, allUsers: UserProfile[], onApprove: (invitation: Invitation, invitee: UserProfile) => void, onDelete: (invitationId: string) => void, isProcessing: boolean }) {
-    const invitee = useMemo(() => allUsers.find(u => u.email === invitation.inviteeEmail), [allUsers, invitation.inviteeEmail]);
+    const invitee = useMemo(() => {
+    if (!allUsers || !invitation.inviteeEmail) return null;
+    const inviteeEmailLower = invitation.inviteeEmail.toLowerCase();
+    return allUsers.find(u => u.email && u.email.toLowerCase() === inviteeEmailLower) || null;
+  }, [allUsers, invitation.inviteeEmail]);
+
     const isInviteeSubscribed = invitee?.subscription === 'Básico' || invitee?.subscription === 'Pro';
 
     const canApprove = invitation.status === 'pending' && isInviteeSubscribed;
