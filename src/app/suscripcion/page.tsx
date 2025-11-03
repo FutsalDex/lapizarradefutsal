@@ -72,6 +72,8 @@ export default function SuscripcionPage() {
     const { toast } = useToast();
 
     const [isInviting, setIsInviting] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -103,9 +105,7 @@ export default function SuscripcionPage() {
     const handleWhatsAppInvite = () => {
         if (!user) return;
         
-        // As a real implementation would require a proper domain, we'll use a placeholder.
-        // The idea is to create a unique registration link for the referral.
-        const referralLink = `https://lapizarra-95eqd.web.app/acceso?ref=${user.uid}`;
+        const referralLink = `${window.location.origin}/acceso?ref=${user.uid}`;
         const message = encodeURIComponent(`¡Hola! Te invito a unirte a LaPizarra, la mejor app para entrenadores de futsal. Regístrate usando mi enlace: ${referralLink}`);
         
         window.open(`https://wa.me/?text=${message}`, '_blank');
@@ -209,7 +209,7 @@ export default function SuscripcionPage() {
                         </p>
                         <Button 
                             onClick={handleWhatsAppInvite} 
-                            disabled={!isSubscribed || isInviting} 
+                            disabled={!isSubscribed} 
                             className="w-full"
                         >
                             <svg className="mr-2 h-5 w-5" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>WhatsApp</title><path fill="currentColor" d="M12.04 2.01C6.58 2.01 2.13 6.46 2.13 11.92c0 1.77.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91s-4.45-9.91-9.91-9.91zm0 18.16c-1.5 0-2.96-.4-4.22-1.13l-.3-.18-3.12.82.83-3.04-.2-.32a8.23 8.23 0 0 1-1.28-4.38c0-4.54 3.68-8.22 8.22-8.22 4.54 0 8.22 3.68 8.22 8.22s-3.68 8.22-8.22 8.22zm4.52-6.15c-.25-.12-1.47-.72-1.7-.82s-.39-.12-.56.12c-.16.25-.64.82-.79.99s-.29.16-.56.04c-.26-.12-1.1-."/></svg>
@@ -285,3 +285,5 @@ export default function SuscripcionPage() {
             </div>
         </div>
     );
+
+    
