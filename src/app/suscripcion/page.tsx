@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -54,7 +55,8 @@ const plans = [
             'Crear sesiones de entrenamiento',
             'Gestión de 1 equipo',
             'Marcador rápido',
-            'Guardar mis ejercicios favoritos'
+            'Guardar mis ejercicios favoritos',
+            'Descargar sesiones en PDF'
         ],
         cta: 'Suscribirse a Básico',
     },
@@ -148,8 +150,7 @@ export default function SuscripcionPage() {
             });
 
             const baseUrl = 'https://my-web-app--lapizarra-95eqd.europe-west4.hosted.app';
-            const link = `${baseUrl}/acceso`;
-            const message = `¡Hola! Te invito a unirte a LaPizarra, una app genial para entrenadores de futsal. Regístrate usando este enlace: ${link}`;
+            const message = `¡Hola! Te invito a unirte a LaPizarra, una app genial para entrenadores de futsal. Regístrate usando este enlace: ${baseUrl}/acceso`;
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
             window.open(whatsappUrl, '_blank');

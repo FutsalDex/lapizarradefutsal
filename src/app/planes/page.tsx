@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -17,6 +18,7 @@ const plans = [
             'Gestión de 1 equipo',
             'Marcador rápido',
             'Guardar mis ejercicios favoritos',
+            'Descargar sesiones en PDF',
         ],
         cta: 'Suscribirse a Básico',
     },
