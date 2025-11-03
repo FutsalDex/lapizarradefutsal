@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -28,7 +29,7 @@ const plans = [
         price: 39.95,
         features: [
             'Todo lo del plan Basic',
-            'Gestión de equipos ilimitados',
+            'Gestión de hasta 3 equipos',
             'Añadir miembros al cuerpo técnico',
             'Estadísticas avanzadas',
             'Exportar sesiones a PDF Pro',
