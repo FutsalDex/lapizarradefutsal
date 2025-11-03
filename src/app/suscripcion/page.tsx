@@ -253,17 +253,19 @@ export default function SuscripcionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex w-full max-w-sm items-center space-x-2">
+                        <div className="flex flex-col sm:flex-row w-full max-w-sm items-center space-y-2 sm:space-y-0 sm:space-x-2">
                              <Input 
                                 type="email" 
                                 placeholder="Email del amigo"
                                 value={inviteEmail}
                                 onChange={(e) => setInviteEmail(e.target.value)}
                                 disabled={!isSubscribed || isInviting}
+                                className="w-full"
                             />
                             <Button 
                                 onClick={handleSendInvite} 
                                 disabled={!isSubscribed || isInviting || !inviteEmail}
+                                className="w-full sm:w-auto"
                             >
                                 {isInviting ? 'Generando...' : 'Invitar por WhatsApp'}
                             </Button>
@@ -341,3 +343,5 @@ export default function SuscripcionPage() {
 
     
 }
+
+    
