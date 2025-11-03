@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useUser, useAuth } from '@/firebase';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,7 +28,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User as UserIcon, Save, Camera } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -39,47 +39,261 @@ const profileSchema = z.object({
   photoURL: z.string().url('Debe ser una URL válida.').optional().or(z.literal('')),
 });
 
+const securitySchema = z.object({
+    currentPassword: z.string().min(1, 'La contraseña actual es requerida.'),
+    newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres.'),
+    confirmPassword: z.string(),
+}).refine(data => data.newPassword === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden.',
+    path: ['confirmPassword'],
+});
+
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
+type SecurityFormValues = z.infer<typeof securitySchema>;
+
+function ProfileForm() {
+    const { user } = useUser();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        values: {
+        displayName: user?.displayName || '',
+        email: user?.email || '',
+        photoURL: user?.photoURL || '',
+        },
+    });
+
+    const onSubmit = async (data: ProfileFormValues) => {
+        if (!user) return;
+        setIsSubmitting(true);
+        try {
+        await updateProfile(user, {
+            displayName: data.displayName,
+            photoURL: data.photoURL,
+        });
+        toast({
+            title: 'Perfil actualizado',
+            description: 'Tus datos se han guardado correctamente.',
+        });
+        } catch (error) {
+        console.error(error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'No se pudo actualizar tu perfil.',
+        });
+        } finally {
+        setIsSubmitting(false);
+        }
+    };
+    
+    const watchedPhotoUrl = form.watch('photoURL');
+
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-3 gap-8">
+                <div className="md:col-span-1">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">Foto de Perfil</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center gap-4">
+                                <Avatar className="h-32 w-32 border-4 border-muted">
+                                <AvatarImage src={watchedPhotoUrl || undefined} alt={user?.displayName || 'Avatar'} />
+                                <AvatarFallback className="text-4xl">
+                                    <UserIcon/>
+                                </AvatarFallback>
+                            </Avatar>
+                                <FormField
+                                control={form.control}
+                                name="photoURL"
+                                render={({ field }) => (
+                                    <FormItem className="w-full">
+                                        <FormLabel className="sr-only">URL de tu imagen</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Camera className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input placeholder="URL de tu imagen" className="pl-9" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <div className="md:col-span-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">Información de la Cuenta</CardTitle>
+                            <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                                <FormField
+                                control={form.control}
+                                name="displayName"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Nombre</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Tu nombre" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                                />
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email</FormLabel>
+                                        <FormControl>
+                                            <Input type="email" {...field} disabled />
+                                        </FormControl>
+                                            <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                        <CardFooter className="justify-end">
+                            <Button type="submit" disabled={isSubmitting}>
+                                <Save className="mr-2 h-4 w-4" />
+                                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </form>
+        </Form>
+    )
+}
+
+function SecurityForm() {
+    const { user } = useUser();
+    const auth = useAuth();
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const form = useForm<SecurityFormValues>({
+        resolver: zodResolver(securitySchema),
+        defaultValues: {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+        },
+    });
+
+    const onSubmit = async (data: SecurityFormValues) => {
+        if (!user || !user.email) return;
+
+        setIsSubmitting(true);
+        try {
+            const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+            await reauthenticateWithCredential(user, credential);
+            await updatePassword(user, data.newPassword);
+            toast({
+                title: 'Contraseña actualizada',
+                description: 'Tu contraseña se ha cambiado correctamente.',
+            });
+            form.reset();
+        } catch (error: any) {
+            let description = 'No se pudo actualizar tu contraseña.';
+            if (error.code === 'auth/wrong-password') {
+                description = 'La contraseña actual es incorrecta.';
+            } else if (error.code === 'auth/weak-password') {
+                description = 'La nueva contraseña es demasiado débil.';
+            }
+             console.error(error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: description,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+    
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-xl mx-auto">
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Cambiar Contraseña</CardTitle>
+                        <CardDescription>Para mayor seguridad, te recomendamos que uses una contraseña única.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                         <FormField
+                            control={form.control}
+                            name="currentPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contraseña Actual</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="password" {...field} className="pl-9" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="newPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nueva Contraseña</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="password" {...field} className="pl-9" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="confirmPassword"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Confirmar Nueva Contraseña</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                            <Input type="password" {...field} className="pl-9" />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </CardContent>
+                    <CardFooter className="justify-end">
+                        <Button type="submit" disabled={isSubmitting}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {isSubmitting ? 'Guardando...' : 'Cambiar Contraseña'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </form>
+        </Form>
+    )
+}
 
 export default function PerfilPage() {
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    values: {
-      displayName: user?.displayName || '',
-      email: user?.email || '',
-      photoURL: user?.photoURL || '',
-    },
-  });
-
-  const onSubmit = async (data: ProfileFormValues) => {
-    if (!user) return;
-    setIsSubmitting(true);
-    try {
-      await updateProfile(user, {
-        displayName: data.displayName,
-        photoURL: data.photoURL,
-      });
-      toast({
-        title: 'Perfil actualizado',
-        description: 'Tus datos se han guardado correctamente.',
-      });
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo actualizar tu perfil.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+ 
   if (isUserLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -103,9 +317,6 @@ export default function PerfilPage() {
       </div>
     );
   }
-  
-  const watchedPhotoUrl = form.watch('photoURL');
-
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -117,91 +328,13 @@ export default function PerfilPage() {
         <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="profile">Datos Personales</TabsTrigger>
-                <TabsTrigger value="security" disabled>Seguridad</TabsTrigger>
+                <TabsTrigger value="security">Seguridad</TabsTrigger>
             </TabsList>
             <TabsContent value="profile" className="mt-6">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-3 gap-8">
-                        <div className="md:col-span-1">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-xl">Foto de Perfil</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col items-center gap-4">
-                                     <Avatar className="h-32 w-32 border-4 border-muted">
-                                        <AvatarImage src={watchedPhotoUrl || undefined} alt={user.displayName || 'Avatar'} />
-                                        <AvatarFallback className="text-4xl">
-                                            <UserIcon/>
-                                        </AvatarFallback>
-                                    </Avatar>
-                                     <FormField
-                                        control={form.control}
-                                        name="photoURL"
-                                        render={({ field }) => (
-                                            <FormItem className="w-full">
-                                                <FormLabel className="sr-only">URL de la foto</FormLabel>
-                                                <FormControl>
-                                                    <div className="relative">
-                                                        <Camera className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                        <Input placeholder="URL de tu imagen" className="pl-9" {...field} />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                        />
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="md:col-span-2">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-xl">Información de la Cuenta</CardTitle>
-                                    <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                     <FormField
-                                        control={form.control}
-                                        name="displayName"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Nombre</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Tu nombre" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                        />
-                                    <FormField
-                                        control={form.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Email</FormLabel>
-                                                <FormControl>
-                                                    <Input type="email" {...field} disabled />
-                                                </FormControl>
-                                                 <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </CardContent>
-                                <CardFooter className="justify-end">
-                                    <Button type="submit" disabled={isSubmitting}>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                    </form>
-                </Form>
+                <ProfileForm />
             </TabsContent>
-            <TabsContent value="security">
-                {/* Contenido para la pestaña de seguridad, como cambiar contraseña */}
+            <TabsContent value="security" className="mt-6">
+                <SecurityForm />
             </TabsContent>
         </Tabs>
     </div>
