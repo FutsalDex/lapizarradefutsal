@@ -56,6 +56,7 @@ type SecurityFormValues = z.infer<typeof securitySchema>;
 
 function ProfileForm() {
     const { user, isUserLoading, setUser } = useUser();
+    const auth = useAuth();
     const storage = useStorage();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,7 +95,6 @@ function ProfileForm() {
             
             await updateProfile(user, { photoURL: downloadURL });
 
-            // Force a state update in the user context
             setUser({ ...user, photoURL: downloadURL });
             
             toast({
@@ -115,10 +115,10 @@ function ProfileForm() {
 
 
     const onSubmit = async (data: ProfileFormValues) => {
-        if (!user) return;
+        if (!user || !auth.currentUser) return;
         setIsSubmitting(true);
         try {
-            await updateProfile(user, {
+            await updateProfile(auth.currentUser, {
                 displayName: data.displayName,
             });
              setUser({ ...user, displayName: data.displayName });
@@ -383,5 +383,3 @@ export default function PerfilPage() {
     </div>
   );
 }
-
-    

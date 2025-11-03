@@ -16,6 +16,7 @@ export interface FirebaseContextState {
   storage: FirebaseStorage | null;
   user: User | null;
   isUserLoading: boolean;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 // React Context
@@ -48,15 +49,15 @@ export const FirebaseProvider: React.FC<{
   }, [auth]);
 
   // Memoize the context value
-  const contextValue = useMemo((): FirebaseContextState & { _setUser: typeof setUser } => ({
+  const contextValue = useMemo((): FirebaseContextState => ({
     firebaseApp,
     firestore,
     auth,
     storage,
     user,
     isUserLoading,
-    _setUser: setUser, // Expose setter for specific use cases like profile update
-  }), [firebaseApp, firestore, auth, storage, user, isUserLoading]);
+    setUser, // Expose setter for specific use cases like profile update
+  }), [firebaseApp, firestore, auth, storage, user, isUserLoading, setUser]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
