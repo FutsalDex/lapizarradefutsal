@@ -258,7 +258,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                     </div>
                 </div>
                 <ScrollArea className="flex-grow rounded-md border">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
                              <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
@@ -510,15 +510,17 @@ export default function CreateSessionPage() {
         <div className="container mx-auto px-4 py-8">
             <Form {...form}>
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-                    <div className="mb-8">
-                        <Button asChild variant="outline" className="mb-4">
-                            <Link href={`/equipo/gestion`}>
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Volver al Panel
-                            </Link>
-                        </Button>
-                        <h1 className="text-4xl font-bold font-headline text-primary">Crear Sesión de Entrenamiento</h1>
-                        <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+                        <div>
+                            <Button asChild variant="outline" className="mb-4">
+                                <Link href={`/equipo/gestion`}>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Volver al Panel
+                                </Link>
+                            </Button>
+                            <h1 className="text-4xl font-bold font-headline text-primary">Crear Sesión de Entrenamiento</h1>
+                            <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
+                        </div>
                     </div>
 
                     <Card>
@@ -532,8 +534,8 @@ export default function CreateSessionPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                         <PhaseSection
+                     <div className="space-y-4">
+                        <PhaseSection
                             title="Fase Inicial (Calentamiento)"
                             phase="initialExercises"
                             allExercises={allExercises}
@@ -632,12 +634,8 @@ export default function CreateSessionPage() {
                                                 </Button>
                                             </DialogTrigger>
                                             <DialogContent className="w-[95vw] h-[90vh] max-w-5xl flex flex-col">
-                                               <DialogHeader className="flex-row items-center justify-between">
+                                               <DialogHeader>
                                                     <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
-                                                    <Button variant="primary" onClick={handleDownloadPdf}>
-                                                        <Download className="mr-2 h-4 w-4"/>
-                                                        Descargar PDF
-                                                    </Button>
                                                </DialogHeader>
                                                <style>{`
                                                     @media print {
@@ -655,6 +653,12 @@ export default function CreateSessionPage() {
                                                         )}
                                                     </div>
                                                </ScrollArea>
+                                                <DialogFooter>
+                                                    <Button variant="primary" onClick={handleDownloadPdf}>
+                                                        <Download className="mr-2 h-4 w-4"/>
+                                                        Descargar PDF
+                                                    </Button>
+                                                </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
                                     </DialogFooter>
