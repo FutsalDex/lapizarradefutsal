@@ -75,8 +75,8 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
             </div>
             <ScrollArea className="h-[60vh]">
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {allSessionExercises.map(ex => (
-                        <Card key={ex.id} className="flex flex-col">
+                    {allSessionExercises.map((ex, index) => (
+                        <Card key={`${ex.id}-${index}`} className="flex flex-col">
                             <CardHeader>
                                 <CardTitle className="text-base">{ex.name}</CardTitle>
                             </CardHeader>
@@ -104,8 +104,8 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
                 <div className="bg-gray-200 text-gray-800 p-2 text-center">
                     <h3 className="font-bold text-sm">{title}</h3>
                 </div>
-                {exercises.map(ex => (
-                    <div key={ex.id} className="p-4 border-b grid grid-cols-3 gap-4">
+                {exercises.map((ex, index) => (
+                    <div key={`${ex.id}-${index}`} className="p-4 border-b grid grid-cols-3 gap-4">
                          <div className="col-span-1 space-y-2">
                              <div className="relative aspect-video bg-muted rounded-md">
                                   {ex.image ? (
