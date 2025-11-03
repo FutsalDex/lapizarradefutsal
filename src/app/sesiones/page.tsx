@@ -11,6 +11,7 @@ import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/fires
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import html2pdf from 'html2pdf.js';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -69,7 +70,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
         return (
             <div className="space-y-3">
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                     {phaseExercises.map((ex, index) => (
                         <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
                              <CardContent className="p-0">
@@ -86,8 +87,8 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                                     )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="p-2 bg-muted/50">
-                                <p className="font-semibold text-xs text-center w-full truncate">{ex.name}</p>
+                            <CardFooter className="p-1 bg-muted/50">
+                                <p className="font-semibold text-[8px] text-center w-full truncate">{ex.name}</p>
                             </CardFooter>
                         </Card>
                     ))}
@@ -97,17 +98,17 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     };
 
     return (
-        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
+        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col">
             <div className="p-4 bg-gray-100 border-b">
                 <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
-                 <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground mt-1">
+                 <div className="flex justify-center items-center gap-4 text-sm text-gray-600 mt-1">
                     <span>{format(sessionData.date, 'PPP', { locale: es })}</span>
                     {sessionData.time && <span>- {sessionData.time}</span>}
                     {sessionData.facility && <span>- {sessionData.facility}</span>}
                 </div>
             </div>
             <ScrollArea className="flex-grow">
-                 <div className="p-4 space-y-6">
+                 <div className="p-4 space-y-4">
                     <PhaseSection title="Fase Inicial" phase="initialExercises" />
                     <PhaseSection title="Fase Principal" phase="mainExercises" />
                     <PhaseSection title="Fase Final" phase="finalExercises" />
@@ -119,70 +120,75 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
 
 
 function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
-    const getExercisesForPhase = (phase: Phase) => {
-        return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
-    };
+    const allSessionExercises = useMemo(() => {
+        const initial = (sessionData.initialExercises || []).map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+        const main = (sessionData.mainExercises || []).map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+        const final = (sessionData.finalExercises || []).map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
+        return [...initial, ...main, ...final];
+    }, [sessionData, exercises]);
     
-    const PhasePreview = ({ title, exercises }: { title: string, exercises: Exercise[] }) => {
-        if (exercises.length === 0) return null;
-        return (
-            <>
-                <div className="bg-gray-200 text-gray-800 p-2 text-center">
-                    <h3 className="font-bold text-sm">{title}</h3>
-                </div>
-                {exercises.map((ex, index) => (
-                    <div key={`${ex.id}-${index}`} className="p-4 border-b grid grid-cols-3 gap-4">
-                         <div className="col-span-1 space-y-2">
-                             <div className="relative aspect-video bg-muted rounded-md">
-                                  {ex.image ? (
-                                    <Image src={ex.image} alt={ex.name} layout="fill" objectFit="contain" className="p-2" />
-                                ) : (
-                                    <FutsalCourt className="w-full h-full p-1" />
-                                )}
-                             </div>
-                            <div className="rounded-md overflow-hidden text-xs text-center border">
-                                <div className="grid grid-cols-2 gap-px bg-border">
-                                    <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{ex.duration} min</div>
-                                    <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{ex.numberOfPlayers}</div>
-                                </div>
-                                <div className="bg-background p-1 truncate" title={ex['Espacio y materiales necesarios'] || ''}>
-                                    <span className="font-semibold block">Materiales</span>
-                                    {ex['Espacio y materiales necesarios'] || 'N/A'}
-                                </div>
-                            </div>
-                         </div>
-                         <div className="col-span-2 space-y-2">
-                             <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{ex.name}</h4>
-                             <div>
-                                 <h5 className="font-semibold text-sm">Descripción</h5>
-                                 <p className="text-xs text-muted-foreground mb-2">{ex.description}</p>
-                             </div>
-                              <div>
-                                <h5 className="font-semibold text-sm">Objetivos</h5>
-                                <p className="text-xs text-muted-foreground">{ex.objectives}</p>
-                             </div>
-                         </div>
+    const exercisePages = useMemo(() => {
+        const pages = [];
+        for (let i = 0; i < allSessionExercises.length; i += 3) {
+            pages.push(allSessionExercises.slice(i, i + 3));
+        }
+        return pages;
+    }, [allSessionExercises]);
+
+
+    const ExercisePreview = ({ exercise }: { exercise: Exercise }) => (
+         <div className="p-4 border-b grid grid-cols-3 gap-4">
+             <div className="col-span-1 space-y-2">
+                 <div className="relative aspect-video bg-muted rounded-md">
+                      {exercise.image ? (
+                        <Image src={exercise.image} alt={exercise.name} layout="fill" objectFit="contain" className="p-2" />
+                    ) : (
+                        <FutsalCourt className="w-full h-full p-1" />
+                    )}
+                 </div>
+                <div className="rounded-md overflow-hidden text-xs text-center border">
+                    <div className="grid grid-cols-2 gap-px bg-border">
+                        <div className="bg-background p-1"><span className="font-semibold block">Tiempo</span>{exercise.duration} min</div>
+                        <div className="bg-background p-1"><span className="font-semibold block">Jugadores</span>{exercise.numberOfPlayers}</div>
                     </div>
-                ))}
-            </>
-        );
-    }
+                    <div className="bg-background p-1 truncate" title={exercise['Espacio y materiales necesarios'] || ''}>
+                        <span className="font-semibold block">Materiales</span>
+                        {exercise['Espacio y materiales necesarios'] || 'N/A'}
+                    </div>
+                </div>
+             </div>
+             <div className="col-span-2 space-y-2">
+                 <h4 className="font-bold bg-muted p-2 rounded-t-md text-center">{exercise.name}</h4>
+                 <div>
+                     <h5 className="font-semibold text-sm">Descripción</h5>
+                     <p className="text-xs text-muted-foreground mb-2">{exercise.description}</p>
+                 </div>
+                  <div>
+                    <h5 className="font-semibold text-sm">Objetivos</h5>
+                    <p className="text-xs text-muted-foreground">{exercise.objectives}</p>
+                 </div>
+             </div>
+        </div>
+    );
+    
 
     return (
-        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
-            <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
-                <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
-                <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
-                <div><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
-                <div className="col-span-1"><span>Objetivos</span><Input className="w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
-                <div><span>Jugadores</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
-            </div>
-             <ScrollArea className="flex-grow">
-                <PhasePreview title="FASE INICIAL" exercises={getExercisesForPhase('initialExercises')} />
-                <PhasePreview title="FASE PRINCIPAL" exercises={getExercisesForPhase('mainExercises')} />
-                <PhasePreview title="FASE FINAL" exercises={getExercisesForPhase('finalExercises')} />
-             </ScrollArea>
-        </div>
+        <>
+            {exercisePages.map((pageExercises, pageIndex) => (
+                 <div key={pageIndex} className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col mb-4 print-page">
+                    <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
+                        <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
+                        <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
+                        <div><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
+                        <div className="col-span-1"><span>Objetivos</span><Input className="w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
+                        <div><span>Jugadores</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
+                    </div>
+                     <ScrollArea className="flex-grow">
+                        {pageExercises.map(ex => <ExercisePreview key={ex.id} exercise={ex} />)}
+                     </ScrollArea>
+                </div>
+            ))}
+        </>
     );
 }
 
@@ -478,24 +484,21 @@ export default function CreateSessionPage() {
         }
     };
     
-    const handleDownloadPdf = async () => {
-        toast({ title: 'Generando PDF...', description: 'Esto puede tardar unos segundos.' });
+    const handleDownloadPdf = () => {
         const element = pdfPreviewRef.current;
-        if (!element) {
+        if (element) {
+            toast({ title: 'Generando PDF...', description: 'Esto puede tardar unos segundos.' });
+            const opt = {
+                margin: 0,
+                filename: `${form.getValues('name') || 'sesion'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'cm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().from(element).set(opt).save();
+        } else {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el contenido para generar el PDF.' });
-            return;
         }
-        const html2pdf = (await import('html2pdf.js')).default;
-
-        const opt = {
-            margin:       0,
-            filename:     `${form.getValues('name') || 'sesion'}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' }
-        };
-
-        html2pdf().from(element).set(opt).save();
     };
 
     const watchedValues = form.watch();
@@ -586,7 +589,14 @@ export default function CreateSessionPage() {
                                                     Descargar PDF
                                                 </Button>
                                            </DialogHeader>
-                                           <div className="overflow-auto py-4 flex-grow">
+                                           <style>{`
+                                                @media print {
+                                                    .print-page {
+                                                        page-break-after: always;
+                                                    }
+                                                }
+                                           `}</style>
+                                           <ScrollArea className="flex-grow bg-gray-300 p-4">
                                                 <div ref={pdfPreviewRef}>
                                                     {selectedSessionType === 'pro' ? (
                                                             <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
@@ -594,7 +604,7 @@ export default function CreateSessionPage() {
                                                             <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
                                                     )}
                                                 </div>
-                                           </div>
+                                           </ScrollArea>
                                         </DialogContent>
                                     </Dialog>
                                 </DialogFooter>
