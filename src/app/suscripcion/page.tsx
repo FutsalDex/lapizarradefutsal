@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, PlusCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -251,7 +251,7 @@ export default function SuscripcionPage() {
                     <div>
                         <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
                         <div className="bg-muted p-3 rounded-md">
-                            <code className="text-sm font-mono">LaPizarra (aquí escribe tu mail)</code>
+                            <code className="text-sm font-mono">LaPizarra (entrenadordefutsal@gmail.com)</code>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
                     </div>
