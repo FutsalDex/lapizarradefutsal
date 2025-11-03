@@ -54,18 +54,23 @@ function ManageSubscriptionDialog({ user, onSubscriptionUpdated }: { user: UserP
             subscriptionEndDate: endDate,
         };
 
-        try {
-            await updateDoc(userRef, updateData);
-            
-            toast({ title: 'Suscripción Activada', description: `El plan ${plan} ha sido activado para ${user.email}.` });
-            onSubscriptionUpdated();
-            setIsOpen(false);
-        } catch (error) {
-            console.error("Error activating subscription:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo actualizar la suscripción.' });
-        } finally {
-            setIsSubmitting(false);
-        }
+        updateDoc(userRef, updateData)
+            .then(() => {
+                toast({ title: 'Suscripción Activada', description: `El plan ${plan} ha sido activado para ${user.email}.` });
+                onSubscriptionUpdated();
+                setIsOpen(false);
+            })
+            .catch((error) => {
+                 const permissionError = new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'update',
+                    requestResourceData: updateData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
     };
 
     return (
@@ -130,14 +135,19 @@ export default function AdminUsersPage() {
             toast({ variant: "destructive", title: "Acción no permitida." });
             return;
         }
-        try {
-            await deleteDoc(doc(firestore, "users", userToDelete.id));
-            toast({ title: "Usuario eliminado", description: `El usuario ${userToDelete.email} ha sido eliminado.` });
-            setKey(k => k + 1); // Refresh the list
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar al usuario.' });
-        }
+        const userDocRef = doc(firestore, "users", userToDelete.id);
+        deleteDoc(userDocRef)
+            .then(() => {
+                toast({ title: "Usuario eliminado", description: `El usuario ${userToDelete.email} ha sido eliminado.` });
+                setKey(k => k + 1); // Refresh the list
+            })
+            .catch((error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userDocRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
     };
 
     if (isAuthLoading) {
