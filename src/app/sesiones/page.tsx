@@ -507,8 +507,8 @@ export default function CreateSessionPage() {
         <div className="container mx-auto px-4 py-8">
             <Form {...form}>
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-                    <div className="flex justify-between items-center mb-8">
-                        <div>
+                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+                        <div className="flex-grow">
                              <Button asChild variant="outline" className="mb-4">
                                 <Link href={`/equipo/gestion`}>
                                     <ArrowLeft className="mr-2 h-4 w-4" />
@@ -521,7 +521,7 @@ export default function CreateSessionPage() {
                         
                         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
                             <DialogTrigger asChild>
-                                 <Button size="lg">
+                                 <Button size="lg" className="mt-4 md:mt-0 w-full md:w-auto">
                                     <Eye className="mr-2 h-4 w-4" />
                                     Ver ficha de la sesión
                                 </Button>
@@ -658,4 +658,3 @@ export default function CreateSessionPage() {
         </div>
     );
 }
-
