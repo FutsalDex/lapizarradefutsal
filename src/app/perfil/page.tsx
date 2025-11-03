@@ -69,6 +69,7 @@ function ProfileForm() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const userProfileRef = useMemoFirebase(() => {
@@ -94,6 +95,7 @@ function ProfileForm() {
                 email: user.email || '',
                 photoURL: user.photoURL || '',
             });
+            setLocalPhotoURL(user.photoURL);
         }
     }, [user, form]);
 
@@ -109,8 +111,8 @@ function ProfileForm() {
             const downloadURL = await getDownloadURL(snapshot.ref);
             
             await updateProfile(user, { photoURL: downloadURL });
-
-            setUser({ ...user, photoURL: downloadURL });
+            
+            setLocalPhotoURL(downloadURL); // Update local state immediately
             
             toast({
                 title: 'Foto de perfil actualizada',
@@ -153,7 +155,6 @@ function ProfileForm() {
         }
     };
     
-    const watchedPhotoUrl = user?.photoURL;
     const subscriptionEndDate = userProfile?.subscriptionEndDate?.toDate();
 
     return (
@@ -166,7 +167,7 @@ function ProfileForm() {
                         </CardHeader>
                         <CardContent className="flex flex-col items-center gap-4">
                                 <Avatar className="h-32 w-32 border-4 border-muted">
-                                <AvatarImage src={watchedPhotoUrl || undefined} alt={user?.displayName || 'Avatar'} />
+                                <AvatarImage src={localPhotoURL || undefined} alt={user?.displayName || 'Avatar'} />
                                 <AvatarFallback className="text-4xl">
                                     <UserIcon/>
                                 </AvatarFallback>
