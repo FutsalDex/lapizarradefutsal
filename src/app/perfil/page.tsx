@@ -41,7 +41,6 @@ import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 const profileSchema = z.object({
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
   email: z.string().email('Email inválido.'),
-  photoURL: z.string().url('Debe ser una URL válida.').optional().or(z.literal('')),
 });
 
 const securitySchema = z.object({
@@ -63,14 +62,13 @@ interface UserProfileData {
 }
 
 function ProfileForm() {
-    const { user, isUserLoading, setUser } = useUser();
+    const { user, setUser } = useUser();
     const auth = useAuth();
     const storage = useStorage();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const userProfileRef = useMemoFirebase(() => {
@@ -85,7 +83,6 @@ function ProfileForm() {
         defaultValues: {
             displayName: '',
             email: '',
-            photoURL: '',
         }
     });
     
@@ -94,14 +91,12 @@ function ProfileForm() {
             form.reset({
                 displayName: user.displayName || '',
                 email: user.email || '',
-                photoURL: user.photoURL || '',
             });
-            setLocalPhotoURL(user.photoURL);
         }
     }, [user, form]);
 
     const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!user || !event.target.files || event.target.files.length === 0) return;
+        if (!user || !auth.currentUser || !event.target.files || event.target.files.length === 0) return;
         
         const file = event.target.files[0];
         const storageRef = ref(storage, `profile-pictures/${user.uid}`);
@@ -111,13 +106,12 @@ function ProfileForm() {
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
             
-            await updateProfile(user, { photoURL: downloadURL });
+            // Update auth profile
+            await updateProfile(auth.currentUser, { photoURL: downloadURL });
+            
+            // Update firestore document
             const userDocRef = doc(firestore, "users", user.uid);
             await updateDoc(userDocRef, { photoURL: downloadURL });
-            
-            // This will trigger the onAuthStateChanged listener and update the user object globally
-            // For immediate UI feedback, we can also update the local state here
-            setUser({ ...user, photoURL: downloadURL });
 
             toast({
                 title: 'Foto de perfil actualizada',
@@ -132,6 +126,9 @@ function ProfileForm() {
             });
         } finally {
             setIsUploading(false);
+             if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
@@ -144,7 +141,6 @@ function ProfileForm() {
                 displayName: data.displayName,
             });
             await updateDoc(doc(firestore, "users", user.uid), { displayName: data.displayName });
-             setUser({ ...user, displayName: data.displayName });
             toast({
                 title: 'Perfil actualizado',
                 description: 'Tus datos se han guardado correctamente.',
@@ -416,3 +412,5 @@ export default function PerfilPage() {
     </div>
   );
 }
+
+    
