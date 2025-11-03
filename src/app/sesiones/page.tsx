@@ -258,7 +258,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                     </div>
                 </div>
                 <ScrollArea className="flex-grow rounded-md border">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                         {filteredExercises.map(exercise => (
                              <Card key={exercise.id} className="overflow-hidden group">
                                 <CardContent className="p-0 relative">
@@ -298,21 +298,22 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
 
 function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: () => void }) {
     return (
-        <Card className="w-48 flex-shrink-0 group relative overflow-hidden">
-            <div className="relative aspect-video w-full bg-muted">
+        <Card className="group relative overflow-hidden flex items-center p-2">
+            <div className="relative aspect-square w-16 h-16 mr-4 flex-shrink-0 bg-muted rounded-md">
                 {exercise.image ? (
                     <Image
                         src={exercise.image}
                         alt={exercise.name}
                         fill
-                        className="object-contain p-2"
+                        className="object-contain p-1"
                     />
                 ) : (
                     <FutsalCourt className="w-full h-full p-1" />
                 )}
             </div>
-            <div className="p-2 text-center bg-background">
-                <p className="font-semibold text-xs leading-tight truncate">{exercise.name}</p>
+            <div className="flex-grow overflow-hidden">
+                <p className="font-semibold text-sm leading-tight truncate">{exercise.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{exercise.category}</p>
             </div>
              <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
                 <Trash2 className="h-3 w-3" />
@@ -328,14 +329,16 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-48 h-full flex-shrink-0 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
+        "w-full min-h-[88px] flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
         disabled 
           ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
           : "hover:border-primary hover:text-primary"
       )}
     >
-      <PlusCircle className="h-8 w-8 mb-2" />
-      <span className="text-sm font-medium">Añadir Tarea</span>
+      <div className="text-center">
+        <PlusCircle className="h-8 w-8 mb-1 mx-auto" />
+        <span className="text-sm font-medium">Añadir Tarea</span>
+      </div>
     </button>
   );
 }
@@ -352,22 +355,20 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
     return (
         <div className="space-y-4">
              <h2 className="text-2xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-lg font-normal">({selectedIds.length}/{limit})</span></h2>
-             <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex space-x-4 pb-4 h-40">
-                    {selectedExercises.map(ex => (
-                        <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
-                    ))}
-                    {!atLimit &&
-                        <ExercisePickerDialog
-                            allExercises={allExercises}
-                            onSelect={onExerciseToggle}
-                            phase={phase}
-                        >
-                            <AddExerciseCard onClick={() => {}} />
-                        </ExercisePickerDialog>
-                    }
-                </div>
-             </ScrollArea>
+             <div className="space-y-2">
+                {selectedExercises.map(ex => (
+                    <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
+                ))}
+                {!atLimit &&
+                    <ExercisePickerDialog
+                        allExercises={allExercises}
+                        onSelect={onExerciseToggle}
+                        phase={phase}
+                    >
+                        <AddExerciseCard onClick={() => {}} />
+                    </ExercisePickerDialog>
+                }
+            </div>
         </div>
     );
 }
