@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, doc, updateDoc, serverTimestamp, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -28,6 +29,7 @@ interface UserProfile {
   email: string;
   subscription?: 'Invitado' | 'Básico' | 'Pro';
   subscriptionEndDate?: { toDate: () => Date };
+  createdAt?: { toDate: () => Date };
 }
 
 function ManageSubscriptionDialog({ user, onSubscriptionUpdated }: { user: UserProfile, onSubscriptionUpdated: () => void }) {
@@ -115,7 +117,7 @@ export default function AdminUsersPage() {
 
     const usersCollectionRef = useMemoFirebase(() => {
         if (!firestore || !isAdmin) return null;
-        return collection(firestore, 'users');
+        return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
     }, [firestore, isAdmin, key]);
 
     const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersCollectionRef);
@@ -255,3 +257,5 @@ export default function AdminUsersPage() {
         </div>
     );
 }
+
+    
