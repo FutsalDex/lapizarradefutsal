@@ -80,7 +80,6 @@ export default function SuscripcionPage() {
 
     const [isInviting, setIsInviting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
-    const [generatedLink, setGeneratedLink] = useState('');
 
 
     const userProfileRef = useMemoFirebase(() => {
@@ -128,7 +127,6 @@ export default function SuscripcionPage() {
         }
 
         setIsInviting(true);
-        setGeneratedLink('');
         try {
             const usersRef = collection(firestore, 'users');
             const q = query(usersRef, where('email', '==', inviteEmail));
@@ -150,25 +148,20 @@ export default function SuscripcionPage() {
             });
 
             const link = `${window.location.origin}/acceso?invitationId=${newInvitationRef.id}`;
-            setGeneratedLink(link);
+            const message = `¡Hola! Te invito a unirte a LaPizarra, una app genial para entrenadores de futsal. Regístrate usando este enlace: ${link}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-            toast({ title: 'Enlace de Invitación Generado', description: `Copia el enlace y compártelo con ${inviteEmail}.` });
+            window.open(whatsappUrl, '_blank');
+
+            toast({ title: 'Invitación Lista', description: `Se ha abierto WhatsApp para que envíes la invitación a ${inviteEmail}.` });
             setInviteEmail('');
 
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo generar el enlace de invitación.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la invitación.' });
         } finally {
             setIsInviting(false);
         }
-    };
-    
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(generatedLink).then(() => {
-            toast({ title: 'Copiado', description: 'Enlace de invitación copiado al portapapeles.' });
-        }, (err) => {
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo copiar el enlace.' });
-        });
     };
 
 
@@ -255,7 +248,7 @@ export default function SuscripcionPage() {
                             Invita a tus Amigos
                         </CardTitle>
                         <CardDescription>
-                            Gana 25 puntos si se suscriben a un plan de pago. Introduce su email para generar un enlace de invitación único.
+                            Gana 25 puntos si se suscriben a un plan de pago. Introduce su email para generar un mensaje de WhatsApp con el enlace de invitación.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -271,22 +264,9 @@ export default function SuscripcionPage() {
                                 onClick={handleSendInvite} 
                                 disabled={!isSubscribed || isInviting || !inviteEmail}
                             >
-                                {isInviting ? 'Generando...' : 'Generar Enlace'}
+                                {isInviting ? 'Generando...' : 'Invitar por WhatsApp'}
                             </Button>
                         </div>
-                        {generatedLink && (
-                            <div className="flex w-full max-w-sm items-center space-x-2">
-                                <Input 
-                                    type="text" 
-                                    value={generatedLink}
-                                    readOnly
-                                    className="bg-muted"
-                                />
-                                <Button variant="outline" size="icon" onClick={copyToClipboard}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        )}
                         {!isSubscribed && (
                             <p className="text-center text-xs text-muted-foreground mt-2">
                                 Necesitas un plan de suscripción para invitar amigos.
@@ -360,6 +340,3 @@ export default function SuscripcionPage() {
 
     
 }
-
-
-    
