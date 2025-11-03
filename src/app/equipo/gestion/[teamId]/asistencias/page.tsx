@@ -72,7 +72,7 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
   const dateId = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
 
   const fetchAttendanceRecord = useCallback(async (date: Date | undefined) => {
-    if (!date || !firestore || !sortedPlayers) return;
+    if (!date || !firestore || !sortedPlayers || sortedPlayers.length === 0) return;
     setIsLoadingRecord(true);
     const recordId = format(date, 'yyyy-MM-dd');
     const recordRef = doc(firestore, `teams/${teamId}/attendance`, recordId);
@@ -98,10 +98,8 @@ function DailyAttendanceRegistry({ team, teamId, players, attendanceRecords, set
 
 
   useEffect(() => {
-    if (sortedPlayers.length > 0) {
-        fetchAttendanceRecord(selectedDate);
-    }
-  }, [selectedDate, sortedPlayers, fetchAttendanceRecord]);
+    fetchAttendanceRecord(selectedDate);
+  }, [selectedDate, fetchAttendanceRecord]);
 
 
   const handleStatusChange = (playerId: string, status: AttendanceStatus) => {
@@ -485,5 +483,7 @@ export default function AttendancePage() {
     </div>
   );
 }
+
+    
 
     
