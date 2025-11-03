@@ -69,7 +69,8 @@
         "role": {"type": "string"},
         "subscription": {"type": "string"},
         "subscriptionEndDate": {"type": "string", "format": "date-time"},
-        "subscriptionStartDate": {"type": "string", "format": "date-time"}
+        "subscriptionStartDate": {"type": "string", "format": "date-time"},
+        "points": {"type": "number"}
       },
       "required": ["email", "createdAt"]
     },
@@ -286,6 +287,20 @@
             "fase": {"type": "string"}
         },
         "required": ["originalExerciseId", "userId", "createdAt", "status", "name"]
+    },
+    "Invitation": {
+        "title": "Invitation",
+        "description": "Represents an invitation sent from one user to another.",
+        "type": "object",
+        "properties": {
+            "inviterId": {"type": "string"},
+            "inviterEmail": {"type": "string", "format": "email"},
+            "inviteeEmail": {"type": "string", "format": "email"},
+            "status": {"type": "string", "enum": ["pending", "completed", "rejected"]},
+            "createdAt": {"type": "string", "format": "date-time"},
+            "completedAt": {"type": "string", "format": "date-time"}
+        },
+        "required": ["inviterId", "inviterEmail", "inviteeEmail", "status", "createdAt"]
     }
   },
   "auth": {
@@ -345,6 +360,10 @@
     "/userExercises/{exerciseId}": {
         "schema": { "$ref": "#/entities/UserExercise" },
         "description": "Stores a user's submitted exercises for their own management."
+    },
+    "/invitations/{invitationId}": {
+        "schema": { "$ref": "#/entities/Invitation" },
+        "description": "Stores invitations sent between users for the referral program."
     }
   }
 }

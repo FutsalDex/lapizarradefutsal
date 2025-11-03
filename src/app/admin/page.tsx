@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Upload,
   BookUser,
+  Gift,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,12 @@ const adminItems = [
     description: 'Añade ejercicios a la biblioteca, individualmente o en lote.',
     icon: <Upload className="w-6 h-6 text-primary" />,
     href: '/admin/ejercicios',
+  },
+   {
+    title: 'Gestión de Invitaciones',
+    description: 'Revisa y aprueba las invitaciones de usuarios para el programa de puntos.',
+    icon: <Gift className="w-6 h-6 text-primary" />,
+    href: '/admin/invitaciones',
   },
 ];
 
