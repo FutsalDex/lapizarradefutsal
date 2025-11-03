@@ -11,6 +11,7 @@ import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/fires
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { default as html2pdf } from 'html2pdf.js';
 
 
 import { Button } from '@/components/ui/button';
@@ -87,8 +88,8 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                                     )}
                                 </div>
                             </CardContent>
-                            <CardFooter className="p-1 bg-muted/50">
-                               <p className="font-semibold text-[9px] text-center w-full line-clamp-2 leading-tight">{ex.name}</p>
+                            <CardFooter className="p-1 bg-muted/50 h-10 flex items-center justify-center">
+                               <p className="font-semibold text-[9px] text-center w-full leading-tight">{ex.name}</p>
                             </CardFooter>
                         </Card>
                     ))}
