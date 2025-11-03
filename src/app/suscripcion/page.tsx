@@ -139,7 +139,7 @@ export default function SuscripcionPage() {
             }
 
             const invitationsRef = collection(firestore, 'invitations');
-            const newInvitationRef = await addDoc(invitationsRef, {
+            await addDoc(invitationsRef, {
                 inviterId: user.uid,
                 inviterEmail: user.email,
                 inviteeEmail: inviteEmail,
@@ -148,7 +148,7 @@ export default function SuscripcionPage() {
             });
 
             const baseUrl = 'https://my-web-app--lapizarra-95eqd.europe-west4.hosted.app';
-            const link = `${baseUrl}/acceso?invitationId=${newInvitationRef.id}`;
+            const link = `${baseUrl}/acceso`;
             const message = `¡Hola! Te invito a unirte a LaPizarra, una app genial para entrenadores de futsal. Regístrate usando este enlace: ${link}`;
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
@@ -253,7 +253,7 @@ export default function SuscripcionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex flex-col sm:flex-row w-full max-w-sm items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                         <div className="flex flex-col sm:flex-row w-full max-w-sm items-center space-y-2 sm:space-y-0 sm:space-x-2">
                              <Input 
                                 type="email" 
                                 placeholder="Email del amigo"
@@ -343,5 +343,3 @@ export default function SuscripcionPage() {
 
     
 }
-
-    

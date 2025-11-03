@@ -291,7 +291,6 @@
     "Invitation": {
         "title": "Invitation",
         "description": "Represents an invitation sent from one user to another.",
-        "type": "object",
         "properties": {
             "inviterId": {"type": "string"},
             "inviterEmail": {"type": "string", "format": "email"},
@@ -367,5 +366,3 @@
     }
   }
 }
-
-    

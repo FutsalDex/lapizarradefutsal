@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, updateDoc, increment, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, increment, writeBatch, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -46,6 +46,13 @@ function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing
 
     const canApprove = invitation.status === 'pending' && isInviteeRegistered;
 
+    const statusTranslations: Record<string, string> = {
+        pending: 'Pendiente',
+        completed: 'Completada',
+        rejected: 'Rechazada'
+    };
+
+
     return (
         <TableRow>
             <TableCell>{invitation.inviterEmail}</TableCell>
@@ -60,7 +67,7 @@ function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing
             </TableCell>
              <TableCell>
                 <Badge variant={invitation.status === 'completed' ? 'default' : invitation.status === 'pending' ? 'secondary' : 'destructive'}>
-                    {invitation.status}
+                    {statusTranslations[invitation.status] || invitation.status}
                 </Badge>
             </TableCell>
             <TableCell className="text-right flex items-center justify-end">
