@@ -106,13 +106,14 @@ function ProfileForm() {
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
             
-            // Update auth profile
             await updateProfile(auth.currentUser, { photoURL: downloadURL });
             
-            // Update firestore document
             const userDocRef = doc(firestore, "users", user.uid);
             await updateDoc(userDocRef, { photoURL: downloadURL });
 
+            // Force update the local user state for immediate UI refresh
+            setUser({ ...auth.currentUser });
+            
             toast({
                 title: 'Foto de perfil actualizada',
                 description: 'Tu nueva foto de perfil se ha guardado.',
@@ -141,6 +142,10 @@ function ProfileForm() {
                 displayName: data.displayName,
             });
             await updateDoc(doc(firestore, "users", user.uid), { displayName: data.displayName });
+
+            // Force update the local user state for immediate UI refresh
+            setUser({ ...auth.currentUser });
+
             toast({
                 title: 'Perfil actualizado',
                 description: 'Tus datos se han guardado correctamente.',
@@ -412,5 +417,7 @@ export default function PerfilPage() {
     </div>
   );
 }
+
+    
 
     
