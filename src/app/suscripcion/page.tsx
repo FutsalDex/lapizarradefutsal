@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck, PlusCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { doc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,13 @@ interface UserProfile {
 interface UserExercise {
     id: string;
 }
+
+interface Invitation {
+    inviterId: string;
+    inviteeEmail: string;
+    status: 'pending' | 'completed' | 'rejected';
+}
+
 
 const StatCard = ({ title, value, icon: Icon, subtext }: { title: string; value: string | number; icon: React.ElementType; subtext?: string; }) => (
     <Card>
@@ -84,9 +91,16 @@ export default function SuscripcionPage() {
         if (!user || !firestore) return null;
         return query(collection(firestore, 'userExercises'), where('userId', '==', user.uid));
     }, [firestore, user]);
+    
+    const userInvitationsQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'invitations'), where('inviterId', '==', user.uid), where('status', '==', 'completed'));
+    }, [firestore, user]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
     const { data: userExercises, isLoading: isLoadingExercises } = useCollection<UserExercise>(userExercisesQuery);
+    const { data: completedInvitations, isLoading: isLoadingInvitations } = useCollection<Invitation>(userInvitationsQuery);
+
 
     const userSubscription = {
         plan: userProfile?.subscription || 'Invitado',
@@ -99,25 +113,55 @@ export default function SuscripcionPage() {
     const uploadedExercisesCount = userExercises?.length ?? 0;
     const renewalSavings = ((userSubscription.points / 1200) * 39.95).toFixed(2);
     
-    const invitedFriendsCount = 0;
+    const invitedFriendsCount = completedInvitations?.length ?? 0;
     const pointsFromFriends = invitedFriendsCount * 25;
 
-    const handleWhatsAppInvite = () => {
-        if (!user) return;
-        
-        const referralLink = `https://my-web-app--lapizarra-95eqd.europe-west4.hosted.app/acceso?ref=${user.uid}`;
-        const message = encodeURIComponent(`¡Hola! Te invito a unirte a LaPizarra, la mejor app para entrenadores de futsal. Regístrate usando mi enlace: ${referralLink}`);
-        
-        window.open(`https://wa.me/?text=${message}`, '_blank');
+     const handleSendInvite = async () => {
+        if (!user || !inviteEmail) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Introduce un correo válido.' });
+            return;
+        }
+        if (inviteEmail.toLowerCase() === user.email?.toLowerCase()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No puedes invitarte a ti mismo.' });
+            return;
+        }
 
-        toast({
-            title: "Enlace de invitación listo",
-            description: "Comparte el enlace con tus amigos a través de WhatsApp.",
-        });
+        setIsInviting(true);
+        try {
+            // Check if user already exists
+            const usersRef = collection(firestore, 'users');
+            const q = query(usersRef, where('email', '==', inviteEmail));
+            const userSnapshot = await getDocs(q);
+
+            if (!userSnapshot.empty) {
+                toast({ variant: 'destructive', title: 'Usuario ya registrado', description: 'Este usuario ya forma parte de LaPizarra.' });
+                setIsInviting(false);
+                return;
+            }
+
+            // Create invitation
+            const invitationsRef = collection(firestore, 'invitations');
+            await addDoc(invitationsRef, {
+                inviterId: user.uid,
+                inviterEmail: user.email,
+                inviteeEmail: inviteEmail,
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            });
+
+            toast({ title: 'Invitación Enviada', description: `Se ha enviado una invitación a ${inviteEmail}.` });
+            setInviteEmail('');
+
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar la invitación.' });
+        } finally {
+            setIsInviting(false);
+        }
     };
 
 
-    if (isUserLoading || isLoadingProfile || isLoadingExercises) {
+    if (isUserLoading || isLoadingProfile || isLoadingExercises || isLoadingInvitations) {
         return (
             <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
                 <Skeleton className="h-10 w-1/3" />
@@ -160,7 +204,7 @@ export default function SuscripcionPage() {
                         subtext={`${uploadedExercisesCount * 10} puntos ganados`}
                     />
                      <StatCard 
-                        title="Amigos invitados" 
+                        title="Amigos suscritos" 
                         value={invitedFriendsCount} 
                         icon={Users}
                         subtext={`${pointsFromFriends} puntos ganados`}
@@ -204,17 +248,21 @@ export default function SuscripcionPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4">
-                           Pulsa el botón para generar un mensaje de WhatsApp con tu enlace de invitación personal. Compártelo con tus amigos para que se unan a LaPizarra.
-                        </p>
-                        <Button 
-                            onClick={handleWhatsAppInvite} 
-                            disabled={!isSubscribed} 
-                            className="w-full"
-                        >
-                            <svg className="mr-2 h-5 w-5" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>WhatsApp</title><path fill="currentColor" d="M12.04 2.01C6.58 2.01 2.13 6.46 2.13 11.92c0 1.77.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91s-4.45-9.91-9.91-9.91zm0 18.16c-1.5 0-2.96-.4-4.22-1.13l-.3-.18-3.12.82.83-3.04-.2-.32a8.23 8.23 0 0 1-1.28-4.38c0-4.54 3.68-8.22 8.22-8.22 4.54 0 8.22 3.68 8.22 8.22s-3.68 8.22-8.22 8.22zm4.52-6.15c-.25-.12-1.47-.72-1.7-.82s-.39-.12-.56.12c-.16.25-.64.82-.79.99s-.29.16-.56.04c-.26-.12-1.1-."/></svg>
-                            Invitar por WhatsApp
-                        </Button>
+                        <div className="flex w-full max-w-sm items-center space-x-2">
+                             <Input 
+                                type="email" 
+                                placeholder="Email del amigo"
+                                value={inviteEmail}
+                                onChange={(e) => setInviteEmail(e.target.value)}
+                                disabled={!isSubscribed || isInviting}
+                            />
+                            <Button 
+                                onClick={handleSendInvite} 
+                                disabled={!isSubscribed || isInviting}
+                            >
+                                {isInviting ? 'Enviando...' : <Send className="h-4 w-4" />}
+                            </Button>
+                        </div>
                         {!isSubscribed && (
                             <p className="text-center text-xs text-muted-foreground mt-2">
                                 Necesitas un plan de suscripción para invitar amigos.
@@ -288,3 +336,5 @@ export default function SuscripcionPage() {
 
     
 }
+
+    
