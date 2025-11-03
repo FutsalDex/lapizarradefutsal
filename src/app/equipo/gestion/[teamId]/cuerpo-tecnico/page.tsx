@@ -291,7 +291,7 @@ function TeamStaffTable({ members, team, isOwner, onDataChange }: { members: Tea
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="w-full overflow-auto border rounded-lg">
+                <div className="w-full overflow-x-auto border rounded-lg">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -494,7 +494,7 @@ export default function StaffPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <div>
             <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
                 <Briefcase className="mr-3 h-10 w-10" />
@@ -504,11 +504,11 @@ export default function StaffPage() {
                 Gestiona los miembros del equipo, sus roles y sus accesos.
             </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Button asChild variant="outline">
             <Link href={`/equipo/gestion/${teamId}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al Panel
+              Volver
             </Link>
           </Button>
           {isOwner && <AddMemberDialog team={team} onInvitationSent={handleDataChange} />}
@@ -525,5 +525,3 @@ export default function StaffPage() {
     </div>
   );
 }
-
-    

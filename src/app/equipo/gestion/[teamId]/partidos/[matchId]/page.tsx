@@ -216,13 +216,13 @@ const Scoreboard = ({
         </div>
 
 
-        <div className="flex justify-center items-center gap-4">
-            <Button onClick={onTimerToggle} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
+        <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4">
+            <Button onClick={onTimerToggle} variant="default" size="sm" className={cn("w-28", isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
                 {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                {isTimerActive ? 'Pausar' : 'Iniciar'}
+                <span className="hidden sm:inline">{isTimerActive ? 'Pausar' : 'Iniciar'}</span>
             </Button>
-            <Button onClick={onTimeReset} variant="outline" size="sm">
-                <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
+            <Button onClick={onTimeReset} variant="outline" size="sm" className="w-28">
+                <RefreshCw className="mr-2 h-4 w-4"/> <span className="hidden sm:inline">Reiniciar</span>
             </Button>
              <div className="flex rounded-md border p-1">
                 <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
@@ -393,7 +393,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                         <TableCell className="py-1 px-2">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
                                                 <span className="font-bold mr-2">{player.number}.</span>
-                                                <span className={cn(isActive && 'font-bold text-orange-600')}>{player.name}</span>
+                                                <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
@@ -445,7 +445,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                 <CardFooter>
                   <div className="w-full text-xs text-muted-foreground">
                       <b className="block mb-2">Leyenda:</b>
-                      <div className="grid grid-cols-3 gap-x-4 gap-y-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
                           <div><b>Min:</b> Minutos (Total Partido)</div>
                           <div><b>G:</b> Goles</div>
                           <div><b>A:</b> Asistencias</div>
@@ -757,14 +757,14 @@ export default function MatchStatsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-       <div className="flex justify-between items-center">
+       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
             <h1 className="text-2xl font-bold font-headline text-primary flex items-center gap-2">
                 <ClipboardList /> Marcador y Estadísticas en Vivo
             </h1>
             <p className="text-muted-foreground">Gestiona el partido en tiempo real y pulsa Guardar para registrar los cambios.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
                 <ArrowLeft className="mr-2 h-4 w-4"/> Volver
             </Button>
@@ -773,8 +773,8 @@ export default function MatchStatsPage() {
             </Button>
             <Button onClick={toggleMatchFinished} variant={localMatchData.isFinished ? "outline" : "destructive"}>
                 {localMatchData.isFinished 
-                    ? <><Unlock className="mr-2 h-4 w-4"/> Reabrir Partido</> 
-                    : <><Flag className="mr-2 h-4 w-4"/> Finalizar Partido</>
+                    ? <><Unlock className="mr-2 h-4 w-4"/> Reabrir</> 
+                    : <><Flag className="mr-2 h-4 w-4"/> Finalizar</>
                 }
             </Button>
         </div>
@@ -798,7 +798,7 @@ export default function MatchStatsPage() {
             <TabsTrigger value="myTeam">{myTeamName}</TabsTrigger>
             <TabsTrigger value="opponent">{opponentTeamName}</TabsTrigger>
         </TabsList>
-        <TabsContent value="myTeam">
+        <TabsContent value="myTeam" className="mt-4">
             <StatsTable 
                 teamName={myTeamName}
                 players={squadPlayers}
@@ -811,7 +811,7 @@ export default function MatchStatsPage() {
                 time={time}
             />
         </TabsContent>
-        <TabsContent value="opponent">
+        <TabsContent value="opponent" className="mt-4">
              <OpponentStatsGrid
                 teamName={opponentTeamName}
                 match={localMatchData}

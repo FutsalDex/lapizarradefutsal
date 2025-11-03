@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -275,7 +276,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="w-full overflow-auto border rounded-lg">
+            <div className="w-full overflow-x-auto border rounded-lg">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -452,7 +453,7 @@ export default function MembersPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <div>
             <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
             <Users className="mr-3 h-10 w-10" />

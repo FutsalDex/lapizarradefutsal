@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -356,7 +357,7 @@ export default function PlayerStatsPage() {
                     <CardTitle>Controles</CardTitle>
                     <CardDescription>Filtra por competición y busca jugadores.</CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center gap-4">
+                <CardContent className="flex flex-col sm:flex-row items-center gap-4">
                     <Input 
                         placeholder="Buscar jugador..." 
                         className="max-w-xs"
