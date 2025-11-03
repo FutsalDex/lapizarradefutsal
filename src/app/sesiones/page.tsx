@@ -60,22 +60,16 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     const getExercisesForPhase = (phase: Phase) => {
         return sessionData[phase].map(id => exercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     };
-    
-    const allSessionExercises = [
-        ...getExercisesForPhase('initialExercises'),
-        ...getExercisesForPhase('mainExercises'),
-        ...getExercisesForPhase('finalExercises')
-    ];
 
-    return (
-        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
-            <div className="p-4 bg-gray-100 border-b">
-                <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
-                <p className="text-sm text-muted-foreground text-center">{format(sessionData.date, 'PPP', { locale: es })}</p>
-            </div>
-            <ScrollArea className="h-[60vh]">
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    {allSessionExercises.map((ex, index) => (
+    const PhaseSection = ({ title, phase }: { title: string; phase: Phase }) => {
+        const phaseExercises = getExercisesForPhase(phase);
+        if (phaseExercises.length === 0) return null;
+
+        return (
+            <div className="space-y-3">
+                <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {phaseExercises.map((ex, index) => (
                         <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
                             <CardContent className="p-0">
                                 <div className="relative aspect-video w-full bg-muted">
@@ -96,11 +90,28 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                             </CardFooter>
                         </Card>
                     ))}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
+            <div className="p-4 bg-gray-100 border-b">
+                <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
+                <p className="text-sm text-muted-foreground text-center">{format(sessionData.date, 'PPP', { locale: es })}</p>
+            </div>
+            <ScrollArea className="h-[60vh]">
+                 <div className="p-4 space-y-6">
+                    <PhaseSection title="Fase Inicial" phase="initialExercises" />
+                    <PhaseSection title="Fase Principal" phase="mainExercises" />
+                    <PhaseSection title="Fase Final" phase="finalExercises" />
                  </div>
             </ScrollArea>
         </div>
     )
 }
+
 
 function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFormValues, exercises: Exercise[] }) {
     const getExercisesForPhase = (phase: Phase) => {
