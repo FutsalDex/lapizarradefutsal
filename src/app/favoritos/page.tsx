@@ -3,13 +3,13 @@
 
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Eye } from 'lucide-react';
+import { Heart, Search, Eye, User } from 'lucide-react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { Exercise, mapExercise } from '@/lib/data';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,7 @@ import { FutsalCourt } from '@/components/futsal-court';
 
 export default function FavoritosPage() {
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const favoritesCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -47,7 +47,7 @@ export default function FavoritosPage() {
     await deleteDoc(favoriteRef);
   };
   
-  const isLoading = isLoadingFavorites || isLoadingExercises;
+  const isLoading = isLoadingFavorites || isLoadingExercises || isUserLoading;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -74,31 +74,42 @@ export default function FavoritosPage() {
       )}
 
       {!isLoading && !user && (
-         <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-          <Heart className="mx-auto h-12 w-12 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Inicia sesión para ver tus favoritos</h2>
-          <p className="mb-6">Crea una cuenta o inicia sesión para guardar tus ejercicios preferidos.</p>
-          <Button asChild>
-            <Link href="/acceso">
-              <Eye className="mr-2 h-4 w-4" />
-              Acceder
-            </Link>
-          </Button>
-        </div>
+         <Card className="text-center py-16 max-w-lg mx-auto border-primary bg-primary/10">
+            <CardHeader>
+                <CardTitle className="text-2xl text-primary font-bold">Guarda tus Ejercicios Favoritos</CardTitle>
+                <CardDescription className="text-base">
+                    Crea una cuenta o inicia sesión para empezar a guardar los ejercicios que más te interesan y tenerlos siempre a mano.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild size="lg">
+                    <Link href="/acceso">
+                    <User className="mr-2 h-5 w-5" />
+                    Iniciar Sesión o Registrarse
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
       )}
 
       {!isLoading && user && favoriteExercises.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground border-2 border-dashed rounded-lg">
-          <Heart className="mx-auto h-12 w-12 mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Aún no tienes favoritos</h2>
-          <p className="mb-6">Explora la biblioteca y pulsa en el corazón para guardar los que más te gusten.</p>
-          <Button asChild>
-            <Link href="/ejercicios">
-              <Search className="mr-2 h-4 w-4" />
-              Explorar Ejercicios
-            </Link>
-          </Button>
-        </div>
+        <Card className="text-center py-16 max-w-lg mx-auto border-dashed border-2">
+            <CardHeader>
+                <Heart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <CardTitle className="text-2xl font-semibold">Aún no tienes favoritos</CardTitle>
+                <CardDescription className="text-base">
+                    Explora la biblioteca y pulsa en el corazón para guardar los ejercicios que más te gusten.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Button asChild>
+                    <Link href="/ejercicios">
+                    <Search className="mr-2 h-4 w-4" />
+                    Explorar Ejercicios
+                    </Link>
+                </Button>
+            </CardContent>
+        </Card>
       ) : null}
 
       {!isLoading && user && favoriteExercises.length > 0 ? (

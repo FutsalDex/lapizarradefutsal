@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
@@ -203,28 +203,36 @@ export default function EjerciciosPage() {
       {!isLoading && (
         <>
            {(!user || user.isAnonymous) && (
-              <div className="text-center py-10 my-6 text-primary-foreground bg-primary rounded-lg">
-                <h2 className="text-xl font-semibold mb-2">¡Estás viendo una vista previa!</h2>
-                <p className="mb-6 max-w-xl mx-auto">Regístrate para acceder a la biblioteca completa con cientos de ejercicios, guardar tus favoritos y mucho más.</p>
-                <Button asChild variant="secondary">
-                  <Link href="/acceso">
-                    <User className="mr-2 h-4 w-4" />
-                    Regístrate Gratis
-                  </Link>
-                </Button>
-              </div>
+             <Card className="text-center py-10 my-6 bg-primary/10 border-primary">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-primary">¡Estás viendo una vista previa!</CardTitle>
+                    <CardDescription className="max-w-xl mx-auto text-base">Regístrate para acceder a la biblioteca completa con cientos de ejercicios, guardar tus favoritos y mucho más.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild size="lg">
+                        <Link href="/acceso">
+                            <User className="mr-2 h-5 w-5" />
+                            Regístrate Gratis
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
           )}
            {user && !user.isAnonymous && isGuestUser && (
-              <div className="text-center py-10 my-6 text-primary-foreground bg-primary rounded-lg">
-                <h2 className="text-xl font-semibold mb-2">Estás usando una cuenta de invitado</h2>
-                <p className="mb-6 max-w-xl mx-auto">Suscríbete a un plan para acceder a la biblioteca completa, guardar favoritos y desbloquear todas las funcionalidades.</p>
-                <Button asChild variant="secondary">
-                  <Link href="/suscripcion">
-                    <Star className="mr-2 h-4 w-4" />
-                    Ver Planes
-                  </Link>
-                </Button>
-              </div>
+              <Card className="text-center py-10 my-6 bg-primary/10 border-primary">
+                 <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-primary">Desbloquea todo el potencial</CardTitle>
+                    <CardDescription className="max-w-xl mx-auto text-base">Suscríbete a un plan para acceder a la biblioteca completa, guardar favoritos y desbloquear todas las funcionalidades.</CardDescription>
+                </CardHeader>
+                 <CardContent>
+                    <Button asChild size="lg">
+                    <Link href="/suscripcion">
+                        <Star className="mr-2 h-5 w-5" />
+                        Ver Planes de Suscripción
+                    </Link>
+                    </Button>
+                </CardContent>
+            </Card>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedExercises.map((exercise) => (

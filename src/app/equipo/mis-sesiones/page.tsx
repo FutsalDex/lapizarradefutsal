@@ -24,7 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, Calendar as CalendarIcon, ListChecks, Search, Star } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, ListChecks, Search, Star, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -244,15 +244,37 @@ export default function SesionesPage() {
       )}
 
       {!isLoading && !user && (
-          <Card className="text-center py-16">
-              <CardHeader><CardTitle>Inicia Sesión</CardTitle><CardDescription>Debes iniciar sesión para ver y crear sesiones.</CardDescription></CardHeader>
-              <CardContent><Button asChild><Link href="/acceso">Acceder</Link></Button></CardContent>
+          <Card className="text-center py-16 max-w-lg mx-auto border-primary bg-primary/10">
+             <CardHeader>
+                <CardTitle className="text-2xl font-bold text-primary">Planifica tus Entrenamientos</CardTitle>
+                <CardDescription className="text-base">
+                    Regístrate para empezar a crear, guardar y organizar tus sesiones de entrenamiento de forma profesional.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button asChild size="lg">
+                    <Link href="/acceso">
+                        <User className="mr-2 h-5 w-5" />
+                        Registrarme Gratis
+                    </Link>
+                </Button>
+            </CardContent>
           </Card>
       )}
       
       {!isLoading && user && sessions && sessions.length === 0 && (
-          <Card className="text-center py-16">
-              <CardHeader><CardTitle>No tienes sesiones</CardTitle><CardDescription>Empieza a planificar creando tu primera sesión de entrenamiento.</CardDescription></CardHeader>
+          <Card className="text-center py-16 border-dashed border-2">
+              <CardHeader>
+                <CardTitle>No tienes sesiones</CardTitle>
+                <CardDescription>Empieza a planificar creando tu primera sesión de entrenamiento.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                 <Button asChild>
+                    <Link href="/sesiones">
+                         <PlusCircle className="mr-2 h-4 w-4" /> Crear Sesión
+                    </Link>
+                </Button>
+              </CardContent>
           </Card>
       )}
 
