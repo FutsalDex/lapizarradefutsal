@@ -42,9 +42,9 @@ function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing
     return allUsers.find(u => u.email && u.email.toLowerCase() === inviteeEmailLower) || null;
   }, [allUsers, invitation.inviteeEmail]);
 
-    const isInviteeSubscribed = invitee?.subscription === 'Básico' || invitee?.subscription === 'Pro';
+    const isInviteeRegistered = !!invitee;
 
-    const canApprove = invitation.status === 'pending' && isInviteeSubscribed;
+    const canApprove = invitation.status === 'pending' && isInviteeRegistered;
 
     return (
         <TableRow>
@@ -53,7 +53,7 @@ function InvitationRow({ invitation, allUsers, onApprove, onDelete, isProcessing
             <TableCell>{format(invitation.createdAt.toDate(), 'dd/MM/yyyy')}</TableCell>
             <TableCell>
                 {invitee ? (
-                    <Badge variant={isInviteeSubscribed ? 'default' : 'secondary'}>{invitee.subscription}</Badge>
+                    <Badge variant={invitee.subscription === 'Básico' || invitee.subscription === 'Pro' ? 'default' : 'secondary'}>{invitee.subscription}</Badge>
                 ) : (
                     <Badge variant="outline">No Registrado</Badge>
                 )}
@@ -199,7 +199,7 @@ export default function AdminInvitationsPage() {
         <CardHeader>
           <CardTitle>Listado de Invitaciones</CardTitle>
           <CardDescription>
-            Aprueba las invitaciones cuando el invitado se haya registrado y suscrito a un plan de pago.
+            Aprueba las invitaciones cuando el invitado se haya registrado para dar puntos al invitador.
           </CardDescription>
           <Tabs value={filter} onValueChange={(value) => setFilter(value as any)} className="pt-4">
              <TabsList>
