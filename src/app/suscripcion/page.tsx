@@ -74,7 +74,7 @@ export default function SuscripcionPage() {
         status: 'Activa',
         endDate: 'N/A', // To be implemented
         points: userProfile?.points || 450,
-        nextReward: 500,
+        nextReward: 1200,
     };
     
     if (isUserLoading || isLoadingProfile) {
@@ -142,17 +142,29 @@ export default function SuscripcionPage() {
                             <p className="text-sm text-muted-foreground">puntos</p>
                         </div>
                         <div>
-                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Tu progreso</span>
-                                <span>Próxima recompensa: {userSubscription.nextReward} pts</span>
+                             <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>Tu progreso para 1 año gratis</span>
+                                <span>{userSubscription.nextReward} pts</span>
                             </div>
-                            <Progress value={pointsProgress} />
+                            <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary">
+                                <div className="absolute h-full w-full flex">
+                                    {[...Array(11)].map((_, i) => (
+                                        <div key={i} className="h-full w-px bg-background/50 ml-[8.33%]" />
+                                    ))}
+                                </div>
+                                <Progress value={pointsProgress} className="absolute h-full" />
+                            </div>
+                             <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                {[...Array(13)].map((_, i) => (
+                                    <span key={i} className="transform -translate-x-1/2">{i * 100}</span>
+                                ))}
+                            </div>
                         </div>
                     </CardContent>
                     <CardFooter className='flex flex-col sm:flex-row gap-2'>
-                       <Button className="w-full" disabled={userSubscription.points < userSubscription.nextReward}>
+                       <Button className="w-full" disabled={userSubscription.points < 100}>
                             <Gift className="mr-2 h-4 w-4"/>
-                            Canjear Recompensa
+                            Canjear 1 Mes (100 pts)
                        </Button>
                        <Button variant="outline" className="w-full" asChild>
                             <Link href="/equipo/mis-ejercicios">
