@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { FirestorePermissionError, errorEmitter } from '@/firebase';
+
 
 interface UserProfile {
   id: string;
@@ -132,8 +134,16 @@ export default function AdminUsersPage() {
             toast({ title: "Usuario eliminado", description: `El usuario ${userToDelete.email} ha sido eliminado.` });
             setKey(k => k + 1); // Refresh the list
         } catch (error) {
-            console.error("Error deleting user:", error);
-            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el usuario." });
+            const contextualError = new FirestorePermissionError({
+                path: `users/${userToDelete.id}`,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', contextualError);
+            toast({
+                variant: 'destructive',
+                title: 'Error de permisos',
+                description: 'No tienes permiso para eliminar este usuario.',
+            });
         }
     };
 
