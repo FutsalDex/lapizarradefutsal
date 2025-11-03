@@ -50,7 +50,7 @@ export default function PlanesPage() {
                             <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
                             <p className="text-4xl font-bold">
                                 {plan.price > 0 ? `${plan.price}€` : 'Gratis'}
-                                {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/mes</span>}
+                                {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
                             </p>
                         </CardHeader>
                         <CardContent className="flex-grow">
