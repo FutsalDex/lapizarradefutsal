@@ -28,7 +28,7 @@ export default function Home() {
           </CardContent>
           <CardFooter>
             <Button asChild size="lg">
-              <Link href="#">
+              <Link href="/suscripcion">
                 Ver Planes <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
