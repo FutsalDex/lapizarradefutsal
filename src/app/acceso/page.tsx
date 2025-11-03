@@ -51,6 +51,7 @@ export default function AccesoPage() {
           // Create a user document in Firestore
           const userDocRef = doc(firestore, 'users', newUser.uid);
           await setDoc(userDocRef, {
+              uid: newUser.uid,
               displayName: name,
               email: newUser.email,
               createdAt: serverTimestamp(),

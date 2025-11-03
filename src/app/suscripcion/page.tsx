@@ -105,7 +105,7 @@ export default function SuscripcionPage() {
     const handleWhatsAppInvite = () => {
         if (!user) return;
         
-        const referralLink = `${window.location.origin}/acceso?ref=${user.uid}`;
+        const referralLink = `https://my-web-app--lapizarra-95eqd.europe-west4.hosted.app/acceso?ref=${user.uid}`;
         const message = encodeURIComponent(`¡Hola! Te invito a unirte a LaPizarra, la mejor app para entrenadores de futsal. Regístrate usando mi enlace: ${referralLink}`);
         
         window.open(`https://wa.me/?text=${message}`, '_blank');
@@ -287,3 +287,4 @@ export default function SuscripcionPage() {
     );
 
     
+}
