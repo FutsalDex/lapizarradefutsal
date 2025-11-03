@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -109,7 +108,7 @@ export default function PlanesPage() {
              {!user && (
                  <Card className="mt-8 text-center py-8">
                      <CardContent>
-                        <p className="text-muted-foreground mb-4">Debes iniciar sesión para realizar el pago y activar tu suscripción.</p>
+                        <p className="text-muted-foreground mb-4">Debes iniciar sesión, acceder al apartado "Suscripción y Puntos" y seguir los pasos para realizar el pago y activar tu suscripción.</p>
                         <Button asChild>
                             <Link href="/acceso">Iniciar Sesión</Link>
                         </Button>
