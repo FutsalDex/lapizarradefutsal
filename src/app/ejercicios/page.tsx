@@ -10,7 +10,7 @@ import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -26,7 +26,7 @@ export default function EjerciciosPage() {
   const exercisesPerPage = 12;
   
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const exercisesCollection = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -61,7 +61,14 @@ export default function EjerciciosPage() {
 
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
-    return exercises.filter(exercise => {
+    let processableExercises = exercises;
+
+    // Si el usuario no está logueado o es anónimo, solo mostramos 12 ejercicios
+    if (!user || user.isAnonymous) {
+        processableExercises = exercises.filter(e => e.visible).slice(0, 12);
+    }
+
+    return processableExercises.filter(exercise => {
       if (!exercise.visible || !exercise.name) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -71,14 +78,18 @@ export default function EjerciciosPage() {
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user]);
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
+      // Para usuarios no registrados, la paginación no aplica ya que solo ven 12
+      if (!user || user.isAnonymous) {
+          return filteredExercises;
+      }
       const startIndex = (currentPage - 1) * exercisesPerPage;
       const endIndex = startIndex + exercisesPerPage;
       return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage]);
+  }, [filteredExercises, currentPage, exercisesPerPage, user]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -86,8 +97,7 @@ export default function EjerciciosPage() {
     }
   }
   
-  const isLoading = isLoadingExercises || isLoadingFavorites;
-  const totalVisibleExercises = useMemo(() => exercises.filter(e => e.visible).length, [exercises]);
+  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -154,7 +164,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && exercises && (
+        {!isLoading && exercises && user && !user.isAnonymous && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -178,8 +188,20 @@ export default function EjerciciosPage() {
         </>
       )}
 
-      {!isLoading && exercises && (
+      {!isLoading && (
         <>
+           {(!user || user.isAnonymous) && (
+              <div className="text-center py-10 my-6 text-primary-foreground bg-primary rounded-lg">
+                <h2 className="text-xl font-semibold mb-2">¡Estás viendo una vista previa!</h2>
+                <p className="mb-6 max-w-xl mx-auto">Regístrate para acceder a la biblioteca completa con cientos de ejercicios, guardar tus favoritos y mucho más.</p>
+                <Button asChild variant="secondary">
+                  <Link href="/acceso">
+                    <User className="mr-2 h-4 w-4" />
+                    Regístrate Gratis
+                  </Link>
+                </Button>
+              </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
@@ -230,7 +252,7 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
-           {totalPages > 1 && (
+           {totalPages > 1 && user && !user.isAnonymous && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <Button 
                         onClick={() => handlePageChange(currentPage - 1)} 
