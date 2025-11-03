@@ -1,9 +1,10 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle, Send, Star } from 'lucide-react';
+import { ArrowRight, CheckCircle, Send } from 'lucide-react';
 import { useUser } from '@/firebase';
 
 const plans = [
@@ -95,7 +96,7 @@ export default function PlanesPage() {
                             <div className="bg-muted p-3 rounded-md">
                                 <code className="text-sm font-mono">LaPizarra ({user.email})</code>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenador@email.com)</p>
+                            <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (aquí escribe tu mail)</p>
                         </div>
                         <div>
                             <p className="text-sm text-muted-foreground">
