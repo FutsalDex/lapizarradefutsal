@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useUser, useAuth, useStorage, useFirestore } from '@/firebase';
+import { useUser, useAuth, useStorage, useFirestore, useMemoFirebase } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
@@ -71,7 +71,11 @@ function ProfileForm() {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const userProfileRef = user ? doc(firestore, 'users', user.uid) : null;
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+
     const { data: userProfile } = useDoc<UserProfileData>(userProfileRef);
 
     const form = useForm<ProfileFormValues>({
@@ -405,3 +409,5 @@ export default function PerfilPage() {
     </div>
   );
 }
+
+    
