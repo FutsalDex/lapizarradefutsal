@@ -70,7 +70,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
         return (
             <div className="space-y-3">
                 <h3 className="font-bold text-center text-lg bg-gray-200 py-1">{title}</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     {phaseExercises.map((ex, index) => (
                          <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
                              <CardContent className="p-0">
@@ -88,7 +88,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                                 </div>
                             </CardContent>
                             <CardFooter className="p-1 bg-muted/50">
-                                <p className="font-semibold text-[8px] text-center w-full truncate">{ex.name}</p>
+                               <p className="font-semibold text-[9px] text-center w-full line-clamp-2 leading-tight">{ex.name}</p>
                             </CardFooter>
                         </Card>
                     ))}
@@ -141,7 +141,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
              <div className="col-span-1 space-y-2">
                  <div className="relative aspect-video bg-muted rounded-md">
                       {exercise.image ? (
-                        <Image src={exercise.image} alt={exercise.name} layout="fill" objectFit="contain" className="p-2" />
+                        <Image src={exercise.image} alt={exercise.name} fill objectFit="contain" className="p-2" />
                     ) : (
                         <FutsalCourt className="w-full h-full p-1" />
                     )}
