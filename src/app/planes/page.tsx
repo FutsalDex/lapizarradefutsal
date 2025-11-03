@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, CheckCircle, Send } from 'lucide-react';
 import { useUser } from '@/firebase';
+import { useRef } from 'react';
 
 const plans = [
     {
@@ -35,6 +35,15 @@ const plans = [
 
 export default function PlanesPage() {
     const { user } = useUser();
+    const paymentRef = useRef<HTMLDivElement>(null);
+
+    const handleScrollToPayment = () => {
+        paymentRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+    };
+
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -64,7 +73,7 @@ export default function PlanesPage() {
                             </ul>
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full">
+                            <Button className="w-full" onClick={handleScrollToPayment}>
                                 {plan.cta}
                                 <ArrowRight className="ml-2 h-4 w-4"/>
                             </Button>
@@ -73,49 +82,51 @@ export default function PlanesPage() {
                 ))}
             </div>
 
-            {user && (
-                <Card className="mt-8">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Send className="h-5 w-5" />
-                            Instrucciones de Pago
-                        </CardTitle>
-                        <CardDescription>
-                            Para activar o renovar tu suscripción, sigue estos sencillos pasos.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div>
-                            <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
-                            <div className="bg-muted p-3 rounded-md text-center">
-                                <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
+            <div ref={paymentRef}>
+                {user && (
+                    <Card className="mt-8">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Send className="h-5 w-5" />
+                                Instrucciones de Pago
+                            </CardTitle>
+                            <CardDescription>
+                                Para activar o renovar tu suscripción, sigue estos sencillos pasos.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
+                                <div className="bg-muted p-3 rounded-md text-center">
+                                    <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
-                            <div className="bg-muted p-3 rounded-md">
-                                <code className="text-sm font-mono">LaPizarra ({user.email})</code>
+                            <div>
+                                <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
+                                <div className="bg-muted p-3 rounded-md">
+                                    <code className="text-sm font-mono">LaPizarra ({user.email})</code>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">
-                                Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-             {!user && (
-                 <Card className="mt-8 text-center py-8">
-                     <CardContent>
-                        <p className="text-muted-foreground mb-4">Debes iniciar sesión, acceder al apartado "Suscripción y Puntos" y seguir los pasos para realizar el pago y activar tu suscripción.</p>
-                        <Button asChild>
-                            <Link href="/acceso">Iniciar Sesión</Link>
-                        </Button>
-                     </CardContent>
-                 </Card>
-            )}
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+                 {!user && (
+                     <Card className="mt-8 text-center py-8">
+                         <CardContent>
+                            <p className="text-muted-foreground mb-4">Debes iniciar sesión para poder realizar el pago y activar tu suscripción.</p>
+                            <Button asChild>
+                                <Link href="/acceso">Iniciar Sesión</Link>
+                            </Button>
+                         </CardContent>
+                     </Card>
+                )}
+            </div>
         </div>
     );
 }
