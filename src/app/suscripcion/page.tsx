@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck, PlusCircle } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck, PlusCircle, Copy } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -80,6 +80,7 @@ export default function SuscripcionPage() {
 
     const [isInviting, setIsInviting] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
+    const [generatedLink, setGeneratedLink] = useState('');
 
 
     const userProfileRef = useMemoFirebase(() => {
@@ -116,7 +117,7 @@ export default function SuscripcionPage() {
     const invitedFriendsCount = completedInvitations?.length ?? 0;
     const pointsFromFriends = invitedFriendsCount * 25;
 
-     const handleSendInvite = async () => {
+    const handleSendInvite = async () => {
         if (!user || !inviteEmail) {
             toast({ variant: 'destructive', title: 'Error', description: 'Introduce un correo válido.' });
             return;
@@ -127,8 +128,8 @@ export default function SuscripcionPage() {
         }
 
         setIsInviting(true);
+        setGeneratedLink('');
         try {
-            // Check if user already exists
             const usersRef = collection(firestore, 'users');
             const q = query(usersRef, where('email', '==', inviteEmail));
             const userSnapshot = await getDocs(q);
@@ -139,9 +140,8 @@ export default function SuscripcionPage() {
                 return;
             }
 
-            // Create invitation
             const invitationsRef = collection(firestore, 'invitations');
-            await addDoc(invitationsRef, {
+            const newInvitationRef = await addDoc(invitationsRef, {
                 inviterId: user.uid,
                 inviterEmail: user.email,
                 inviteeEmail: inviteEmail,
@@ -149,15 +149,26 @@ export default function SuscripcionPage() {
                 createdAt: serverTimestamp(),
             });
 
-            toast({ title: 'Invitación Enviada', description: `Se ha enviado una invitación a ${inviteEmail}.` });
+            const link = `${window.location.origin}/acceso?invitationId=${newInvitationRef.id}`;
+            setGeneratedLink(link);
+
+            toast({ title: 'Enlace de Invitación Generado', description: `Copia el enlace y compártelo con ${inviteEmail}.` });
             setInviteEmail('');
 
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar la invitación.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo generar el enlace de invitación.' });
         } finally {
             setIsInviting(false);
         }
+    };
+    
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(generatedLink).then(() => {
+            toast({ title: 'Copiado', description: 'Enlace de invitación copiado al portapapeles.' });
+        }, (err) => {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo copiar el enlace.' });
+        });
     };
 
 
@@ -244,10 +255,10 @@ export default function SuscripcionPage() {
                             Invita a tus Amigos
                         </CardTitle>
                         <CardDescription>
-                            Gana 25 puntos si se suscriben a un plan de pago.
+                            Gana 25 puntos si se suscriben a un plan de pago. Introduce su email para generar un enlace de invitación único.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                         <div className="flex w-full max-w-sm items-center space-x-2">
                              <Input 
                                 type="email" 
@@ -258,11 +269,24 @@ export default function SuscripcionPage() {
                             />
                             <Button 
                                 onClick={handleSendInvite} 
-                                disabled={!isSubscribed || isInviting}
+                                disabled={!isSubscribed || isInviting || !inviteEmail}
                             >
-                                {isInviting ? 'Enviando...' : <Send className="h-4 w-4" />}
+                                {isInviting ? 'Generando...' : 'Generar Enlace'}
                             </Button>
                         </div>
+                        {generatedLink && (
+                            <div className="flex w-full max-w-sm items-center space-x-2">
+                                <Input 
+                                    type="text" 
+                                    value={generatedLink}
+                                    readOnly
+                                    className="bg-muted"
+                                />
+                                <Button variant="outline" size="icon" onClick={copyToClipboard}>
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
                         {!isSubscribed && (
                             <p className="text-center text-xs text-muted-foreground mt-2">
                                 Necesitas un plan de suscripción para invitar amigos.
@@ -336,5 +360,6 @@ export default function SuscripcionPage() {
 
     
 }
+
 
     
