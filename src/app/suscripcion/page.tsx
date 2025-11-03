@@ -134,7 +134,7 @@ export default function SuscripcionPage() {
                  <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-xl flex items-center gap-2"><Star className="text-amber-400"/>Mis Puntos</CardTitle>
-                         <CardDescription>¡Tu esfuerzo tiene recompensa! Aporta ejercicios a la comunidad, invita a tus amigos a unirse (¡y llévate 50 puntos si se suscriben!) y canjea tus puntos por meses gratis de suscripción.</CardDescription>
+                         <CardDescription>Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-center">
@@ -211,7 +211,7 @@ export default function SuscripcionPage() {
                     <div>
                         <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
                         <div className="bg-muted p-3 rounded-md">
-                            <code className="text-sm font-mono">LaPizarra ({user.email})</code>
+                            <code className="text-sm font-mono">LaPizarra (aquí escribe tu mail)</code>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (aquí escribe tu mail)</p>
                     </div>
