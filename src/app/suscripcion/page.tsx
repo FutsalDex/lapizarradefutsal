@@ -186,6 +186,12 @@ export default function SuscripcionPage() {
                         icon={Euro}
                         subtext={`Basado en el plan ${userSubscription.plan}`}
                     />
+                     <StatCard 
+                        title="Mi Plan" 
+                        value={userSubscription.plan}
+                        icon={Star}
+                        subtext={userSubscription.endDate ? `Vence el ${format(userSubscription.endDate, 'dd/MM/yyyy')}` : 'Sin suscripción activa'}
+                    />
                     <StatCard 
                         title="Próxima Renovación" 
                         value={userSubscription.endDate ? format(userSubscription.endDate, 'dd/MM/yyyy') : 'N/A'}
@@ -195,40 +201,41 @@ export default function SuscripcionPage() {
                 </div>
             </div>
             
-            <div className="space-y-8 mb-12">
-                <Card className="max-w-md mx-auto">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <UserPlus className="h-5 w-5" />
-                            Invita a tus Amigos
-                        </CardTitle>
-                        <CardDescription>
-                            Gana 25 puntos si se suscriben a un plan de pago.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex w-full items-center space-x-2">
-                            <Input 
-                                type="email" 
-                                placeholder="Email del amigo" 
-                                value={inviteEmail}
-                                onChange={(e) => setInviteEmail(e.target.value)}
-                                disabled={!isSubscribed || isInviting} 
-                            />
-                            <Button onClick={handleInvite} disabled={!isSubscribed || isInviting || !inviteEmail}>
-                                {isInviting ? 'Enviando...' : <Mail className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                        {!isSubscribed && (
-                            <p className="text-center text-xs text-muted-foreground mt-2">
-                                Necesitas un plan de suscripción para invitar amigos.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
             <div className='space-y-8'>
+                <div className="space-y-8 mb-12">
+                    <Card className="max-w-md mx-auto">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <UserPlus className="h-5 w-5" />
+                                Invita a tus Amigos
+                            </CardTitle>
+                            <CardDescription>
+                                Gana 25 puntos si se suscriben a un plan de pago.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex w-full items-center space-x-2">
+                                <Input 
+                                    type="email" 
+                                    placeholder="Email del amigo" 
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    disabled={!isSubscribed || isInviting} 
+                                />
+                                <Button onClick={handleInvite} disabled={!isSubscribed || isInviting || !inviteEmail}>
+                                    {isInviting ? 'Enviando...' : <Mail className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                            {!isSubscribed && (
+                                <p className="text-center text-xs text-muted-foreground mt-2">
+                                    Necesitas un plan de suscripción para invitar amigos.
+                                </p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+
                 <div className="mb-12 text-center">
                     <h2 className="text-3xl font-bold font-headline text-primary">Planes Disponibles</h2>
                 </div>
