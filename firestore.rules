@@ -86,7 +86,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get, update, delete: if isAuth() && request.auth.uid == userId;
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow list: if false;
+      allow list: if isAdmin();
     }
 
     match /users/{userId}/{subcollection}/{docId} {
@@ -100,7 +100,12 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
+    
+    // =============================
+    // 📖 USER EXERCISES (personales)
+    // =============================
+    match /userExercises/{exerciseId} {
+      allow read, write: if isAuth() && request.auth.uid == resource.data.userId;
+    }
   }
 }
-
-    
