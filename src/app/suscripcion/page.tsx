@@ -134,103 +134,109 @@ export default function SuscripcionPage() {
                 <p className="text-lg text-muted-foreground mt-2">Gestiona tu plan y comprueba cómo ganar y canjear tus puntos.</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-12">
-                <StatCard 
-                    title="Ejercicios subidos" 
-                    value={uploadedExercisesCount} 
-                    icon={FileUp} 
-                    subtext={`${uploadedExercisesCount * 10} puntos ganados`}
-                />
-                 <StatCard 
-                    title="Amigos invitados" 
-                    value={invitedFriendsCount} 
-                    icon={Users}
-                    subtext={`${pointsFromFriends} puntos ganados`}
-                />
-                <StatCard 
-                    title="Puntos acumulados" 
-                    value={userSubscription.points} 
-                    icon={Star}
-                    subtext="¡Sigue sumando!" 
-                />
-                <StatCard 
-                    title="Ahorro en renovación" 
-                    value={`${renewalSavings} €`}
-                    icon={Euro}
-                    subtext="Basado en el Plan Pro Anual"
-                />
-                <StatCard 
-                    title="Próxima Renovación" 
-                    value={userSubscription.endDate ? format(userSubscription.endDate, 'dd/MM/yyyy') : 'N/A'}
-                    icon={CalendarCheck}
-                    subtext={userSubscription.plan}
-                />
+            <div className="mb-12">
+                 <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold">Programa de Fidelización</h2>
+                    <p className="text-muted-foreground mt-1 max-w-2xl mx-auto">Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+                    <StatCard 
+                        title="Ejercicios subidos" 
+                        value={uploadedExercisesCount} 
+                        icon={FileUp} 
+                        subtext={`${uploadedExercisesCount * 10} puntos ganados`}
+                    />
+                     <StatCard 
+                        title="Amigos invitados" 
+                        value={invitedFriendsCount} 
+                        icon={Users}
+                        subtext={`${pointsFromFriends} puntos ganados`}
+                    />
+                    <StatCard 
+                        title="Puntos acumulados" 
+                        value={userSubscription.points} 
+                        icon={Star}
+                        subtext="¡Sigue sumando!" 
+                    />
+                    <StatCard 
+                        title="Ahorro en renovación" 
+                        value={`${renewalSavings} €`}
+                        icon={Euro}
+                        subtext="Basado en el Plan Pro Anual"
+                    />
+                    <StatCard 
+                        title="Próxima Renovación" 
+                        value={userSubscription.endDate ? format(userSubscription.endDate, 'dd/MM/yyyy') : 'N/A'}
+                        icon={CalendarCheck}
+                        subtext={userSubscription.plan}
+                    />
+                </div>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-12">
-                 <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="text-xl">Programa de Fidelización</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p className='text-sm text-muted-foreground'>Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</p>
-                        <div>
-                             <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Tu progreso para 1 año gratis</span>
-                                <span>1200 pts</span>
-                            </div>
-                            <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary">
-                                <div className="absolute h-full w-full flex">
-                                    {[...Array(11)].map((_, i) => (
-                                        <div key={i} className="h-full w-px bg-background/50 ml-[8.33%]" />
+                <div className="lg:col-span-1 space-y-8">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Tu Progreso de Puntos</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                    <span>Tu progreso para 1 año gratis</span>
+                                    <span>1200 pts</span>
+                                </div>
+                                <div className="relative h-4 w-full overflow-hidden rounded-full bg-secondary">
+                                    <div className="absolute h-full w-full flex">
+                                        {[...Array(11)].map((_, i) => (
+                                            <div key={i} className="h-full w-px bg-background/50 ml-[8.33%]" />
+                                        ))}
+                                    </div>
+                                    <Progress value={pointsProgress} className="absolute h-full" />
+                                </div>
+                                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                    {[...Array(13)].map((_, i) => (
+                                        <span key={i} className="transform -translate-x-1/2">{i * 100}</span>
                                     ))}
                                 </div>
-                                <Progress value={pointsProgress} className="absolute h-full" />
                             </div>
-                             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                                {[...Array(13)].map((_, i) => (
-                                    <span key={i} className="transform -translate-x-1/2">{i * 100}</span>
-                                ))}
+                            <Button className="w-full" disabled={userSubscription.points < 100}>
+                                <Gift className="mr-2 h-4 w-4"/>
+                                Canjear 1 Mes de Suscripción (100 pts)
+                           </Button>
+                        </CardContent>
+                    </Card>
+
+                    <div className="pt-4 space-y-4">
+                        <div className="rounded-lg border bg-card p-4 text-center">
+                            <Book className="mx-auto h-8 w-8 text-primary mb-2" />
+                            <h4 className="font-semibold">Aporta Ejercicios</h4>
+                            <p className="text-sm text-muted-foreground mb-3">Gana 10 puntos por cada ejercicio que subas a la comunidad.</p>
+                            <Button variant="outline" size="sm" asChild disabled={!isSubscribed}>
+                                <Link href="/equipo/mis-ejercicios">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Subir Ejercicio
+                                </Link>
+                            </Button>
+                        </div>
+                        <div className="rounded-lg border bg-card p-4 text-center">
+                            <UserPlus className="mx-auto h-8 w-8 text-primary mb-2" />
+                            <h4 className="font-semibold">Invita a tus Amigos</h4>
+                            <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
+                            <div className="flex w-full max-w-sm items-center space-x-2 mx-auto">
+                                <Input type="email" placeholder="Email del amigo" className="text-xs" disabled={!isSubscribed} />
+                                <Button type="submit" size="sm" disabled={!isSubscribed}>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Invitar
+                                </Button>
                             </div>
                         </div>
-                         <div className="pt-4 space-y-4">
-                                <div className="rounded-lg border bg-card p-4 text-center">
-                                    <Book className="mx-auto h-8 w-8 text-primary mb-2" />
-                                    <h4 className="font-semibold">Aporta Ejercicios</h4>
-                                    <p className="text-sm text-muted-foreground mb-3">Gana 10 puntos por cada ejercicio que subas a la comunidad.</p>
-                                    <Button variant="outline" size="sm" asChild disabled={!isSubscribed}>
-                                        <Link href="/equipo/mis-ejercicios">
-                                            <PlusCircle className="mr-2 h-4 w-4" />
-                                            Subir Ejercicio
-                                        </Link>
-                                    </Button>
-                                </div>
-                                <div className="rounded-lg border bg-card p-4 text-center">
-                                    <UserPlus className="mx-auto h-8 w-8 text-primary mb-2" />
-                                    <h4 className="font-semibold">Invita a tus Amigos</h4>
-                                    <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
-                                    <div className="flex w-full max-w-sm items-center space-x-2">
-                                        <Input type="email" placeholder="Email del amigo" className="text-xs" disabled={!isSubscribed} />
-                                        <Button type="submit" size="sm" disabled={!isSubscribed}>
-                                            <Mail className="mr-2 h-4 w-4" />
-                                            Invitar
-                                        </Button>
-                                    </div>
-                                </div>
-                                 {!isSubscribed && (
-                                    <p className="text-center text-sm text-muted-foreground">
-                                        Necesitas un plan de suscripción para empezar a ganar puntos.
-                                    </p>
-                                )}
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                       <Button className="w-full" disabled={userSubscription.points < 100}>
-                            <Gift className="mr-2 h-4 w-4"/>
-                            Canjear 1 Mes de Suscripción (100 pts)
-                       </Button>
-                    </CardFooter>
-                </Card>
+                            {!isSubscribed && (
+                            <p className="text-center text-sm text-muted-foreground">
+                                Necesitas un plan de suscripción para empezar a ganar puntos.
+                            </p>
+                        )}
+                    </div>
+                </div>
 
                 <div className='lg:col-span-2 space-y-8'>
                     <div className="mb-12 text-center">
