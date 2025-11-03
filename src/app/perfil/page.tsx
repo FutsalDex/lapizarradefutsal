@@ -2,9 +2,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useUser, useAuth, useStorage } from '@/firebase';
+import { useUser, useAuth, useStorage, useFirestore } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,7 +22,6 @@ import { Input } from '@/components/ui/input';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -33,7 +33,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User as UserIcon, Save, Camera, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
@@ -54,14 +56,23 @@ const securitySchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type SecurityFormValues = z.infer<typeof securitySchema>;
 
+interface UserProfileData {
+    subscription?: string;
+    subscriptionEndDate?: { toDate: () => Date };
+}
+
 function ProfileForm() {
     const { user, isUserLoading, setUser } = useUser();
     const auth = useAuth();
     const storage = useStorage();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const userProfileRef = user ? doc(firestore, 'users', user.uid) : null;
+    const { data: userProfile } = useDoc<UserProfileData>(userProfileRef);
 
     const form = useForm<ProfileFormValues>({
         resolver: zodResolver(profileSchema),
@@ -139,6 +150,7 @@ function ProfileForm() {
     };
     
     const watchedPhotoUrl = user?.photoURL;
+    const subscriptionEndDate = userProfile?.subscriptionEndDate?.toDate();
 
     return (
         <Form {...form}>
@@ -199,11 +211,21 @@ function ProfileForm() {
                                         <FormControl>
                                             <Input type="email" {...field} disabled />
                                         </FormControl>
-                                        <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
+                                        <p className="text-sm text-muted-foreground">No puedes cambiar tu dirección de correo electrónico.</p>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
+                            <FormItem>
+                                <FormLabel>Suscripción</FormLabel>
+                                <Input value={userProfile?.subscription || 'Invitado'} disabled />
+                            </FormItem>
+                            {subscriptionEndDate && (
+                                <FormItem>
+                                    <FormLabel>Fin de la Suscripción</FormLabel>
+                                    <Input value={format(subscriptionEndDate, 'PPP', { locale: es })} disabled />
+                                </FormItem>
+                            )}
                         </CardContent>
                         <CardFooter className="justify-end">
                             <Button type="submit" disabled={isSubmitting}>

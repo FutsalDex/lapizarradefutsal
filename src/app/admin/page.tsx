@@ -5,6 +5,7 @@ import {
   Users,
   ChevronRight,
   Upload,
+  BookUser,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,12 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const adminItems = [
+  {
+    title: 'Gestión de Usuarios',
+    description: 'Activa y gestiona las suscripciones de todos los usuarios.',
+    icon: <BookUser className="w-6 h-6 text-primary" />,
+    href: '/admin/usuarios',
+  },
   {
     title: 'Gestión de Equipos',
     description: 'Visualiza y gestiona todos los equipos creados en la plataforma.',
