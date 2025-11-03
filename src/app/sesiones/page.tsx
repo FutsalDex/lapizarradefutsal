@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -97,7 +97,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     };
 
     return (
-        <div className="bg-white text-black w-[210mm] h-[297mm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
+        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
             <div className="p-4 bg-gray-100 border-b">
                 <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
                  <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground mt-1">
@@ -169,7 +169,7 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
     }
 
     return (
-        <div className="bg-white text-black w-[210mm] h-[297mm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
+        <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-8 rounded-lg shadow-lg overflow-hidden border flex flex-col">
             <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
                 <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
                 <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
@@ -378,6 +378,8 @@ export default function CreateSessionPage() {
     const [selectedSessionType, setSelectedSessionType] = useState<SessionType>('basic');
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
+    const pdfPreviewRef = useRef<HTMLDivElement>(null);
+
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -475,6 +477,26 @@ export default function CreateSessionPage() {
             setIsSubmitting(false);
         }
     };
+    
+    const handleDownloadPdf = async () => {
+        toast({ title: 'Generando PDF...', description: 'Esto puede tardar unos segundos.' });
+        const element = pdfPreviewRef.current;
+        if (!element) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el contenido para generar el PDF.' });
+            return;
+        }
+        const html2pdf = (await import('html2pdf.js')).default;
+
+        const opt = {
+            margin:       0,
+            filename:     `${form.getValues('name') || 'sesion'}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'cm', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().from(element).set(opt).save();
+    };
 
     const watchedValues = form.watch();
 
@@ -552,20 +574,26 @@ export default function CreateSessionPage() {
                                     <Dialog open={isPdfPreviewOpen} onOpenChange={setIsPdfPreviewOpen}>
                                         <DialogTrigger asChild>
                                             <Button variant="outline">
-                                                <Download className="mr-2 h-4 w-4" />
-                                                Descargar PDF
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                Previsualizar PDF
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="max-w-5xl h-[95vh]">
-                                           <DialogHeader>
+                                        <DialogContent className="max-w-5xl h-[95vh] flex flex-col">
+                                           <DialogHeader className="flex-row items-center justify-between">
                                                 <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
+                                                <Button variant="primary" onClick={handleDownloadPdf}>
+                                                    <Download className="mr-2 h-4 w-4"/>
+                                                    Descargar PDF
+                                                </Button>
                                            </DialogHeader>
-                                           <div className="overflow-auto py-4">
-                                               {selectedSessionType === 'pro' ? (
-                                                    <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                               ) : (
-                                                    <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                               )}
+                                           <div className="overflow-auto py-4 flex-grow">
+                                                <div ref={pdfPreviewRef}>
+                                                    {selectedSessionType === 'pro' ? (
+                                                            <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                                    ) : (
+                                                            <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                                    )}
+                                                </div>
                                            </div>
                                         </DialogContent>
                                     </Dialog>
