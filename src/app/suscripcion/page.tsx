@@ -213,7 +213,7 @@ export default function SuscripcionPage() {
                         <div className="bg-muted p-3 rounded-md">
                             <code className="text-sm font-mono">LaPizarra (aquí escribe tu mail)</code>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (aquí escribe tu mail)</p>
+                        <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
                     </div>
                     <div>
                         <p className="text-sm text-muted-foreground">
