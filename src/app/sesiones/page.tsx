@@ -76,14 +76,24 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
             <ScrollArea className="h-[60vh]">
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                     {allSessionExercises.map((ex, index) => (
-                        <Card key={`${ex.id}-${index}`} className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle className="text-base">{ex.name}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-grow space-y-2 text-xs">
-                                <p><span className='font-semibold'>Objetivos:</span> {ex.objectives}</p>
-                                <p><span className='font-semibold'>Duración:</span> {ex.duration} min</p>
+                        <Card key={`${ex.id}-${index}`} className="flex flex-col overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="relative aspect-video w-full bg-muted">
+                                    {ex.image ? (
+                                        <Image
+                                            src={ex.image}
+                                            alt={ex.name}
+                                            fill
+                                            className="object-contain"
+                                        />
+                                    ) : (
+                                        <FutsalCourt className="w-full h-full p-1" />
+                                    )}
+                                </div>
                             </CardContent>
+                            <CardFooter className="p-2 bg-muted/50">
+                                <p className="font-semibold text-xs text-center w-full truncate">{ex.name}</p>
+                            </CardFooter>
                         </Card>
                     ))}
                  </div>
