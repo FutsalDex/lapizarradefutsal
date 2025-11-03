@@ -13,7 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, UserCircle, BookOpen, Edit, Heart, Shield } from "lucide-react";
+import { Menu, User, Star, BookOpen, Edit, Heart, Shield, LogOut } from "lucide-react";
 import { useUser } from "@/firebase/use-auth-user";
 import { useAuth } from "@/firebase/provider";
 import { signOut } from "firebase/auth";
@@ -25,6 +25,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="h-4 w-4" /> },
@@ -61,15 +63,38 @@ export function Header() {
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
-              <UserCircle className="h-6 w-6" />
-              <span className="sr-only">Perfil de usuario</span>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'Avatar'} />
+                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
+              </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{user.displayName || user.email || 'Mi Cuenta'}</DropdownMenuLabel>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user.displayName || 'Usuario'}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+              </div>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>Cerrar Sesión</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <Link href="/perfil">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Mi Perfil</span>
+                </Link>
+            </DropdownMenuItem>
+             <DropdownMenuItem asChild>
+                <Link href="/suscripcion">
+                    <Star className="mr-2 h-4 w-4" />
+                    <span>Suscripción y Puntos</span>
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar Sesión</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -77,7 +102,7 @@ export function Header() {
     return (
       <Button asChild variant="outline" className="bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20 text-primary-foreground">
         <Link href="/acceso">
-          <UserCircle className="mr-2 h-4 w-4" />
+          <User className="mr-2 h-4 w-4" />
           Acceder
         </Link>
       </Button>
@@ -139,15 +164,20 @@ export function Header() {
             ) : user ? (
                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-foreground/10 focus-visible:bg-primary-foreground/10">
-                      <UserCircle className="h-6 w-6" />
-                      <span className="sr-only">Perfil de usuario</span>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                         <Avatar className="h-9 w-9">
+                            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'Avatar'} />
+                            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                        </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{user.displayName || user.email || 'Mi Cuenta'}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>Cerrar Sesión</DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/perfil"><User className="mr-2 h-4 w-4" />Mi Perfil</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/suscripcion"><Star className="mr-2 h-4 w-4" />Suscripción y Puntos</Link></DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Cerrar Sesión</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
             ) : null }
@@ -188,7 +218,7 @@ export function Header() {
                             : "text-muted-foreground"
                         )}
                       >
-                        <UserCircle className="h-4 w-4" />
+                        <User className="mr-2 h-4 w-4" />
                         Acceder
                       </Link>
                     </SheetClose>

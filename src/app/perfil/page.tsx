@@ -1,0 +1,208 @@
+'use client';
+
+import { useState } from 'react';
+import { useUser, useAuth } from '@/firebase';
+import { updateProfile } from 'firebase/auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { User as UserIcon, Save, Camera } from 'lucide-react';
+import Link from 'next/link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+
+const profileSchema = z.object({
+  displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
+  email: z.string().email('Email inválido.'),
+  photoURL: z.string().url('Debe ser una URL válida.').optional().or(z.literal('')),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+export default function PerfilPage() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    values: {
+      displayName: user?.displayName || '',
+      email: user?.email || '',
+      photoURL: user?.photoURL || '',
+    },
+  });
+
+  const onSubmit = async (data: ProfileFormValues) => {
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      await updateProfile(user, {
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+      });
+      toast({
+        title: 'Perfil actualizado',
+        description: 'Tus datos se han guardado correctamente.',
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo actualizar tu perfil.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Skeleton className="h-8 w-48 mb-8" />
+        <div className="grid md:grid-cols-3 gap-8">
+            <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
+            <div className="md:col-span-2"><Skeleton className="h-80 w-full" /></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-bold">Acceso denegado</h1>
+        <p className="text-muted-foreground mt-2">Debes iniciar sesión para ver tu perfil.</p>
+        <Button asChild className="mt-4">
+          <Link href="/acceso">Iniciar Sesión</Link>
+        </Button>
+      </div>
+    );
+  }
+  
+  const watchedPhotoUrl = form.watch('photoURL');
+
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-8">
+            <h1 className="text-4xl font-bold font-headline text-primary">Mi Perfil</h1>
+            <p className="text-lg text-muted-foreground mt-2">Gestiona tu información personal y la configuración de tu cuenta.</p>
+        </div>
+
+        <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="profile">Datos Personales</TabsTrigger>
+                <TabsTrigger value="security" disabled>Seguridad</TabsTrigger>
+            </TabsList>
+            <TabsContent value="profile" className="mt-6">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-3 gap-8">
+                        <div className="md:col-span-1">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-xl">Foto de Perfil</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col items-center gap-4">
+                                     <Avatar className="h-32 w-32 border-4 border-muted">
+                                        <AvatarImage src={watchedPhotoUrl || undefined} alt={user.displayName || 'Avatar'} />
+                                        <AvatarFallback className="text-4xl">
+                                            <UserIcon/>
+                                        </AvatarFallback>
+                                    </Avatar>
+                                     <FormField
+                                        control={form.control}
+                                        name="photoURL"
+                                        render={({ field }) => (
+                                            <FormItem className="w-full">
+                                                <FormLabel className="sr-only">URL de la foto</FormLabel>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <Camera className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                        <Input placeholder="URL de tu imagen" className="pl-9" {...field} />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                        />
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-xl">Información de la Cuenta</CardTitle>
+                                    <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                     <FormField
+                                        control={form.control}
+                                        name="displayName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nombre</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Tu nombre" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                        />
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Email</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" {...field} disabled />
+                                                </FormControl>
+                                                 <FormDescription>No puedes cambiar tu dirección de correo electrónico.</FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </CardContent>
+                                <CardFooter className="justify-end">
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                    </form>
+                </Form>
+            </TabsContent>
+            <TabsContent value="security">
+                {/* Contenido para la pestaña de seguridad, como cambiar contraseña */}
+            </TabsContent>
+        </Tabs>
+    </div>
+  );
+}
