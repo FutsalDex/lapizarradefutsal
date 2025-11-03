@@ -174,13 +174,13 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
     return (
         <>
             {exercisePages.map((pageExercises, pageIndex) => (
-                 <div key={pageIndex} className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col mb-4 print-page">
-                    <div className="p-4 bg-gray-800 text-white grid grid-cols-5 gap-2 items-center text-center">
-                        <div className="flex items-center gap-2"><Shield className="h-5 w-5" /> <span>Microciclo</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
-                        <div><span>Sesión</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
-                        <div><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
-                        <div className="col-span-1"><span>Objetivos</span><Input className="w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
-                        <div><span>Jugadores</span><Input className="w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
+                 <div key={pageIndex} className="bg-white text-black w-full md:w-[21cm] h-auto md:h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col mb-4 print-page">
+                    <div className="p-4 bg-gray-800 text-white grid grid-cols-2 sm:grid-cols-5 gap-2 items-center text-center text-[10px] sm:text-base">
+                        <div className="flex items-center gap-2"><Shield className="h-5 w-5 hidden sm:block" /> <span>Microciclo</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
+                        <div className="flex items-center gap-2"><span>Sesión</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
+                        <div className="flex items-center gap-2"><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
+                        <div className="col-span-1 flex items-center gap-2"><span>Objetivos</span><Input className="w-16 sm:w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
+                        <div className="flex items-center gap-2"><span>Jugadores</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
                     </div>
                      <ScrollArea className="flex-grow">
                         {pageExercises.map(ex => <ExercisePreview key={ex.id} exercise={ex} />)}
@@ -353,9 +353,11 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
     const atLimit = selectedIds.length >= limit;
 
     return (
-        <div className="space-y-4">
-             <h2 className="text-2xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-lg font-normal">({selectedIds.length}/{limit})</span></h2>
-             <div className="grid grid-cols-1 gap-2">
+        <Card className="flex flex-col">
+            <CardHeader>
+                <CardTitle className="text-xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-base font-normal">({selectedIds.length}/{limit})</span></CardTitle>
+            </CardHeader>
+             <CardContent className="flex-grow space-y-2">
                 {selectedExercises.map(ex => (
                     <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                 ))}
@@ -368,8 +370,8 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                         <AddExerciseCard onClick={() => {}} />
                     </ExercisePickerDialog>
                 }
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -508,110 +510,15 @@ export default function CreateSessionPage() {
         <div className="container mx-auto px-4 py-8">
             <Form {...form}>
                 <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-                    <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
-                        <div className="flex-grow">
-                             <Button asChild variant="outline" className="mb-4">
-                                <Link href={`/equipo/gestion`}>
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Volver al Panel
-                                </Link>
-                            </Button>
-                            <h1 className="text-4xl font-bold font-headline text-primary">Crear Sesión de Entrenamiento</h1>
-                            <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
-                        </div>
-                        
-                        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                            <DialogTrigger asChild>
-                                 <Button size="lg" className="mt-4 md:mt-0 w-full md:w-auto">
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    Ver ficha de la sesión
-                                </Button>
-                            </DialogTrigger>
-                           <DialogContent className="max-w-4xl">
-                                <DialogHeader>
-                                    <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
-                                    <DialogDescription>
-                                        Elige el formato para tu ficha de sesión. La versión Pro requiere una suscripción.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4 grid grid-cols-2 gap-4">
-                                    <div
-                                        className={cn(
-                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
-                                            selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
-                                        )}
-                                        onClick={() => setSelectedSessionType('basic')}
-                                    >
-                                        <h3 className="font-semibold text-lg">Básico</h3>
-                                        <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
-                                            <Image
-                                                src="https://i.ibb.co/hJ2DscG7/basico.png"
-                                                alt="Previsualización de sesión Básica"
-                                                fill
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={cn(
-                                            "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
-                                            selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
-                                        )}
-                                        onClick={() => setSelectedSessionType('pro')}
-                                    >
-                                        <h3 className="font-semibold text-lg">Pro</h3>
-                                        <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
-                                             <Image
-                                                src="https://i.ibb.co/pBKy6D20/pro.png"
-                                                alt="Previsualización de sesión Pro"
-                                                fill
-                                                className="object-contain"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <DialogFooter className="sm:justify-end gap-2 pt-4">
-                                     <Button onClick={handleSave} disabled={isSubmitting}>
-                                        <Save className="mr-2 h-4 w-4"/>
-                                        {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
-                                    </Button>
-                                    <Dialog open={isPdfPreviewOpen} onOpenChange={setIsPdfPreviewOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline">
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                Previsualizar PDF
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="w-[95vw] h-[90vh] max-w-5xl flex flex-col">
-                                           <DialogHeader className="flex-row items-center justify-between">
-                                                <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
-                                                <Button variant="primary" onClick={handleDownloadPdf}>
-                                                    <Download className="mr-2 h-4 w-4"/>
-                                                    Descargar PDF
-                                                </Button>
-                                           </DialogHeader>
-                                           <style>{`
-                                                @media print {
-                                                    .print-page {
-                                                        page-break-after: always;
-                                                    }
-                                                }
-                                           `}</style>
-                                           <ScrollArea className="flex-grow bg-gray-300 p-4">
-                                                <div ref={pdfPreviewRef}>
-                                                    {selectedSessionType === 'pro' ? (
-                                                            <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                                    ) : (
-                                                            <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
-                                                    )}
-                                                </div>
-                                           </ScrollArea>
-                                        </DialogContent>
-                                    </Dialog>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
+                    <div className="mb-8">
+                        <Button asChild variant="outline" className="mb-4">
+                            <Link href={`/equipo/gestion`}>
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Volver al Panel
+                            </Link>
+                        </Button>
+                        <h1 className="text-4xl font-bold font-headline text-primary">Crear Sesión de Entrenamiento</h1>
+                        <p className="text-lg text-muted-foreground mt-2">Planifica tu próximo entrenamiento paso a paso.</p>
                     </div>
 
                     <Card>
@@ -654,6 +561,107 @@ export default function CreateSessionPage() {
                             limit={2}
                         />
                     </div>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Finalizar y Guardar</CardTitle>
+                            <CardDescription>
+                                Una vez que hayas añadido todos los ejercicios, puedes previsualizar la ficha de la sesión y guardarla.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                                <DialogTrigger asChild>
+                                    <Button size="lg" className="w-full md:w-auto">
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Ver ficha y Guardar Sesión
+                                    </Button>
+                                </DialogTrigger>
+                               <DialogContent className="max-w-4xl">
+                                    <DialogHeader>
+                                        <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
+                                        <DialogDescription>
+                                            Elige el formato para tu ficha de sesión. La versión Pro requiere una suscripción.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4 grid grid-cols-2 gap-4">
+                                        <div
+                                            className={cn(
+                                                "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
+                                                selectedSessionType === 'basic' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
+                                            )}
+                                            onClick={() => setSelectedSessionType('basic')}
+                                        >
+                                            <h3 className="font-semibold text-lg">Básico</h3>
+                                            <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
+                                                <Image
+                                                    src="https://i.ibb.co/hJ2DscG7/basico.png"
+                                                    alt="Previsualización de sesión Básica"
+                                                    fill
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div
+                                            className={cn(
+                                                "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
+                                                selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
+                                            )}
+                                            onClick={() => setSelectedSessionType('pro')}
+                                        >
+                                            <h3 className="font-semibold text-lg">Pro</h3>
+                                            <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
+                                                 <Image
+                                                    src="https://i.ibb.co/pBKy6D20/pro.png"
+                                                    alt="Previsualización de sesión Pro"
+                                                    fill
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <DialogFooter className="sm:justify-end gap-2 pt-4">
+                                         <Button onClick={handleSave} disabled={isSubmitting}>
+                                            <Save className="mr-2 h-4 w-4"/>
+                                            {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
+                                        </Button>
+                                        <Dialog open={isPdfPreviewOpen} onOpenChange={setIsPdfPreviewOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    Previsualizar PDF
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="w-[95vw] h-[90vh] max-w-5xl flex flex-col">
+                                               <DialogHeader className="flex-row items-center justify-between">
+                                                    <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
+                                                    <Button variant="primary" onClick={handleDownloadPdf}>
+                                                        <Download className="mr-2 h-4 w-4"/>
+                                                        Descargar PDF
+                                                    </Button>
+                                               </DialogHeader>
+                                               <style>{`
+                                                    @media print {
+                                                        .print-page {
+                                                            page-break-after: always;
+                                                        }
+                                                    }
+                                               `}</style>
+                                               <ScrollArea className="flex-grow bg-gray-300 p-4">
+                                                    <div ref={pdfPreviewRef}>
+                                                        {selectedSessionType === 'pro' ? (
+                                                                <ProSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                                        ) : (
+                                                                <BasicSessionPreview sessionData={watchedValues} exercises={allExercises} />
+                                                        )}
+                                                    </div>
+                                               </ScrollArea>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </CardFooter>
+                    </Card>
                 </form>
             </Form>
         </div>
