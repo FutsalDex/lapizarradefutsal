@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useUser, useAuth, useStorage, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth, useStorage, useFirestore } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 const profileSchema = z.object({
   displayName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres.'),
@@ -112,7 +113,10 @@ function ProfileForm() {
             
             await updateProfile(user, { photoURL: downloadURL });
             
-            setLocalPhotoURL(downloadURL); // Update local state immediately
+            // Update the user state in the context
+            setUser({ ...user, photoURL: downloadURL });
+
+            setLocalPhotoURL(downloadURL); // Update local state for immediate UI feedback
             
             toast({
                 title: 'Foto de perfil actualizada',
@@ -410,5 +414,3 @@ export default function PerfilPage() {
     </div>
   );
 }
-
-    
