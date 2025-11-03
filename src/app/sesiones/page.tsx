@@ -99,7 +99,11 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
         <div className="bg-white text-black w-full max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden border">
             <div className="p-4 bg-gray-100 border-b">
                 <h2 className="text-2xl font-bold text-center">{sessionData.name}</h2>
-                <p className="text-sm text-muted-foreground text-center">{format(sessionData.date, 'PPP', { locale: es })}</p>
+                 <div className="flex justify-center items-center gap-4 text-sm text-muted-foreground mt-1">
+                    <span>{format(sessionData.date, 'PPP', { locale: es })}</span>
+                    {sessionData.time && <span>- {sessionData.time}</span>}
+                    {sessionData.facility && <span>- {sessionData.facility}</span>}
+                </div>
             </div>
             <ScrollArea className="h-[60vh]">
                  <div className="p-4 space-y-6">
@@ -615,3 +619,4 @@ export default function CreateSessionPage() {
         </div>
     );
 }
+
