@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInAnonymously,
   updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
 import { AtSign, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
@@ -26,6 +26,7 @@ export default function AccesoPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
@@ -44,8 +45,18 @@ export default function AccesoPage() {
         toast({ title: '¡Bienvenido de vuelta!' });
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        if (userCredential.user) {
-          await updateProfile(userCredential.user, { displayName: name });
+        const newUser = userCredential.user;
+        if (newUser) {
+          await updateProfile(newUser, { displayName: name });
+          // Create a user document in Firestore
+          const userDocRef = doc(firestore, 'users', newUser.uid);
+          await setDoc(userDocRef, {
+              displayName: name,
+              email: newUser.email,
+              createdAt: serverTimestamp(),
+              photoURL: newUser.photoURL,
+              subscription: 'Invitado', // Initial subscription status
+          });
         }
         toast({ title: '¡Registro completado!', description: 'Ya puedes iniciar sesión.' });
       }

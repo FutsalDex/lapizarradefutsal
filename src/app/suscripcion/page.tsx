@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Star, CheckCircle, ArrowRight, Book, Gift } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { doc } from 'firebase/firestore';
 
 const plans = [
     {
@@ -39,21 +40,45 @@ const plans = [
     }
 ];
 
+interface UserProfile {
+    subscription?: string;
+    createdAt?: { toDate: () => Date };
+    points?: number;
+}
+
 export default function SuscripcionPage() {
     const { user, isUserLoading } = useUser();
-    
-    // Mock data, to be replaced with Firestore data
+    const firestore = useFirestore();
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+
+    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const isTrialActive = useMemo(() => {
+        if (!userProfile?.createdAt) return false;
+        const thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
+        const registrationDate = userProfile.createdAt.toDate();
+        return (new Date().getTime() - registrationDate.getTime()) < thirtyDaysInMillis;
+    }, [userProfile]);
+
+    const currentPlan = userProfile?.subscription === 'Basic' || userProfile?.subscription === 'Pro' 
+        ? userProfile.subscription 
+        : 'Invitado';
+
     const userSubscription = {
-        plan: 'Invitado',
+        plan: currentPlan,
         status: 'Activa',
-        endDate: 'N/A',
-        points: 450,
+        endDate: 'N/A', // To be implemented
+        points: userProfile?.points || 450,
         nextReward: 500,
     };
     
     const displayPlans = plans.map(p => ({ ...p, isCurrent: p.name === userSubscription.plan }));
 
-    if (isUserLoading) {
+    if (isUserLoading || isLoadingProfile) {
         return (
             <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
                 <Skeleton className="h-10 w-1/3" />
@@ -103,7 +128,7 @@ export default function SuscripcionPage() {
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 {isGuest 
-                                    ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 7 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
+                                    ? 'El modo Invitado te da acceso a la biblioteca de ejercicios durante 30 días y acceso al resto de servicios en modo demostración. Cambia a un Plan Básico o Pro para disfrutar de esta herramienta al 100%' 
                                     : `Tu suscripción se renueva el ${userSubscription.endDate}.`
                                 }
                             </p>

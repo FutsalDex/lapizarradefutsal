@@ -61,15 +61,15 @@ export default function EjerciciosPage() {
 
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
-    let processableExercises = exercises;
+    let processableExercises = exercises.filter(e => e.visible);
 
     // Si el usuario no está logueado o es anónimo, solo mostramos 12 ejercicios
     if (!user || user.isAnonymous) {
-        processableExercises = exercises.filter(e => e.visible).slice(0, 12);
+        return processableExercises.slice(0, 12);
     }
 
     return processableExercises.filter(exercise => {
-      if (!exercise.visible || !exercise.name) return false;
+      if (!exercise.name) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
@@ -82,7 +82,7 @@ export default function EjerciciosPage() {
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
-      // Para usuarios no registrados, la paginación no aplica ya que solo ven 12
+      // Para usuarios no registrados o anónimos, la paginación no aplica ya que solo ven 12
       if (!user || user.isAnonymous) {
           return filteredExercises;
       }
@@ -164,7 +164,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && exercises && user && !user.isAnonymous && (
+        {!isLoading && user && !user.isAnonymous && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -247,7 +247,7 @@ export default function EjerciciosPage() {
               </Card>
             ))}
           </div>
-           {filteredExercises.length === 0 && (
+           {filteredExercises.length === 0 && paginatedExercises.length === 0 && (
             <div className="text-center py-16 text-muted-foreground col-span-full">
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
