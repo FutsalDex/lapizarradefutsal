@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -55,6 +54,7 @@ const plans = [
             'Crear sesiones de entrenamiento',
             'Gestión de 1 equipo',
             'Marcador rápido',
+            'Guardar mis ejercicios favoritos'
         ],
         cta: 'Suscribirse a Básico',
     },
@@ -62,7 +62,7 @@ const plans = [
         name: 'Pro',
         price: 39.95,
         features: [
-            'Todo lo del plan Basic',
+            'Todo lo del plan Básico',
             'Gestión de hasta 3 equipos',
             'Añadir miembros al cuerpo técnico',
             'Estadísticas avanzadas',
