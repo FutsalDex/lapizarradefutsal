@@ -125,13 +125,10 @@ export default function SuscripcionPage() {
         )
     }
 
-    const pointsProgress = (userSubscription.points / 1200) * 100;
-
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="mb-12 text-center">
                 <h1 className="text-4xl font-bold font-headline text-primary">Suscripción y Puntos</h1>
-                <p className="text-lg text-muted-foreground mt-2">Gestiona tu plan y comprueba cómo ganar y canjear tus puntos.</p>
             </div>
 
             <div className="mb-12">
@@ -173,90 +170,86 @@ export default function SuscripcionPage() {
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mb-12">
-                <div className="lg:col-span-1 space-y-8">
-                    <div className="pt-4 space-y-4">
-                        <div className="rounded-lg border bg-card p-4 text-center">
-                            <UserPlus className="mx-auto h-8 w-8 text-primary mb-2" />
-                            <h4 className="font-semibold">Invita a tus Amigos</h4>
-                            <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
-                            <div className="flex w-full max-w-sm items-center space-x-2 mx-auto">
-                                <Input type="email" placeholder="Email del amigo" className="text-xs" disabled={!isSubscribed} />
-                                <Button type="submit" size="sm" disabled={!isSubscribed}>
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Invitar
-                                </Button>
+            <div className="space-y-8 mb-12">
+                <div className="rounded-lg border bg-card p-4 text-center max-w-md mx-auto">
+                    <UserPlus className="mx-auto h-8 w-8 text-primary mb-2" />
+                    <h4 className="font-semibold">Invita a tus Amigos</h4>
+                    <p className="text-sm text-muted-foreground mb-3">Gana 25 puntos si se suscriben a un plan de pago.</p>
+                    <div className="flex w-full max-w-sm items-center space-x-2 mx-auto">
+                        <Input type="email" placeholder="Email del amigo" className="text-xs" disabled={!isSubscribed} />
+                        <Button type="submit" size="sm" disabled={!isSubscribed}>
+                            <Mail className="mr-2 h-4 w-4" />
+                            Invitar
+                        </Button>
+                    </div>
+                     {!isSubscribed && (
+                        <p className="text-center text-xs text-muted-foreground mt-2">
+                            Necesitas un plan de suscripción para invitar amigos.
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            <div className='space-y-8'>
+                <div className="mb-12 text-center">
+                    <h2 className="text-3xl font-bold font-headline text-primary">Planes Disponibles</h2>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {plans.map(plan => (
+                        <Card key={plan.name} className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
+                                <p className="text-4xl font-bold">
+                                    {plan.price > 0 ? `${plan.price}€` : 'Gratis'}
+                                    {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
+                                </p>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <ul className="space-y-3">
+                                    {plan.features.map(feature => (
+                                        <li key={feature} className="flex items-start text-sm">
+                                            <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" />
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Send className="h-5 w-5" />
+                            Instrucciones de Pago
+                        </CardTitle>
+                        <CardDescription>
+                            Para activar o renovar tu suscripción, sigue estos sencillos pasos.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div>
+                            <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
+                            <div className="bg-muted p-3 rounded-md text-center">
+                                <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
                             </div>
                         </div>
-                            {!isSubscribed && (
-                            <p className="text-center text-sm text-muted-foreground">
-                                Necesitas un plan de suscripción para empezar a ganar puntos.
+                        <div>
+                            <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
+                            <div className="bg-muted p-3 rounded-md">
+                                <code className="text-sm font-mono">LaPizarra ({user.email})</code>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground">
+                                Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
                             </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className='lg:col-span-2 space-y-8'>
-                    <div className="mb-12 text-center">
-                        <h2 className="text-3xl font-bold font-headline text-primary">Planes Disponibles</h2>
-                    </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {plans.map(plan => (
-                            <Card key={plan.name} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
-                                    <p className="text-4xl font-bold">
-                                        {plan.price > 0 ? `${plan.price}€` : 'Gratis'}
-                                        {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
-                                    </p>
-                                </CardHeader>
-                                <CardContent className="flex-grow">
-                                    <ul className="space-y-3">
-                                        {plan.features.map(feature => (
-                                            <li key={feature} className="flex items-start text-sm">
-                                                <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" />
-                                                <span>{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Send className="h-5 w-5" />
-                                Instrucciones de Pago
-                            </CardTitle>
-                            <CardDescription>
-                                Para activar o renovar tu suscripción, sigue estos sencillos pasos.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div>
-                                <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
-                                <div className="bg-muted p-3 rounded-md text-center">
-                                    <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
-                                <div className="bg-muted p-3 rounded-md">
-                                    <code className="text-sm font-mono">LaPizarra ({user.email})</code>
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">
-                                    Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
