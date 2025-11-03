@@ -81,10 +81,10 @@ function ProfileForm() {
             const snapshot = await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(snapshot.ref);
             
-            form.setValue('photoURL', downloadURL);
-            
             await updateProfile(user, { photoURL: downloadURL });
             
+            form.setValue('photoURL', downloadURL, { shouldValidate: true });
+
             toast({
                 title: 'Foto de perfil actualizada',
                 description: 'Tu nueva foto de perfil se ha guardado.',
