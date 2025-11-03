@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useUser, useAuth, useStorage, useFirestore } from '@/firebase';
 import { updateProfile, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,7 +70,7 @@ function ProfileForm() {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
-    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(null);
+    const [localPhotoURL, setLocalPhotoURL] = useState<string | null>(user?.photoURL || null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const userProfileRef = useMemoFirebase(() => {
@@ -112,11 +112,10 @@ function ProfileForm() {
             const downloadURL = await getDownloadURL(snapshot.ref);
             
             await updateProfile(user, { photoURL: downloadURL });
+            await updateDoc(doc(firestore, "users", user.uid), { photoURL: downloadURL });
             
-            // Update the user state in the context
             setUser({ ...user, photoURL: downloadURL });
-
-            setLocalPhotoURL(downloadURL); // Update local state for immediate UI feedback
+            setLocalPhotoURL(downloadURL);
             
             toast({
                 title: 'Foto de perfil actualizada',
@@ -142,6 +141,7 @@ function ProfileForm() {
             await updateProfile(auth.currentUser, {
                 displayName: data.displayName,
             });
+            await updateDoc(doc(firestore, "users", user.uid), { displayName: data.displayName });
              setUser({ ...user, displayName: data.displayName });
             toast({
                 title: 'Perfil actualizado',
