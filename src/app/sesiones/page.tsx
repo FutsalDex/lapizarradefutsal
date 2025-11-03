@@ -355,7 +355,7 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
     return (
         <div className="space-y-4">
              <h2 className="text-2xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-lg font-normal">({selectedIds.length}/{limit})</span></h2>
-             <div className="space-y-2">
+             <div className="grid grid-cols-1 gap-2">
                 {selectedExercises.map(ex => (
                     <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                 ))}
@@ -582,7 +582,7 @@ export default function CreateSessionPage() {
                                                 Previsualizar PDF
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="max-w-5xl h-[95vh] flex flex-col">
+                                        <DialogContent className="w-[95vw] h-[90vh] max-w-5xl flex flex-col">
                                            <DialogHeader className="flex-row items-center justify-between">
                                                 <DialogTitle>Previsualización de Ficha {selectedSessionType === 'pro' ? 'Pro' : 'Básica'}</DialogTitle>
                                                 <Button variant="primary" onClick={handleDownloadPdf}>
@@ -625,7 +625,7 @@ export default function CreateSessionPage() {
                         </CardContent>
                     </Card>
 
-                    <div className="space-y-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                          <PhaseSection
                             title="Fase Inicial (Calentamiento)"
                             phase="initialExercises"
