@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { Star, CheckCircle, ArrowRight, Book, Gift } from 'lucide-react';
+import { Star, CheckCircle, ArrowRight, Book, Gift, Send } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc } from 'firebase/firestore';
 
@@ -200,6 +201,37 @@ export default function SuscripcionPage() {
                                     </CardFooter>
                                 </Card>
                             ))}
+                        </CardContent>
+                    </Card>
+                     <Card className="mt-8">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Send className="h-5 w-5" />
+                                Instrucciones de Pago
+                            </CardTitle>
+                            <CardDescription>
+                                Para activar o renovar tu suscripción, sigue estos sencillos pasos.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
+                                <div className="bg-muted p-3 rounded-md text-center">
+                                    <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
+                                <div className="bg-muted p-3 rounded-md">
+                                    <code className="text-sm font-mono">LaPizarra ({user.email})</code>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenador@email.com)</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">
+                                    Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
+                                </p>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
