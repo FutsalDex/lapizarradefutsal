@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck } from 'lucide-react';
+import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck, PlusCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { doc, collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -71,7 +71,6 @@ export default function SuscripcionPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const [inviteEmail, setInviteEmail] = useState('');
     const [isInviting, setIsInviting] = useState(false);
 
     const userProfileRef = useMemoFirebase(() => {
@@ -101,28 +100,20 @@ export default function SuscripcionPage() {
     const invitedFriendsCount = 0;
     const pointsFromFriends = invitedFriendsCount * 25;
 
-    const handleInvite = async () => {
-        if (!user || !inviteEmail) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Por favor, introduce un email válido.' });
-            return;
-        }
-        setIsInviting(true);
-        try {
-            await addDoc(collection(firestore, 'invitations'), {
-                inviterId: user.uid,
-                inviterEmail: user.email,
-                inviteeEmail: inviteEmail,
-                status: 'pending',
-                createdAt: serverTimestamp(),
-            });
-            toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${inviteEmail}.` });
-            setInviteEmail('');
-        } catch (error) {
-            console.error("Error sending invitation:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo enviar la invitación.' });
-        } finally {
-            setIsInviting(false);
-        }
+    const handleWhatsAppInvite = () => {
+        if (!user) return;
+        
+        // As a real implementation would require a proper domain, we'll use a placeholder.
+        // The idea is to create a unique registration link for the referral.
+        const referralLink = `https://lapizarra-95eqd.web.app/acceso?ref=${user.uid}`;
+        const message = encodeURIComponent(`¡Hola! Te invito a unirte a LaPizarra, la mejor app para entrenadores de futsal. Regístrate usando mi enlace: ${referralLink}`);
+        
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+
+        toast({
+            title: "Enlace de invitación listo",
+            description: "Comparte el enlace con tus amigos a través de WhatsApp.",
+        });
     };
 
 
@@ -156,7 +147,7 @@ export default function SuscripcionPage() {
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="mb-12 text-center">
-                 <h1 className="text-4xl font-bold font-headline text-primary">Suscripción y Puntos</h1>
+                 <h1 className="text-4xl font-bold font-headline text-primary">Programa de Fidelización</h1>
                 <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</p>
             </div>
 
@@ -202,39 +193,35 @@ export default function SuscripcionPage() {
             </div>
             
             <div className='space-y-8'>
-                <div className="space-y-8 mb-12">
-                    <Card className="max-w-md mx-auto">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <UserPlus className="h-5 w-5" />
-                                Invita a tus Amigos
-                            </CardTitle>
-                            <CardDescription>
-                                Gana 25 puntos si se suscriben a un plan de pago.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex w-full items-center space-x-2">
-                                <Input 
-                                    type="email" 
-                                    placeholder="Email del amigo" 
-                                    value={inviteEmail}
-                                    onChange={(e) => setInviteEmail(e.target.value)}
-                                    disabled={!isSubscribed || isInviting} 
-                                />
-                                <Button onClick={handleInvite} disabled={!isSubscribed || isInviting || !inviteEmail}>
-                                    {isInviting ? 'Enviando...' : <Mail className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                            {!isSubscribed && (
-                                <p className="text-center text-xs text-muted-foreground mt-2">
-                                    Necesitas un plan de suscripción para invitar amigos.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserPlus className="h-5 w-5" />
+                            Invita a tus Amigos
+                        </CardTitle>
+                        <CardDescription>
+                            Gana 25 puntos si se suscriben a un plan de pago.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground mb-4">
+                           Pulsa el botón para generar un mensaje de WhatsApp con tu enlace de invitación personal. Compártelo con tus amigos para que se unan a LaPizarra.
+                        </p>
+                        <Button 
+                            onClick={handleWhatsAppInvite} 
+                            disabled={!isSubscribed || isInviting} 
+                            className="w-full"
+                        >
+                            <svg className="mr-2 h-5 w-5" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>WhatsApp</title><path fill="currentColor" d="M12.04 2.01C6.58 2.01 2.13 6.46 2.13 11.92c0 1.77.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91s-4.45-9.91-9.91-9.91zm0 18.16c-1.5 0-2.96-.4-4.22-1.13l-.3-.18-3.12.82.83-3.04-.2-.32a8.23 8.23 0 0 1-1.28-4.38c0-4.54 3.68-8.22 8.22-8.22 4.54 0 8.22 3.68 8.22 8.22s-3.68 8.22-8.22 8.22zm4.52-6.15c-.25-.12-1.47-.72-1.7-.82s-.39-.12-.56.12c-.16.25-.64.82-.79.99s-.29.16-.56.04c-.26-.12-1.1-."/></svg>
+                            Invitar por WhatsApp
+                        </Button>
+                        {!isSubscribed && (
+                            <p className="text-center text-xs text-muted-foreground mt-2">
+                                Necesitas un plan de suscripción para invitar amigos.
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <div className="mb-12 text-center">
                     <h2 className="text-3xl font-bold font-headline text-primary">Planes Disponibles</h2>
@@ -298,4 +285,3 @@ export default function SuscripcionPage() {
             </div>
         </div>
     );
-}
