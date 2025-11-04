@@ -57,7 +57,7 @@ export const FirebaseProvider: React.FC<{
     user,
     isUserLoading,
     setUser, // Expose setter for specific use cases like profile update
-  }), [firebaseApp, firestore, auth, storage, user, isUserLoading, setUser]);
+  }), [firebaseApp, firestore, auth, storage, user, isUserLoading]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>

@@ -14,11 +14,3 @@ export const firebaseConfig = {
   measurementId: "",
   messagingSenderId: "303306895935",
 };
-
-// Inicializa Firebase (solo una vez)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
-// Exporta las instancias de autenticación y Firestore
-export const auth = getAuth(app);
-export const firestore = getFirestore(app);
-export const storage = getStorage(app);
