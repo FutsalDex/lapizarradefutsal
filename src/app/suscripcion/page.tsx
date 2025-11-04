@@ -28,6 +28,7 @@ interface UserExercise {
 }
 
 interface Invitation {
+    id: string;
     inviterId: string;
     inviteeEmail: string;
     status: 'pending' | 'completed' | 'rejected';
@@ -47,35 +48,6 @@ const StatCard = ({ title, value, icon: Icon, subtext }: { title: string; value:
     </Card>
 );
 
-const plans = [
-    {
-        name: 'Plan Básico',
-        price: 19.90,
-        features: [
-            'Acceso a la biblioteca de ejercicios',
-            'Crear sesiones de entrenamiento',
-            'Gestión de 1 equipo',
-            'Marcador rápido',
-            'Guardar mis ejercicios favoritos',
-            'Descargar sesiones en PDF'
-        ],
-        cta: 'Suscribirse a Básico',
-    },
-    {
-        name: 'Plan Pro',
-        price: 39.90,
-        features: [
-            'Todo lo del plan Básico',
-            'Gestión de hasta 3 equipos',
-            'Añadir miembros al cuerpo técnico',
-            'Estadísticas avanzadas',
-            'Descargar sesiones a PDF Pro',
-        ],
-        cta: 'Suscribirse a Pro',
-    }
-];
-
-
 export default function SuscripcionPage() {
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
@@ -93,14 +65,14 @@ export default function SuscripcionPage() {
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
     
     const userExercisesQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !userProfile) return null; // Wait for userProfile
-        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        if (!user || !firestore || !userProfile?.subscriptionStartDate) return null;
+        const startDate = userProfile.subscriptionStartDate.toDate();
         return query(
             collection(firestore, 'userExercises'), 
             where('userId', '==', user.uid),
             where('createdAt', '>=', startDate)
         );
-    }, [firestore, user, userProfile]);
+    }, [firestore, user, userProfile?.subscriptionStartDate]);
     
     const userInvitationsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -307,68 +279,7 @@ export default function SuscripcionPage() {
                     </CardContent>
                 </Card>
 
-                <div className="mb-12 text-center">
-                    <h2 className="text-3xl font-bold font-headline text-primary">Planes Disponibles</h2>
-                </div>
-                
-                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    {plans.map(plan => (
-                        <Card key={plan.name} className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
-                                <p className="text-4xl font-bold">
-                                    {plan.price > 0 ? `${plan.price.toFixed(2)}€` : 'Gratis'}
-                                    {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
-                                </p>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <ul className="space-y-3">
-                                    {plan.features.map(feature => (
-                                        <li key={feature} className="flex items-start text-sm">
-                                            <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0" />
-                                            <span>{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Send className="h-5 w-5" />
-                            Instrucciones de Pago
-                        </CardTitle>
-                        <CardDescription>
-                            Para activar o renovar tu suscripción, sigue estos sencillos pasos.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div>
-                            <h3 className="font-semibold mb-2">1. Envía tu pago por Bizum al:</h3>
-                            <div className="bg-muted p-3 rounded-md text-center">
-                                <p className="text-2xl font-bold tracking-widest text-primary">607 820 029</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold mb-2">2. Usa el siguiente concepto en el pago:</h3>
-                            <div className="bg-muted p-3 rounded-md">
-                                <code className="text-sm font-mono">LaPizarra ({user.email})</code>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">
-                                Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     );
-
-    
 }
