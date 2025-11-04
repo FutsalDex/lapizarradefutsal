@@ -103,15 +103,13 @@ export default function SuscripcionPage() {
     }, [firestore, user, userProfile]);
     
     const userInvitationsQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !userProfile) return null; // Wait for userProfile
-        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        if (!user || !firestore) return null;
         return query(
             collection(firestore, 'invitations'), 
             where('inviterId', '==', user.uid), 
-            where('status', '==', 'completed'),
-            where('completedAt', '>=', startDate)
+            where('status', '==', 'completed')
         );
-    }, [firestore, user, userProfile]);
+    }, [firestore, user]);
 
 
     const { data: userExercises, isLoading: isLoadingExercises } = useCollection<UserExercise>(userExercisesQuery);
