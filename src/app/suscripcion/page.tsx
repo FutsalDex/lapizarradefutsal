@@ -19,6 +19,7 @@ interface UserProfile {
     subscription?: 'Básico' | 'Pro' | 'Invitado';
     createdAt?: { toDate: () => Date };
     points?: number;
+    subscriptionStartDate?: { toDate: () => Date };
     subscriptionEndDate?: { toDate: () => Date };
 }
 
@@ -91,13 +92,24 @@ export default function SuscripcionPage() {
     
     const userExercisesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, 'userExercises'), where('userId', '==', user.uid));
-    }, [firestore, user]);
+        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        return query(
+            collection(firestore, 'userExercises'), 
+            where('userId', '==', user.uid),
+            where('createdAt', '>=', startDate)
+        );
+    }, [firestore, user, userProfile]);
     
     const userInvitationsQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, 'invitations'), where('inviterId', '==', user.uid), where('status', '==', 'completed'));
-    }, [firestore, user]);
+        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        return query(
+            collection(firestore, 'invitations'), 
+            where('inviterId', '==', user.uid), 
+            where('status', '==', 'completed'),
+            where('completedAt', '>=', startDate)
+        );
+    }, [firestore, user, userProfile]);
 
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
     const { data: userExercises, isLoading: isLoadingExercises } = useCollection<UserExercise>(userExercisesQuery);
@@ -174,6 +186,7 @@ export default function SuscripcionPage() {
         }
     };
 
+    const hasReachedInvitationLimit = invitedFriendsCount >= 10;
 
     if (isUserLoading || isLoadingProfile || isLoadingExercises || isLoadingInvitations) {
         return (
@@ -215,13 +228,13 @@ export default function SuscripcionPage() {
                         title="Ejercicios subidos" 
                         value={uploadedExercisesCount} 
                         icon={FileUp} 
-                        subtext={`${uploadedExercisesCount * 10} puntos ganados`}
+                        subtext={`${uploadedExercisesCount * 10} puntos ganados este año`}
                     />
                      <StatCard 
                         title="Amigos suscritos" 
                         value={invitedFriendsCount} 
                         icon={Users}
-                        subtext={`${pointsFromFriends} puntos ganados`}
+                        subtext={`${pointsFromFriends} puntos ganados este año`}
                     />
                     <StatCard 
                         title="Puntos acumulados" 
@@ -268,16 +281,23 @@ export default function SuscripcionPage() {
                                 placeholder="Email del amigo"
                                 value={inviteEmail}
                                 onChange={(e) => setInviteEmail(e.target.value)}
-                                disabled={!isSubscribed || isInviting}
+                                disabled={!isSubscribed || isInviting || hasReachedInvitationLimit}
                                 className="w-full"
                             />
                             <Button 
                                 onClick={handleSendInvite} 
-                                disabled={!isSubscribed || isInviting || !inviteEmail}
+                                disabled={!isSubscribed || isInviting || !inviteEmail || hasReachedInvitationLimit}
                                 className="w-full sm:w-auto"
                             >
                                 {isInviting ? 'Generando...' : 'Invitar por WhatsApp'}
                             </Button>
+                        </div>
+                        <div className="text-sm text-muted-foreground max-w-md">
+                            <p>Invitaciones enviadas este año: {invitedFriendsCount} de 10</p>
+                            <Progress value={(invitedFriendsCount / 10) * 100} className="w-full mt-1" />
+                            {hasReachedInvitationLimit && (
+                                <p className="text-destructive font-semibold mt-2">Has alcanzado el límite de invitaciones para este año.</p>
+                            )}
                         </div>
                         {!isSubscribed && (
                             <p className="text-center text-xs text-muted-foreground mt-2">

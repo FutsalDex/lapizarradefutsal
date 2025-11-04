@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
 import { collection, addDoc, serverTimestamp, writeBatch, doc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -23,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { Progress } from '@/components/ui/progress';
 
 
 const categories = [
@@ -58,7 +60,7 @@ const exerciseSchema = z.object({
 
 type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
-function AddExerciseForm({ onExerciseAdded }: { onExerciseAdded: () => void }) {
+function AddExerciseForm({ onExerciseAdded, disabled }: { onExerciseAdded: () => void, disabled?: boolean }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -79,6 +81,11 @@ function AddExerciseForm({ onExerciseAdded }: { onExerciseAdded: () => void }) {
       toast({ variant: 'destructive', title: 'Error', description: 'Acceso no autorizado.' });
       return;
     }
+    if (disabled) {
+      toast({ variant: 'destructive', title: 'Límite alcanzado', description: 'Has alcanzado el límite de subida de ejercicios para este año.' });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const batch = writeBatch(firestore);
@@ -152,7 +159,7 @@ function AddExerciseForm({ onExerciseAdded }: { onExerciseAdded: () => void }) {
             </div>
             <FormField control={form.control} name="Visible" render={({ field }) => ( <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm"><div className="space-y-0.5"><FormLabel>Visible en la biblioteca pública</FormLabel></div><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl></FormItem> )} />
             <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Guardando...' : 'Añadir Ejercicio'}</Button>
+                <Button type="submit" disabled={isSubmitting || disabled}>{isSubmitting ? 'Guardando...' : 'Añadir Ejercicio'}</Button>
             </div>
           </form>
         </Form>
@@ -266,7 +273,28 @@ function MyExercisesList({ refreshKey }: { refreshKey: number }) {
 
 export default function MyExercisesPage() {
     const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
     const [refreshKey, setRefreshKey] = useState(0);
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile } = useDoc<{subscriptionStartDate?: {toDate: () => Date}}>(userProfileRef);
+
+    const userExercisesQuery = useMemoFirebase(() => {
+        if (!user || !userProfile) return null;
+        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        return query(
+            collection(firestore, 'userExercises'), 
+            where('userId', '==', user.uid),
+            where('createdAt', '>=', startDate)
+        );
+    }, [firestore, user, userProfile, refreshKey]);
+
+    const { data: exercisesThisYear } = useCollection<UserExercise>(userExercisesQuery);
+    const uploadedCount = exercisesThisYear?.length ?? 0;
+    const hasReachedExerciseLimit = uploadedCount >= 25;
 
     if (isUserLoading) {
         return <div className="container mx-auto px-4 py-8 text-center">Cargando...</div>;
@@ -303,7 +331,16 @@ export default function MyExercisesPage() {
                     <TabsTrigger value="list"><List className="mr-2 h-4 w-4"/>Mis Ejercicios Subidos</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upload" className="mt-6">
-                    <AddExerciseForm onExerciseAdded={() => setRefreshKey(k => k + 1)} />
+                    <div className="max-w-4xl mx-auto mb-6">
+                        <div className="text-sm text-muted-foreground">
+                            <p>Ejercicios subidos este año: {uploadedCount} de 25</p>
+                            <Progress value={(uploadedCount / 25) * 100} className="w-full mt-1" />
+                            {hasReachedExerciseLimit && (
+                                <p className="text-destructive font-semibold mt-2">Has alcanzado el límite de subida de ejercicios para este año.</p>
+                            )}
+                        </div>
+                    </div>
+                    <AddExerciseForm onExerciseAdded={() => setRefreshKey(k => k + 1)} disabled={hasReachedExerciseLimit} />
                 </TabsContent>
                 <TabsContent value="list" className="mt-6">
                     <MyExercisesList refreshKey={refreshKey} />
