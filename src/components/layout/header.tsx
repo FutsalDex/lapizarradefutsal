@@ -207,6 +207,8 @@ export function Header() {
             {isUserLoading ? (
               <div className="h-10 w-10 animate-pulse rounded-full bg-primary-foreground/10" />
             ) : user ? (
+                <>
+                {isAdmin && <AdminBadges />}
                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -225,6 +227,7 @@ export function Header() {
                     <DropdownMenuItem onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Cerrar Sesión</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                </>
             ) : null }
             <Sheet>
               <SheetTrigger asChild>
