@@ -134,6 +134,12 @@ export function Header() {
                       <span>Suscripción y Puntos</span>
                   </Link>
               </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                    <Link href="/planes">
+                        <Star className="mr-2 h-4 w-4" />
+                        <span>Ver Planes</span>
+                    </Link>
+                </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
@@ -223,6 +229,7 @@ export function Header() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><Link href="/perfil"><User className="mr-2 h-4 w-4" />Mi Perfil</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/suscripcion"><Star className="mr-2 h-4 w-4" />Suscripción y Puntos</Link></DropdownMenuItem>
+                     <DropdownMenuItem asChild><Link href="/planes"><Star className="mr-2 h-4 w-4" />Ver Planes</Link></DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Cerrar Sesión</DropdownMenuItem>
                   </DropdownMenuContent>

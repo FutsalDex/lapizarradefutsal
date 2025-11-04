@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -5,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { collection, query, where, addDoc, serverTimestamp, or, writeBatch, doc, deleteDoc } from 'firebase/firestore';
-import { useCollection, useFirestore, useUser } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,10 @@ interface Team {
   memberIds?: string[];
 }
 
+interface UserProfile {
+  subscription?: 'Básico' | 'Pro' | 'Invitado';
+}
+
 const createTeamSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
   club: z.string().optional(),
@@ -37,7 +42,7 @@ const createTeamSchema = z.object({
 type CreateTeamValues = z.infer<typeof createTeamSchema>;
 
 
-function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
+function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCreated: () => void, disabled: boolean, disabledReason: string }) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -50,12 +55,12 @@ function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
 
   const onSubmit = async (values: CreateTeamValues) => {
     if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debes iniciar sesión para crear un equipo.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un equipo.' });
       return;
+    }
+    if (disabled) {
+        toast({ variant: 'destructive', title: 'Límite alcanzado', description: disabledReason });
+        return;
     }
 
     setIsSubmitting(true);
@@ -139,9 +144,10 @@ function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isSubmitting} className="w-full">
+            <Button type="submit" disabled={isSubmitting || disabled} className="w-full">
               {isSubmitting ? 'Creando...' : 'Crear Equipo'}
             </Button>
+            {disabled && <p className="text-xs text-center text-destructive mt-2">{disabledReason}</p>}
           </form>
         </Form>
       </CardContent>
@@ -150,7 +156,7 @@ function CreateTeamForm({ onTeamCreated }: { onTeamCreated: () => void }) {
 }
 
 
-function OwnedTeamList({ refreshKey }: { refreshKey: number }) {
+function OwnedTeamList({ refreshKey, onOwnedTeamsLoaded }: { refreshKey: number, onOwnedTeamsLoaded: (count: number) => void }) {
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
@@ -161,6 +167,12 @@ function OwnedTeamList({ refreshKey }: { refreshKey: number }) {
 
   const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
   const isLoading = isAuthLoading || isLoadingOwned;
+
+  useMemo(() => {
+    if (ownedTeams) {
+        onOwnedTeamsLoaded(ownedTeams.length);
+    }
+  }, [ownedTeams, onOwnedTeamsLoaded]);
 
   return (
     <Card>
@@ -311,10 +323,35 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function GestionEquiposPage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ownedTeamsCount, setOwnedTeamsCount] = useState(0);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+    
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
+  
+  const { isCreationDisabled, disabledReason } = useMemo(() => {
+    const plan = userProfile?.subscription;
+    if (plan === 'Invitado') {
+        return { isCreationDisabled: true, disabledReason: 'Necesitas un plan de suscripción para crear equipos.'};
+    }
+    if (plan === 'Básico' && ownedTeamsCount >= 1) {
+        return { isCreationDisabled: true, disabledReason: 'El Plan Básico permite solo 1 equipo.'};
+    }
+    if (plan === 'Pro' && ownedTeamsCount >= 3) {
+        return { isCreationDisabled: true, disabledReason: 'El Plan Pro permite hasta 3 equipos.'};
+    }
+    return { isCreationDisabled: false, disabledReason: ''};
+  }, [userProfile, ownedTeamsCount]);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -338,11 +375,11 @@ export default function GestionEquiposPage() {
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <div className="md:col-span-2 space-y-8">
-                <OwnedTeamList refreshKey={refreshKey} />
+                <OwnedTeamList refreshKey={refreshKey} onOwnedTeamsLoaded={setOwnedTeamsCount}/>
                 <SharedTeamList refreshKey={refreshKey} />
             </div>
              <div className="md:col-span-1">
-                <CreateTeamForm onTeamCreated={handleRefresh} />
+                <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
              </div>
         </div>
       </AuthGuard>

@@ -52,6 +52,7 @@ interface UserProfile {
   displayName?: string;
   email: string;
   photoURL?: string;
+  subscription?: 'Básico' | 'Pro' | 'Invitado';
 }
 
 const staffRoles = [
@@ -377,6 +378,13 @@ export default function StaffPage() {
   const [ownerProfile, setOwnerProfile] = useState<TeamMember | null>(null);
   const [isLoadingOwner, setIsLoadingOwner] = useState(true);
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfileData } = useDoc<UserProfile>(userProfileRef);
+
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
@@ -447,6 +455,7 @@ export default function StaffPage() {
   }, [teamMembers, ownerProfile, team?.ownerId]);
 
   const isOwner = user && team && user.uid === team.ownerId;
+  const isProPlan = userProfileData?.subscription === 'Pro';
   const isLoading = isLoadingTeam || isLoadingMembers || isLoadingOwner;
 
   const handleDataChange = () => {
@@ -511,7 +520,7 @@ export default function StaffPage() {
               Volver
             </Link>
           </Button>
-          {isOwner && <AddMemberDialog team={team} onInvitationSent={handleDataChange} />}
+          {isOwner && isProPlan && <AddMemberDialog team={team} onInvitationSent={handleDataChange} />}
         </div>
       </div>
 
@@ -520,6 +529,23 @@ export default function StaffPage() {
             <Skeleton className="h-96 w-full" />
          ) : (
             <TeamStaffTable members={allMembers} team={team} isOwner={!!isOwner} onDataChange={handleDataChange} />
+         )}
+         {isOwner && !isProPlan && (
+            <Card className="border-primary">
+                <CardHeader>
+                    <CardTitle>Función Pro</CardTitle>
+                    <CardDescription>
+                        Para añadir miembros a tu cuerpo técnico, necesitas una suscripción al Plan Pro.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/suscripcion">
+                            Ver Planes de Suscripción
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
          )}
        </div>
     </div>

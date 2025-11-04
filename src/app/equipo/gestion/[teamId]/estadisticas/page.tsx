@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -5,10 +6,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BarChart, Trophy, Users } from 'lucide-react';
+import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
+import { doc } from 'firebase/firestore';
+
+interface UserProfile {
+  subscription?: 'Básico' | 'Pro' | 'Invitado';
+}
 
 export default function TeamStatsDashboardPage() {
     const params = useParams();
     const teamId = typeof params.teamId === 'string' ? params.teamId : '';
+    const firestore = useFirestore();
+    const { user } = useUser();
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+    
+    const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+
+    const isProPlan = userProfile?.subscription === 'Pro';
 
     const statsItems = [
         {
@@ -16,14 +35,14 @@ export default function TeamStatsDashboardPage() {
             description: 'Resumen del rendimiento en partidos: victorias, derrotas, goles a favor, goles en contra y más métricas globales.',
             icon: <Trophy className="w-8 h-8 text-primary" />,
             href: `/equipo/gestion/${teamId}/estadisticas/equipo`,
-            disabled: false,
+            disabled: !isProPlan,
         },
         {
             title: 'Estadísticas de Jugadores',
             description: 'Consulta las estadísticas individuales de todos los jugadores de tu plantilla: goles, asistencias, tarjetas y más.',
             icon: <Users className="w-8 h-8 text-primary" />,
             href: `/equipo/gestion/${teamId}/estadisticas/jugadores`,
-            disabled: false,
+            disabled: !isProPlan,
         },
     ];
 
@@ -54,11 +73,12 @@ export default function TeamStatsDashboardPage() {
                         </CardHeader>
                         <CardContent className="flex-grow">
                             <CardDescription>{item.description}</CardDescription>
+                             {item.disabled && <p className="text-xs text-primary font-semibold mt-2">Requiere Plan Pro</p>}
                         </CardContent>
                         <div className="p-6 pt-0">
                             <Button asChild className="w-full" disabled={item.disabled}>
                                 <Link href={item.href}>
-                                    {item.disabled ? "Próximamente" : "Ver Estadísticas"}
+                                    {item.disabled ? "Función Pro" : "Ver Estadísticas"}
                                     {!item.disabled && <ArrowRight className="w-4 h-4 ml-2" />}
                                 </Link>
                             </Button>
@@ -66,6 +86,23 @@ export default function TeamStatsDashboardPage() {
                     </Card>
                 ))}
             </div>
+             {!isProPlan && (
+                <Card className="mt-8 max-w-4xl mx-auto border-primary">
+                     <CardHeader>
+                        <CardTitle>Desbloquea las Estadísticas Avanzadas</CardTitle>
+                        <CardDescription>
+                            Para acceder a un análisis detallado del rendimiento de tu equipo y jugadores, necesitas una suscripción al Plan Pro.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild>
+                            <Link href="/suscripcion">
+                                Ver Planes de Suscripción
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
