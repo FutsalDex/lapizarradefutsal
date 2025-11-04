@@ -300,7 +300,7 @@ export default function QuickScoreboardPage() {
 
                     {/* Main Controls */}
                     <div className="flex justify-center items-center gap-4">
-                        <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-700")}>
+                        <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
                             {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                             {isTimerActive ? 'Pausar' : 'Iniciar'}
                         </Button>
