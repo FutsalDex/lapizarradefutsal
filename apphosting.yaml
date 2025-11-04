@@ -2,7 +2,6 @@
 
 runConfig:
   runtime: nodejs20
-  source: .
   framework:
     type: nextjs
   maxInstances: 1
