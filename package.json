@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
-    "dev:studio": "bash -c 'lsof -ti:9100 | xargs kill -9 2>/dev/null || true && NEXT_DISABLE_CORS=1 next dev -p 9100'",
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
