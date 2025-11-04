@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'standalone',  // Para Firebase Hosting (SSR)
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',  // Para Storage de Firebase
+        hostname: 'firebasestorage.googleapis.com',
         port: '',
         pathname: '/**',
       },

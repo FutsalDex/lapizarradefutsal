@@ -2,10 +2,7 @@
 
 runConfig:
   runtime: nodejs20
-  build:
-    command: npm run build
   source: .
   framework:
     type: nextjs
   maxInstances: 1
-
