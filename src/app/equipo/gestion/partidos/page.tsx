@@ -10,14 +10,12 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
 import { CalendarIcon } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import {
-  Button,
-  Input,
-  Textarea,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  Calendar,
   Form,
   FormControl,
   FormDescription,
@@ -25,12 +23,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+} from "@/components/ui/form"
+import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui" // ajusta la ruta a tu proyecto
+} from "@/components/ui/select"
 
 // --- Esquema de validación ---
 const formSchema = z.object({
