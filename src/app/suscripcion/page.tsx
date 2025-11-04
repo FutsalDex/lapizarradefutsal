@@ -62,7 +62,7 @@ const plans = [
     },
     {
         name: 'Plan Pro',
-        price: 39.95,
+        price: 39.90,
         features: [
             'Todo lo del plan Básico',
             'Gestión de hasta 3 equipos',
