@@ -1,26 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
-  // Clone the request headers and set a new header `x-version`
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-hello-from-middleware-1', 'hello')
-
-  // You can also set request headers in NextResponse.rewrite
-  const response = NextResponse.next({
-    request: {
-      // New request headers
-      headers: requestHeaders,
-    },
-  })
-
-  // Set a new response header `x-version`
-  response.headers.set('x-hello-from-middleware-2', 'hello')
+  const response = NextResponse.next()
+  response.headers.set('Access-Control-Allow-Origin', '*')
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   return response
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
-  matcher: '/',
+  matcher: ['/api/:path*', '/'], // rutas donde aplicará el middleware
 }
