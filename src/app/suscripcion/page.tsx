@@ -90,8 +90,10 @@ export default function SuscripcionPage() {
         return doc(firestore, 'users', user.uid);
     }, [firestore, user]);
     
+    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+    
     const userExercisesQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
+        if (!user || !firestore || !userProfile) return null; // Wait for userProfile
         const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
         return query(
             collection(firestore, 'userExercises'), 
@@ -101,7 +103,7 @@ export default function SuscripcionPage() {
     }, [firestore, user, userProfile]);
     
     const userInvitationsQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
+        if (!user || !firestore || !userProfile) return null; // Wait for userProfile
         const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
         return query(
             collection(firestore, 'invitations'), 
@@ -111,7 +113,7 @@ export default function SuscripcionPage() {
         );
     }, [firestore, user, userProfile]);
 
-    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
     const { data: userExercises, isLoading: isLoadingExercises } = useCollection<UserExercise>(userExercisesQuery);
     const { data: completedInvitations, isLoading: isLoadingInvitations } = useCollection<Invitation>(userInvitationsQuery);
 
