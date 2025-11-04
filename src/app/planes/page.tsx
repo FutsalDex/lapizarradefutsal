@@ -11,7 +11,7 @@ import { useRef } from 'react';
 const plans = [
     {
         name: 'Plan Básico',
-        price: 19.95,
+        price: 19.90,
         features: [
             'Acceso a la biblioteca de ejercicios',
             'Crear sesiones de entrenamiento',
@@ -23,7 +23,7 @@ const plans = [
         cta: 'Suscribirse a Básico',
     },
     {
-        name: 'Pro',
+        name: 'Plan Pro',
         price: 39.95,
         features: [
             'Todo lo del plan Básico',
@@ -61,7 +61,7 @@ export default function PlanesPage() {
                         <CardHeader>
                             <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
                             <p className="text-4xl font-bold">
-                                {plan.price > 0 ? `${plan.price}€` : 'Gratis'}
+                                {plan.price > 0 ? `${plan.price.toFixed(2)}€` : 'Gratis'}
                                 {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
                             </p>
                         </CardHeader>

@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
-    subscription?: string;
+    subscription?: 'Básico' | 'Pro' | 'Invitado';
     createdAt?: { toDate: () => Date };
     points?: number;
     subscriptionEndDate?: { toDate: () => Date };
@@ -49,7 +49,7 @@ const StatCard = ({ title, value, icon: Icon, subtext }: { title: string; value:
 const plans = [
     {
         name: 'Plan Básico',
-        price: 19.95,
+        price: 19.90,
         features: [
             'Acceso a la biblioteca de ejercicios',
             'Crear sesiones de entrenamiento',
@@ -61,7 +61,7 @@ const plans = [
         cta: 'Suscribirse a Básico',
     },
     {
-        name: 'Pro',
+        name: 'Plan Pro',
         price: 39.95,
         features: [
             'Todo lo del plan Básico',
@@ -112,9 +112,18 @@ export default function SuscripcionPage() {
     
     const isSubscribed = userSubscription.plan === 'Básico' || userSubscription.plan === 'Pro';
 
-    const uploadedExercisesCount = userExercises?.length ?? 0;
-    const renewalSavings = ((userSubscription.points / 1200) * 39.95).toFixed(2);
+    const renewalSavings = useMemo(() => {
+        const points = userSubscription.points;
+        let discount = 0;
+        if (userSubscription.plan === 'Básico') {
+            discount = points * 0.02;
+        } else if (userSubscription.plan === 'Pro') {
+            discount = points * 0.04;
+        }
+        return discount.toFixed(2);
+    }, [userSubscription.points, userSubscription.plan]);
     
+    const uploadedExercisesCount = userExercises?.length ?? 0;
     const invitedFriendsCount = completedInvitations?.length ?? 0;
     const pointsFromFriends = invitedFriendsCount * 25;
 
@@ -288,7 +297,7 @@ export default function SuscripcionPage() {
                             <CardHeader>
                                 <CardTitle className="font-headline text-2xl">{plan.name}</CardTitle>
                                 <p className="text-4xl font-bold">
-                                    {plan.price > 0 ? `${plan.price}€` : 'Gratis'}
+                                    {plan.price > 0 ? `${plan.price.toFixed(2)}€` : 'Gratis'}
                                     {plan.price > 0 && <span className="text-base font-normal text-muted-foreground">/año</span>}
                                 </p>
                             </CardHeader>
