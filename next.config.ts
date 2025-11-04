@@ -1,35 +1,31 @@
-import path from "path";
-import { fileURLToPath } from "url";
-import type { NextConfig } from "next";
-
-// 🔧 __dirname manual (para compatibilidad ESM)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'standalone',  // Para Firebase Hosting (SSR)
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "placehold.co", pathname: "/**" },
-      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
-      { protocol: "https", hostname: "picsum.photos", pathname: "/**" },
-      { protocol: "https", hostname: "i.ibb.co", pathname: "/**" }
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',  // Para Storage de Firebase
+        port: '',
+        pathname: '/**',
+      },
     ],
-  },
-  webpack: (config) => {
-    // 👇 Asegura que el alias @ siempre apunte a /src
-    if (!config.resolve) config.resolve = {};
-    if (!config.resolve.alias) config.resolve.alias = {};
-
-    config.resolve.alias["@"] = path.resolve(__dirname, "src");
-    console.log("✅ Alias @ configurado en:", config.resolve.alias["@"]);
-
-    return config;
   },
 };
 
