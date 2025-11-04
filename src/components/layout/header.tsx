@@ -65,16 +65,16 @@ export function Header() {
     return query(collection(firestore, 'invitations'), where('status', '==', 'pending'));
   }, [firestore, isAdmin]);
   
-  const usersQuery = useMemoFirebase(() => {
+  const pendingUsersQuery = useMemoFirebase(() => {
     if (!firestore || !isAdmin) return null;
-    return collection(firestore, 'users');
+    return query(collection(firestore, 'users'), where('subscription', '==', 'Invitado'));
   }, [firestore, isAdmin]);
 
   const { data: pendingInvitations } = useCollection(pendingInvitationsQuery);
-  const { data: allUsers } = useCollection(usersQuery);
+  const { data: pendingUsers } = useCollection(pendingUsersQuery);
 
   const pendingInvitationsCount = pendingInvitations?.length || 0;
-  const usersCount = allUsers?.length || 0;
+  const pendingUsersCount = pendingUsers?.length || 0;
 
   const AdminBadges = () => (
     <>
@@ -89,8 +89,8 @@ export function Header() {
        <Button asChild variant="ghost" className="relative h-10 w-10 rounded-full">
         <Link href="/admin/usuarios">
             <UsersIcon className="h-5 w-5" />
-            {usersCount > 0 && (
-                <Badge className="absolute top-1 right-1 h-5 w-5 p-0 justify-center rounded-full text-xs">{usersCount}</Badge>
+            {pendingUsersCount > 0 && (
+                <Badge variant="destructive" className="absolute top-1 right-1 h-5 w-5 p-0 justify-center rounded-full text-xs">{pendingUsersCount}</Badge>
             )}
         </Link>
       </Button>
