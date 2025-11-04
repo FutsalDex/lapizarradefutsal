@@ -11,9 +11,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'i.ibb.co', pathname: '/**' },
     ],
   },
-  experimental: {
-    allowedDevelopmentOrigins: ['https://*.firebase.app', 'https://*.web.app'],
-  },
 };
 
 export default nextConfig;
