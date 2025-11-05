@@ -1,14 +1,15 @@
 
+
 "use client";
 
 import { matches as initialMatches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import React from 'react';
@@ -55,6 +56,8 @@ export default function PartidosPage() {
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
     const [matches, setMatches] = React.useState<Match[]>(initialMatches);
+
+    const [date, setDate] = React.useState<Date>();
 
 
     const handleSelectAll = (checked: boolean) => {
@@ -126,11 +129,80 @@ export default function PartidosPage() {
                 </Link>
             </Button>
         </div>
-        <Button asChild>
-          <Link href="/partidos/crear">
-            <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
-          </Link>
-        </Button>
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Añadir Nuevo Partido</DialogTitle>
+                    <DialogDescription>Introduce los datos básicos del partido. Podrás añadir las estadísticas más tarde.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="local-team-add">Equipo Local</Label>
+                        <div className="flex gap-2">
+                            <Input id="local-team-add" placeholder="Nombre del equipo" />
+                            <Button variant="outline">Mi Equipo</Button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="visitor-team-add">Equipo Visitante</Label>
+                         <div className="flex gap-2">
+                            <Input id="visitor-team-add" placeholder="Nombre del equipo" />
+                            <Button variant="outline">Mi Equipo</Button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Fecha del partido</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date ? format(date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={date}
+                                    onSelect={setDate}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="type-add">Tipo</Label>
+                        <Select defaultValue="Amistoso">
+                            <SelectTrigger id="type-add">
+                                <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Liga">Liga</SelectItem>
+                                <SelectItem value="Copa">Copa</SelectItem>
+                                <SelectItem value="Torneo">Torneo</SelectItem>
+                                <SelectItem value="Amistoso">Amistoso</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="ghost">Cancelar</Button>
+                    </DialogClose>
+                    <Button><Save className="mr-2" /> Crear Partido</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
       </div>
       
        <div className='mb-8'>
