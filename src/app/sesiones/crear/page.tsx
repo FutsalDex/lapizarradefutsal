@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Calendar as CalendarIcon, Clock, Search, Eye, Save } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, Clock, Search, Eye, Save, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,17 @@ export default function CrearSesionPage() {
       return prev;
     });
   };
+
+  const removeExercise = (phase: SessionPhase, index: number) => {
+    setSelectedExercises(prev => {
+      const newPhaseExercises = [...prev[phase]];
+      newPhaseExercises.splice(index, 1);
+      return {
+        ...prev,
+        [phase]: newPhaseExercises
+      };
+    });
+  };
   
     const allCategories = [...new Set(exercises.map(e => e.category))];
     const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
@@ -66,9 +77,9 @@ export default function CrearSesionPage() {
     return (
     <Dialog>
       <DialogTrigger asChild>
-        <button className="w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-8 text-muted-foreground hover:bg-muted transition-colors">
+        <button className="w-full h-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-4 text-muted-foreground hover:bg-muted transition-colors">
           <PlusCircle className="h-8 w-8 mb-2" />
-          <span>Añadir Tarea</span>
+          <span className="text-sm">Añadir Tarea</span>
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-5xl">
@@ -134,6 +145,7 @@ export default function CrearSesionPage() {
   const PhaseSection = ({ phase, title, subtitle }: { phase: SessionPhase; title: string; subtitle: string }) => {
     const exercisesForPhase = selectedExercises[phase];
     const limit = phaseLimits[phase];
+    const placeholders = Array.from({ length: limit - exercisesForPhase.length });
 
     return (
         <Card>
@@ -142,15 +154,31 @@ export default function CrearSesionPage() {
             <CardDescription>{subtitle}</CardDescription>
             </CardHeader>
             <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                {exercisesForPhase.map(ex => (
-                    <div key={ex.id} className="border rounded-lg p-2 flex items-center gap-3">
-                         <Image src={ex.imageUrl} alt={ex.title} width={64} height={48} className="rounded-md object-cover h-12 w-16" />
-                         <span className="text-sm font-medium truncate">{ex.title}</span>
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {exercisesForPhase.map((ex, index) => (
+                     <Card key={ex.id} className="overflow-hidden group relative">
+                        <div className="relative aspect-video w-full bg-primary/80">
+                         <Image src={ex.tacticsUrl} alt={ex.title} layout="fill" objectFit="contain" className="p-2" />
+                        </div>
+                        <div className="p-2 text-center border-t bg-card">
+                             <p className="text-xs font-semibold truncate">{ex.title}</p>
+                        </div>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => removeExercise(phase, index)}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </Card>
+                ))}
+                {placeholders.map((_, index) => (
+                    <div key={index}>
+                        <ExercisePicker phase={phase} />
                     </div>
                 ))}
             </div>
-             {exercisesForPhase.length < limit && <ExercisePicker phase={phase} />}
             </CardContent>
         </Card>
     );
@@ -301,5 +329,3 @@ export default function CrearSesionPage() {
     </div>
   );
 }
-
-    
