@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -199,8 +200,8 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
-    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
+    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + (period === '2ª Parte' ? playerStats.reduce((acc, p) => acc + p.g, 0) : 0);
+    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + (period === '2ª Parte' ? opponentStats.goles : 0);
     
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.faltas;
@@ -274,16 +275,6 @@ export default function EstadisticasPartidoPage() {
             return player;
         });
         setPlayerStats(updatedStats);
-    
-        if (stat === 'g') {
-            setStats(prev => ({
-                ...prev,
-                [period]: {
-                    ...prev[period],
-                    playerStats: updatedStats,
-                }
-            }));
-        }
     };
     
     
@@ -298,7 +289,7 @@ export default function EstadisticasPartidoPage() {
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
                 });
-                return;
+                return; // Do not modify the set
             }
             newIds.add(playerId);
         }
@@ -315,14 +306,6 @@ export default function EstadisticasPartidoPage() {
         const newGoals = Math.max(0, opponentStats.goles + delta);
         const updatedOpponentStats = { ...opponentStats, goles: newGoals };
         setOpponentStats(updatedOpponentStats);
-        
-        setStats(prev => ({
-            ...prev,
-            [period]: {
-                ...prev[period],
-                opponentStats: updatedOpponentStats,
-            }
-        }));
     };
 
   return (
@@ -447,7 +430,7 @@ export default function EstadisticasPartidoPage() {
                                             <TableCell className={cn(
                                                 "sticky left-0 p-2 min-w-[150px]", 
                                                 selectedPlayerIds.has(player.id) 
-                                                    ? "bg-green-100/50 dark:bg-green-900/30 text-destructive font-bold" 
+                                                    ? "bg-green-100/50 dark:bg-green-900/30 font-bold" 
                                                     : "bg-card font-medium"
                                             )}>{player.id}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
