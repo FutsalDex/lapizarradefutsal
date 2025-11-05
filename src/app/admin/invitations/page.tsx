@@ -6,22 +6,32 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
-// Future data structure
-// type Invitation = {
-//   inviterEmail: string;
-//   invitedEmail: string;
-//   invitationDate: string;
-//   invitedPlan: string;
-//   status: 'Pendiente' | 'Completada';
-// };
+type Invitation = {
+  inviterEmail: string;
+  invitedEmail: string;
+  invitationDate: string;
+  invitedPlan: string;
+  status: 'Pendiente' | 'Completada';
+};
+
+const allInvitations: Invitation[] = [
+    { inviterEmail: 'futsaldex@gmail.com', invitedEmail: 'mixel_75@hotmail.com', invitationDate: '04/11/2025', invitedPlan: 'Pro', status: 'Completada' },
+    { inviterEmail: 'futsaldex@gmail.com', invitedEmail: 'ruperto@gmail.com', invitationDate: '04/11/2025', invitedPlan: 'No Registrado', status: 'Completada' },
+    { inviterEmail: 'futsaldex@gmail.com', invitedEmail: 'hgdf@gjj.com', invitationDate: '03/11/2025', invitedPlan: 'No Registrado', status: 'Completada' },
+];
+
 
 export default function InvitationsPage() {
-  const [activeTab, setActiveTab] = useState('Pendientes');
+  const [activeTab, setActiveTab] = useState('Completadas');
   
-  // const invitations: Invitation[] = [];
+  const filteredInvitations = allInvitations.filter(invitation => {
+    if (activeTab === 'Todas') return true;
+    return invitation.status === activeTab;
+  });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -51,8 +61,8 @@ export default function InvitationsPage() {
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
-              <TabsTrigger value="Pendientes">Pendientes</TabsTrigger>
-              <TabsTrigger value="Completadas">Completadas</TabsTrigger>
+              <TabsTrigger value="Pendiente">Pendientes</TabsTrigger>
+              <TabsTrigger value="Completada">Completadas</TabsTrigger>
               <TabsTrigger value="Todas">Todas</TabsTrigger>
             </TabsList>
             <div className="border rounded-lg mt-4">
@@ -68,11 +78,41 @@ export default function InvitationsPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                            No hay invitaciones en esta categoría.
-                        </TableCell>
-                    </TableRow>
+                    {filteredInvitations.length > 0 ? (
+                        filteredInvitations.map((invitation, index) => (
+                            <TableRow key={index}>
+                                <TableCell>{invitation.inviterEmail}</TableCell>
+                                <TableCell>{invitation.invitedEmail}</TableCell>
+                                <TableCell>{invitation.invitationDate}</TableCell>
+                                <TableCell>
+                                    {invitation.invitedPlan === 'No Registrado' ? (
+                                        <span className="text-muted-foreground">{invitation.invitedPlan}</span>
+                                    ) : (
+                                        <Badge>{invitation.invitedPlan}</Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={invitation.status === 'Completada' ? 'secondary' : 'default'} className={invitation.status === 'Completada' ? 'bg-green-100 text-green-800' : ''}>
+                                        {invitation.status}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="flex items-center gap-2">
+                                     <Button variant="outline" size="sm">
+                                        <ThumbsUp className="mr-2" /> Aprobar
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                         <TableRow>
+                            <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                No hay invitaciones en esta categoría.
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
                 </Table>
             </div>
