@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -41,13 +42,13 @@ type PlayerStat = {
 };
 
 const initialPlayerStats: PlayerStat[] = [
-    { id: 1, name: "Manel", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 2, t_fuera: 1, recup: 1, perdidas: 0, paradas: 2, gc: 1, vs1: 0, ta: 0, tr: 0 },
-    { id: 2, name: "Marc Montoro", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 2, recup: 1, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 5, name: "Dani", timePlayed: 0, g: 0, a: 1, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 1, perdidas: 1, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 6, name: "Adam", timePlayed: 0, g: 2, a: 0, fouls: 1, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 7, name: "Hugo", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 1, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 8, name: "Victor", timePlayed: 0, g: 0, a: 1, fouls: 1, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 9, name: "Marc Romera", timePlayed: 0, g: 1, a: 0, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 1, name: "Manel", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 2, name: "Marc Montoro", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 5, name: "Dani", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 6, name: "Adam", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 7, name: "Hugo", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 8, name: "Victor", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 9, name: "Marc Romera", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
 ];
 
 const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncrement: () => void, onDecrement: () => void }) => (
@@ -67,14 +68,14 @@ type OpponentStats = {
     perdidas: number;
 }
 
-const initialOpponentStats: OpponentStats = {
-    goles: 2,
-    tirosPuerta: 5,
-    tirosFuera: 3,
-    faltas: 4,
-    recuperaciones: 8,
-    perdidas: 10,
-};
+const getInitialOpponentStats = (): OpponentStats => ({
+    goles: 0,
+    tirosPuerta: 0,
+    tirosFuera: 0,
+    faltas: 0,
+    recuperaciones: 0,
+    perdidas: 0,
+});
 
 const getInitialPlayerStats = (): PlayerStat[] => 
     initialPlayerStats.map(p => ({
@@ -118,23 +119,23 @@ export default function EstadisticasPartidoPage() {
     const [stats, setStats] = useState<Record<Period, PeriodStats>>({
         '1ª Parte': {
             playerStats: getInitialPlayerStats(),
-            opponentStats: { ...initialOpponentStats, goles: 0, tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 },
+            opponentStats: getInitialOpponentStats(),
             localTimeoutTaken: false,
             opponentTimeoutTaken: false,
         },
         '2ª Parte': {
             playerStats: getInitialPlayerStats(),
-            opponentStats: { ...initialOpponentStats, goles: 0, tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 },
+            opponentStats: getInitialOpponentStats(),
             localTimeoutTaken: false,
             opponentTimeoutTaken: false,
         }
     });
     
     // States for the current period
-    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(stats['1ª Parte'].playerStats);
-    const [opponentStats, setOpponentStats] = useState<OpponentStats>(stats['1ª Parte'].opponentStats);
-    const [localTimeoutTaken, setLocalTimeoutTaken] = useState<boolean>(stats['1ª Parte'].localTimeoutTaken);
-    const [opponentTimeoutTaken, setOpponentTimeoutTaken] = useState<boolean>(stats['1ª Parte'].opponentTimeoutTaken);
+    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(stats[period].playerStats);
+    const [opponentStats, setOpponentStats] = useState<OpponentStats>(stats[period].opponentStats);
+    const [localTimeoutTaken, setLocalTimeoutTaken] = useState<boolean>(stats[period].localTimeoutTaken);
+    const [opponentTimeoutTaken, setOpponentTimeoutTaken] = useState<boolean>(stats[period].opponentTimeoutTaken);
     
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
     const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
@@ -165,6 +166,7 @@ export default function EstadisticasPartidoPage() {
         return () => clearInterval(autoSaveInterval);
     }, [saveStats, toast]);
     
+    // Effect to update current period stats when period or the main stats object changes
     useEffect(() => {
         const newPeriodStats = stats[period];
         setPlayerStats(newPeriodStats.playerStats);
@@ -177,10 +179,16 @@ export default function EstadisticasPartidoPage() {
         setSelectedPlayerIds(new Set());
     }, [period, stats]);
 
+    // Save current stats before changing period
     const handlePeriodChange = (newPeriod: Period) => {
         if (period === newPeriod) return;
 
-        saveStats(true);
+        // Save current period's data into the main state
+        setStats(prev => ({
+            ...prev,
+            [period]: { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken }
+        }));
+        // Switch to the new period
         setPeriod(newPeriod);
     };
 
@@ -191,11 +199,8 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const currentPeriodLocalGoals = playerStats.reduce((acc, p) => acc + p.g, 0);
-    const totalLocalScore = (period === '1ª Parte' ? 0 : stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0)) + currentPeriodLocalGoals;
-
-    const currentPeriodOpponentGoals = opponentStats.goles;
-    const totalOpponentScore = (period === '1ª Parte' ? 0 : stats['1ª Parte'].opponentStats.goles) + currentPeriodOpponentGoals;
+    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
     
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.faltas;
@@ -258,28 +263,36 @@ export default function EstadisticasPartidoPage() {
         const seconds = timeInSeconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
-
+    
     const handleStatChange = (playerId: number, stat: keyof PlayerStat, delta: number) => {
-        setPlayerStats(prevStats =>
-            prevStats.map(player => {
-                if (player.id === playerId) {
-                    const currentVal = player[stat as keyof Omit<PlayerStat, 'name' | 'timePlayed'>] as number;
-                    const newVal = Math.max(0, currentVal + delta);
-                    return { ...player, [stat]: newVal };
+        const updatedStats = playerStats.map(player => {
+            if (player.id === playerId) {
+                const currentVal = player[stat as keyof Omit<PlayerStat, 'name' | 'timePlayed'>] as number;
+                const newVal = Math.max(0, currentVal + delta);
+                return { ...player, [stat]: newVal };
+            }
+            return player;
+        });
+        setPlayerStats(updatedStats);
+    
+        if (stat === 'g') {
+            setStats(prev => ({
+                ...prev,
+                [period]: {
+                    ...prev[period],
+                    playerStats: updatedStats,
                 }
-                return player;
-            })
-        );
+            }));
+        }
     };
+    
     
     const handlePlayerSelection = (playerId: number) => {
         const newIds = new Set(selectedPlayerIds);
         if (newIds.has(playerId)) {
             newIds.delete(playerId);
         } else {
-            if (newIds.size < 5) {
-                newIds.add(playerId);
-            } else {
+            if (newIds.size >= 5) {
                 toast({
                     variant: "destructive",
                     title: "Límite alcanzado",
@@ -287,6 +300,7 @@ export default function EstadisticasPartidoPage() {
                 });
                 return;
             }
+            newIds.add(playerId);
         }
         setSelectedPlayerIds(newIds);
     };
@@ -296,6 +310,20 @@ export default function EstadisticasPartidoPage() {
         alert("Partido Finalizado. (Lógica de guardado pendiente)");
         setIsActive(false);
     }
+    
+    const handleOpponentGoalChange = (delta: number) => {
+        const newGoals = Math.max(0, opponentStats.goles + delta);
+        const updatedOpponentStats = { ...opponentStats, goles: newGoals };
+        setOpponentStats(updatedOpponentStats);
+        
+        setStats(prev => ({
+            ...prev,
+            [period]: {
+                ...prev[period],
+                opponentStats: updatedOpponentStats,
+            }
+        }));
+    };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -376,7 +404,7 @@ export default function EstadisticasPartidoPage() {
             </CardContent>
         </Card>
 
-        <Tabs defaultValue="team-a">
+        <Tabs defaultValue="team-a" value="team-a">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="team-a">Juvenil B</TabsTrigger>
                 <TabsTrigger value="team-b">FS Vencedores</TabsTrigger>
@@ -531,8 +559,8 @@ export default function EstadisticasPartidoPage() {
                            <OpponentStatCounter 
                                 title="Goles"
                                 value={opponentStats.goles}
-                                onIncrement={() => handleOpponentStatChange('goles', 1)}
-                                onDecrement={() => handleOpponentStatChange('goles', -1)}
+                                onIncrement={() => handleOpponentGoalChange(1)}
+                                onDecrement={() => handleOpponentGoalChange(-1)}
                                 icon={<Goal className="text-muted-foreground" />}
                            />
                            <OpponentStatCounter 
@@ -578,3 +606,6 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
+
+
+    
