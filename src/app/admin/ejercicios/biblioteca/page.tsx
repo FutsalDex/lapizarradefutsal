@@ -12,6 +12,20 @@ import Link from 'next/link';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+
 
 type Exercise = {
   id: number;
@@ -47,11 +61,25 @@ export default function LibraryManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [exercises, setExercises] = useState<Exercise[]>(exercisesData);
+  const { toast } = useToast();
 
   const handleVisibilityChange = (id: number, checked: boolean) => {
     setExercises(prev => 
       prev.map(ex => ex.id === id ? { ...ex, visible: checked } : ex)
     );
+     toast({
+        title: "Visibilidad actualizada",
+        description: `El ejercicio ahora es ${checked ? 'visible' : 'oculto'}.`,
+    });
+  };
+
+  const handleDeleteExercise = (id: number) => {
+    setExercises(prev => prev.filter(ex => ex.id !== id));
+    toast({
+        variant: "destructive",
+        title: "Ejercicio eliminado",
+        description: "El ejercicio ha sido eliminado de la biblioteca.",
+    });
   };
   
   const filteredExercises = exercises.filter(exercise => {
@@ -139,12 +167,48 @@ export default function LibraryManagementPage() {
                         checked={exercise.visible} 
                         onCheckedChange={(checked) => handleVisibilityChange(exercise.id, checked)}
                       />
-                      <Button variant="ghost" size="icon">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                              <DialogHeader>
+                                  <DialogTitle>Editar Ejercicio</DialogTitle>
+                                  <DialogDescription>
+                                      Para editar este ejercicio, serás redirigido al formulario de alta.
+                                  </DialogDescription>
+                              </DialogHeader>
+                              <DialogFooter>
+                                  <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                  <Button asChild><Link href="/ejercicios/mis-ejercicios">Ir al Formulario</Link></Button>
+                              </DialogFooter>
+                          </DialogContent>
+                      </Dialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                           <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción eliminará permanentemente el ejercicio "{exercise.name}". No se puede deshacer.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteExercise(exercise.id)}>
+                                    Sí, eliminar
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
                     </TableCell>
                   </TableRow>
                 ))}
