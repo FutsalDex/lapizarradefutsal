@@ -73,7 +73,7 @@ export default function PanelPage() {
               <p className="text-muted-foreground">{item.description}</p>
             </CardContent>
             <CardFooter>
-              <Button asChild variant="outline" className="w-full" disabled={item.disabled}>
+              <Button asChild variant="default" className="w-full" disabled={item.disabled}>
                 <Link href={item.href}>
                   {item.buttonText}
                   {!item.disabled && <ArrowRight className="ml-2 h-4 w-4" />}
