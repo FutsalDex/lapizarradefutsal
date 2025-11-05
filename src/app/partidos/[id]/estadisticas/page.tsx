@@ -68,18 +68,18 @@ type OpponentStats = {
 }
 
 const initialOpponentStats: OpponentStats = {
-    goles: 0,
-    tirosPuerta: 0,
-    tirosFuera: 0,
-    faltas: 0,
-    recuperaciones: 0,
-    perdidas: 0,
+    goles: 2,
+    tirosPuerta: 5,
+    tirosFuera: 3,
+    faltas: 4,
+    recuperaciones: 8,
+    perdidas: 10,
 };
 
 const getInitialPlayerStats = (): PlayerStat[] => 
     initialPlayerStats.map(p => ({
         ...p,
-        timePlayed: p.timePlayed, // Keep initial timePlayed if needed, otherwise 0
+        timePlayed: 0,
         g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0
     }));
 
@@ -118,13 +118,13 @@ export default function EstadisticasPartidoPage() {
     const [stats, setStats] = useState<Record<Period, PeriodStats>>({
         '1ª Parte': {
             playerStats: getInitialPlayerStats(),
-            opponentStats: { ...initialOpponentStats },
+            opponentStats: { ...initialOpponentStats, goles: 0, tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 },
             localTimeoutTaken: false,
             opponentTimeoutTaken: false,
         },
         '2ª Parte': {
             playerStats: getInitialPlayerStats(),
-            opponentStats: { ...initialOpponentStats },
+            opponentStats: { ...initialOpponentStats, goles: 0, tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 },
             localTimeoutTaken: false,
             opponentTimeoutTaken: false,
         }
@@ -142,29 +142,29 @@ export default function EstadisticasPartidoPage() {
 
     
     const saveStats = useCallback((auto = false) => {
+        setStats(prev => ({
+            ...prev,
+            [period]: { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken }
+        }));
         if (!auto) {
             toast({
                 title: "Estadísticas guardadas",
                 description: "Las estadísticas del partido se han guardado correctamente.",
             });
         }
-        // Here you would typically send the data to a server
-        console.log("Saving stats...", {period, playerStats, opponentStats});
-    }, [toast, period, playerStats, opponentStats]);
+    }, [period, playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken, toast]);
     
     useEffect(() => {
         const autoSaveInterval = setInterval(() => {
-          saveStats(true); // Call with auto=true to suppress toast
+          saveStats(true);
           toast({
             title: "Autoguardado",
             description: "Las estadísticas se han guardado automáticamente.",
           });
-        }, 5000); // 5000 ms = 5 seconds
+        }, 5000); 
         return () => clearInterval(autoSaveInterval);
     }, [saveStats, toast]);
-
-    // This effect runs when the 'period' changes.
-    // It saves the current period's stats and loads the new period's stats.
+    
     useEffect(() => {
         const newPeriodStats = stats[period];
         setPlayerStats(newPeriodStats.playerStats);
@@ -180,18 +180,7 @@ export default function EstadisticasPartidoPage() {
     const handlePeriodChange = (newPeriod: Period) => {
         if (period === newPeriod) return;
 
-        // Save current period's stats before switching
-        setStats(prev => ({
-            ...prev,
-            [period]: {
-                playerStats,
-                opponentStats,
-                localTimeoutTaken,
-                opponentTimeoutTaken
-            }
-        }));
-        
-        // Switch to the new period. The useEffect above will handle loading the new stats.
+        saveStats(true);
         setPeriod(newPeriod);
     };
 
@@ -287,22 +276,23 @@ export default function EstadisticasPartidoPage() {
         const newIds = new Set(selectedPlayerIds);
         if (newIds.has(playerId)) {
             newIds.delete(playerId);
-            setSelectedPlayerIds(newIds);
         } else {
             if (newIds.size < 5) {
                 newIds.add(playerId);
-                setSelectedPlayerIds(newIds);
             } else {
                 toast({
                     variant: "destructive",
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
                 });
+                return;
             }
         }
+        setSelectedPlayerIds(newIds);
     };
     
     const finishGame = () => {
+        saveStats(true);
         alert("Partido Finalizado. (Lógica de guardado pendiente)");
         setIsActive(false);
     }
@@ -350,7 +340,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold">Juvenil B</h2>
                         <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < teamFouls ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
                          <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-green-500 hover:bg-green-600 text-white": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')}>TM</Button>
@@ -377,7 +367,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">FS Vencedores</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < opponentTeamFouls ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
                         <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-green-500 hover:bg-green-600 text-white": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')}>TM</Button>
@@ -427,8 +417,10 @@ export default function EstadisticasPartidoPage() {
                                             })}
                                         >
                                             <TableCell className={cn(
-                                                "font-medium sticky left-0 p-2 min-w-[150px]", 
-                                                selectedPlayerIds.has(player.id) ? "bg-green-100/50 dark:bg-green-900/30 text-destructive" : "bg-card"
+                                                "sticky left-0 p-2 min-w-[150px]", 
+                                                selectedPlayerIds.has(player.id) 
+                                                    ? "bg-green-100/50 dark:bg-green-900/30 text-destructive font-bold" 
+                                                    : "bg-card font-medium"
                                             )}>{player.id}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
