@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, BookOpen, Upload, Paperclip, Image as ImageIcon, Video, Save } from "lucide-react";
+import { ArrowLeft, BookOpen, Upload, Save } from "lucide-react";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 
 export default function SubirEjercicioPage() {
     const edades = ["Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil", "Senior"];
@@ -129,18 +130,22 @@ export default function SubirEjercicioPage() {
                 <Textarea id="consejos" placeholder="Ofrece consejos para la correcta ejecución del ejercicio..." />
             </div>
 
-            <div className="space-y-3">
-                <Label>Archivos Adjuntos</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button variant="outline">
-                        <Paperclip className="mr-2" /> Adjuntar Pizarra
-                    </Button>
-                    <Button variant="outline">
-                        <Video className="mr-2" /> Adjuntar Vídeo (URL)
-                    </Button>
-                     <Button variant="outline">
-                        <ImageIcon className="mr-2" /> Adjuntar Imagen
-                    </Button>
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="image-url">URL de la Imagen (Opcional)</Label>
+                        <Input id="image-url" placeholder="https://ejemplo.com/imagen.jpg" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="ia-hint">Pista para IA (Opcional)</Label>
+                        <Input id="ia-hint" placeholder="ej: futsal drill" />
+                    </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <Label htmlFor="visibility-switch" className="text-sm">
+                        Visible en la biblioteca pública
+                    </Label>
+                    <Switch id="visibility-switch" defaultChecked />
                 </div>
             </div>
             
