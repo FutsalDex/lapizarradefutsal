@@ -24,19 +24,20 @@ const initialPlayers = [
 
 const getResultColor = (score: string, teamName: string, opponent: string): string => {
     const [teamAScore, teamBScore] = score.split(' - ').map(Number);
-    const isTeamAWinner = teamAScore > teamBScore;
+    const opponentNameParts = opponent.split(' vs ');
+    const teamA_name = opponentNameParts[0];
+    
     const isDraw = teamAScore === teamBScore;
 
     if (isDraw) return 'text-accent';
 
-    if (opponent.includes(teamName)) { // teamName is teamB
-        if (teamBScore > teamAScore) return 'text-primary'; // Win
-        if (teamBScore < teamAScore) return 'text-destructive'; // Loss
-    } else { // teamName is teamA
+    if (teamA_name === teamName) { // We are team A (local)
         if (teamAScore > teamBScore) return 'text-primary'; // Win
-        if (teamAScore < teamBScore) return 'text-destructive'; // Loss
+        return 'text-destructive'; // Loss
+    } else { // We are team B (visitor)
+        if (teamBScore > teamAScore) return 'text-primary'; // Win
+        return 'text-destructive'; // Loss
     }
-    return 'text-muted-foreground';
 };
 
 
