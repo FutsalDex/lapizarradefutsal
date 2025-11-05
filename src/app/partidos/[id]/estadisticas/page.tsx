@@ -68,6 +68,23 @@ type OpponentStats = {
     perdidas: number;
 }
 
+const initialOpponentStats: OpponentStats = {
+    goles: 0,
+    tirosPuerta: 0,
+    tirosFuera: 0,
+    faltas: 0,
+    recuperaciones: 0,
+    perdidas: 0,
+};
+
+const getInitialPlayerStats = (): PlayerStat[] => 
+    initialPlayerStats.map(p => ({
+        ...p,
+        timePlayed: 0,
+        g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0
+    }));
+
+
 const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon }: { title: string; value: number; onIncrement: () => void; onDecrement: () => void; icon: React.ReactNode }) => (
     <div className="flex items-center justify-between rounded-lg border p-3 bg-card">
         <div className="flex items-center gap-2">
@@ -86,27 +103,78 @@ const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon }: {
     </div>
 );
 
+type Period = '1ª Parte' | '2ª Parte';
+
+type PeriodStats = {
+    playerStats: PlayerStat[];
+    opponentStats: OpponentStats;
+    localTimeoutTaken: boolean;
+    opponentTimeoutTaken: boolean;
+}
 
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
-    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
-    const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
+    const [period, setPeriod] = useState<Period>('1ª Parte');
+
+    const [stats, setStats] = useState<Record<Period, PeriodStats>>({
+        '1ª Parte': {
+            playerStats: getInitialPlayerStats(),
+            opponentStats: { ...initialOpponentStats },
+            localTimeoutTaken: false,
+            opponentTimeoutTaken: false,
+        },
+        '2ª Parte': {
+            playerStats: getInitialPlayerStats(),
+            opponentStats: { ...initialOpponentStats },
+            localTimeoutTaken: false,
+            opponentTimeoutTaken: false,
+        }
+    });
     
+    // States for the current period
+    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(stats['1ª Parte'].playerStats);
+    const [opponentStats, setOpponentStats] = useState<OpponentStats>(stats['1ª Parte'].opponentStats);
+    const [localTimeoutTaken, setLocalTimeoutTaken] = useState<boolean>(stats['1ª Parte'].localTimeoutTaken);
+    const [opponentTimeoutTaken, setOpponentTimeoutTaken] = useState<boolean>(stats['1ª Parte'].opponentTimeoutTaken);
+    
+    const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
     const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
     const [isActive, setIsActive] = useState(false);
-    const [period, setPeriod] = useState('1ª Parte');
 
-    const [localTimeoutTaken, setLocalTimeoutTaken] = useState(false);
-    const [opponentTimeoutTaken, setOpponentTimeoutTaken] = useState(false);
+    // This effect runs when the period changes
+    useEffect(() => {
+        // Save current stats to the corresponding period
+        setStats(prevStats => ({
+            ...prevStats,
+            [period]: { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken }
+        }));
 
-    const [opponentStats, setOpponentStats] = useState<OpponentStats>({
-        goles: 0,
-        tirosPuerta: 0,
-        tirosFuera: 0,
-        faltas: 0,
-        recuperaciones: 0,
-        perdidas: 0,
-    });
+        // Load stats for the new period
+        const newPeriodStats = stats[period];
+        setPlayerStats(newPeriodStats.playerStats);
+        setOpponentStats(newPeriodStats.opponentStats);
+        setLocalTimeoutTaken(newPeriodStats.localTimeoutTaken);
+        setOpponentTimeoutTaken(newPeriodStats.opponentTimeoutTaken);
+        
+        // Reset timer and selections
+        setIsActive(false);
+        setTime(25 * 60);
+        setSelectedPlayerIds(new Set());
+    }, [period]);
+
+    const handlePeriodChange = (newPeriod: Period) => {
+        // Save current period stats before switching
+        setStats(prev => ({
+            ...prev,
+            [period]: {
+                playerStats,
+                opponentStats,
+                localTimeoutTaken,
+                opponentTimeoutTaken
+            }
+        }));
+        setPeriod(newPeriod);
+    };
 
     const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
         setOpponentStats(prev => {
@@ -115,17 +183,14 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const localTeamScore = playerStats.reduce((acc, player) => acc + player.g, 0);
-    const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0) + opponentStats.goles;
+    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
 
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
 
     const handleTimeout = (team: 'local' | 'opponent') => {
-        if (team === 'local') {
-            setLocalTimeoutTaken(!localTimeoutTaken);
-        } else {
-            setOpponentTimeoutTaken(!opponentTimeoutTaken);
-        }
+        if (team === 'local') setLocalTimeoutTaken(!localTimeoutTaken);
+        else setOpponentTimeoutTaken(!opponentTimeoutTaken);
     };
 
 
@@ -279,7 +344,7 @@ export default function EstadisticasPartidoPage() {
 
                     {/* Score and Timer */}
                     <div className="flex flex-col items-center gap-4">
-                        <div className="text-6xl font-bold text-primary">{localTeamScore} - {opponentTeamScore}</div>
+                        <div className="text-6xl font-bold text-primary">{totalLocalScore} - {totalOpponentScore}</div>
                         <div className="text-6xl font-bold bg-gray-900 text-white p-4 rounded-lg">
                            {formatTime(time)}
                         </div>
@@ -288,8 +353,8 @@ export default function EstadisticasPartidoPage() {
                                 {isActive ? <><Pause className="mr-2"/>Pausar</> : <><Play className="mr-2"/>Iniciar</>}
                             </Button>
                             <Button variant="outline" onClick={resetTimer}><RotateCcw className="mr-2"/>Reiniciar</Button>
-                            <Button variant={period === '1ª Parte' ? 'secondary' : 'ghost'} onClick={() => setPeriod('1ª Parte')}>1ª Parte</Button>
-                            <Button variant={period === '2ª Parte' ? 'secondary' : 'ghost'} onClick={() => setPeriod('2ª Parte')}>2ª Parte</Button>
+                            <Button variant={period === '1ª Parte' ? 'secondary' : 'ghost'} onClick={() => handlePeriodChange('1ª Parte')}>1ª Parte</Button>
+                            <Button variant={period === '2ª Parte' ? 'secondary' : 'ghost'} onClick={() => handlePeriodChange('2ª Parte')}>2ª Parte</Button>
                         </div>
                     </div>
 
@@ -507,6 +572,8 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
+
+    
 
     
 
