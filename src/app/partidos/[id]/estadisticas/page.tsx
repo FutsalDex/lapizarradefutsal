@@ -42,7 +42,7 @@ type PlayerStat = {
   tr: number;
 };
 
-const initialPlayerStats: PlayerStat[] = [
+const initialPlayerStatsData: PlayerStat[] = [
     { id: 1, name: "Manel", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
     { id: 2, name: "Marc Montoro", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
     { id: 5, name: "Dani", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
@@ -79,11 +79,7 @@ const getInitialOpponentStats = (): OpponentStats => ({
 });
 
 const getInitialPlayerStats = (): PlayerStat[] => 
-    initialPlayerStats.map(p => ({
-        ...p,
-        timePlayed: 0,
-        g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0
-    }));
+    initialPlayerStatsData.map(p => ({ ...p }));
 
 
 const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon }: { title: string; value: number; onIncrement: () => void; onDecrement: () => void; icon: React.ReactNode }) => (
@@ -165,6 +161,10 @@ export default function EstadisticasPartidoPage() {
     
     // Effect to update current period stats when period or the main stats object changes
     useEffect(() => {
+        // Save current period's working stats before switching
+        saveStats(true);
+        
+        // Load new period's stats from main state
         const newPeriodStats = stats[period];
         setPlayerStats(newPeriodStats.playerStats);
         setOpponentStats(newPeriodStats.opponentStats);
@@ -174,7 +174,8 @@ export default function EstadisticasPartidoPage() {
         setIsActive(false);
         setTime(25 * 60);
         setSelectedPlayerIds(new Set());
-    }, [period, stats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [period]);
 
     // Save current stats before changing period
     const handlePeriodChange = (newPeriod: Period) => {
@@ -191,13 +192,13 @@ export default function EstadisticasPartidoPage() {
 
     const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
         setOpponentStats(prev => {
-            const newValue = Math.max(0, prev[stat] + delta);
+            const newValue = Math.max(0, (prev[stat] || 0) + delta);
             return { ...prev, [stat]: newValue };
         });
     };
 
-    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + (period === '2ª Parte' ? playerStats.reduce((acc, p) => acc + p.g, 0) : 0);
-    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + (period === '2ª Parte' ? opponentStats.goles : 0);
+    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
     
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.faltas;
@@ -281,6 +282,7 @@ export default function EstadisticasPartidoPage() {
         const newIds = new Set(selectedPlayerIds);
         if (newIds.has(playerId)) {
             newIds.delete(playerId);
+            setSelectedPlayerIds(newIds);
         } else {
             if (newIds.size >= 5) {
                 toast({
@@ -288,11 +290,11 @@ export default function EstadisticasPartidoPage() {
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
                 });
-                return;
+                return; // Important: stop execution here
             }
             newIds.add(playerId);
+            setSelectedPlayerIds(newIds);
         }
-        setSelectedPlayerIds(newIds);
     };
     
     const finishGame = () => {
@@ -301,12 +303,6 @@ export default function EstadisticasPartidoPage() {
         setIsActive(false);
     }
     
-    const handleOpponentGoalChange = (delta: number) => {
-        const newGoals = Math.max(0, opponentStats.goles + delta);
-        const updatedOpponentStats = { ...opponentStats, goles: newGoals };
-        setOpponentStats(updatedOpponentStats);
-    };
-
   return (
     <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-4">
@@ -427,10 +423,10 @@ export default function EstadisticasPartidoPage() {
                                             })}
                                         >
                                             <TableCell className={cn(
-                                                "sticky left-0 p-2 min-w-[150px]", 
+                                                "sticky left-0 p-2 min-w-[150px] font-medium", 
                                                 selectedPlayerIds.has(player.id) 
                                                     ? "bg-green-100/50 dark:bg-green-900/30 font-bold" 
-                                                    : "bg-card font-medium"
+                                                    : "bg-card"
                                             )}>{player.id}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
@@ -541,8 +537,8 @@ export default function EstadisticasPartidoPage() {
                            <OpponentStatCounter 
                                 title="Goles"
                                 value={opponentStats.goles}
-                                onIncrement={() => handleOpponentGoalChange(1)}
-                                onDecrement={() => handleOpponentGoalChange(-1)}
+                                onIncrement={() => handleOpponentStatChange('goles', 1)}
+                                onDecrement={() => handleOpponentStatChange('goles', -1)}
                                 icon={<Goal className="text-muted-foreground" />}
                            />
                            <OpponentStatCounter 
