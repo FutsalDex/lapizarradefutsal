@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ArrowRight, BarChart3, CalendarCheck2, Trophy, User, Users, ClipboardUser, Briefcase } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, CalendarCheck2, Trophy, User, Users, ClipboardList, Briefcase } from "lucide-react";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
 
@@ -19,7 +19,7 @@ export default function EquipoPanelPage() {
           href: `/equipos/${params.id}/plantilla`,
         },
         {
-          icon: <ClipboardUser className="w-8 h-8 text-primary" />,
+          icon: <ClipboardList className="w-8 h-8 text-primary" />,
           title: 'Cuerpo Técnico',
           description: 'Invita y gestiona a tus colaboradores.',
           href: `/equipos/${params.id}/tecnicos`,
