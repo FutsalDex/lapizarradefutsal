@@ -268,20 +268,20 @@ export default function EstadisticasPartidoPage() {
                             <Table className="text-xs">
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Jugador</TableHead>
-                                        <TableHead>Min</TableHead>
-                                        <TableHead>G</TableHead>
-                                        <TableHead>A</TableHead>
-                                        <TableHead>Faltas</TableHead>
-                                        <TableHead>T. Puerta</TableHead>
-                                        <TableHead>T. Fuera</TableHead>
-                                        <TableHead>Recup.</TableHead>
-                                        <TableHead>Perdidas</TableHead>
-                                        <TableHead>Paradas</TableHead>
-                                        <TableHead>GC</TableHead>
-                                        <TableHead>1vs1</TableHead>
-                                        <TableHead>TA</TableHead>
-                                        <TableHead>TR</TableHead>
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2">Jugador</TableHead>
+                                        <TableHead className="p-2">Min</TableHead>
+                                        <TableHead className="p-2">G</TableHead>
+                                        <TableHead className="p-2">A</TableHead>
+                                        <TableHead className="p-2">Faltas</TableHead>
+                                        <TableHead className="p-2">T. Puerta</TableHead>
+                                        <TableHead className="p-2">T. Fuera</TableHead>
+                                        <TableHead className="p-2">Recup.</TableHead>
+                                        <TableHead className="p-2">Perdidas</TableHead>
+                                        <TableHead className="p-2">Paradas</TableHead>
+                                        <TableHead className="p-2">GC</TableHead>
+                                        <TableHead className="p-2">1vs1</TableHead>
+                                        <TableHead className="p-2">TA</TableHead>
+                                        <TableHead className="p-2">TR</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -293,42 +293,42 @@ export default function EstadisticasPartidoPage() {
                                                 'bg-green-100/50 dark:bg-green-900/30 hover:bg-green-100/60 dark:hover:bg-green-900/40': selectedPlayerIds.has(player.id)
                                             })}
                                         >
-                                            <TableCell className={cn("font-medium", {"text-destructive": selectedPlayerIds.has(player.id)})}>{player.id}. {player.name}</TableCell>
-                                            <TableCell>{formatTime(player.timePlayed)}</TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className={cn("font-medium sticky left-0 bg-card min-w-[150px] p-2", {"text-destructive": selectedPlayerIds.has(player.id)})}>{player.id}. {player.name}</TableCell>
+                                            <TableCell className="p-2">{formatTime(player.timePlayed)}</TableCell>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.g} onIncrement={() => handleStatChange(player.id, 'g', 1)} onDecrement={() => handleStatChange(player.id, 'g', -1)} />
                                             </TableCell>
-                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.a} onIncrement={() => handleStatChange(player.id, 'a', 1)} onDecrement={() => handleStatChange(player.id, 'a', -1)} />
                                             </TableCell>
-                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.fouls} onIncrement={() => handleStatChange(player.id, 'fouls', 1)} onDecrement={() => handleStatChange(player.id, 'fouls', -1)} />
                                             </TableCell>
-                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.t_puerta} onIncrement={() => handleStatChange(player.id, 't_puerta', 1)} onDecrement={() => handleStatChange(player.id, 't_puerta', -1)} />
                                             </TableCell>
-                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.t_fuera} onIncrement={() => handleStatChange(player.id, 't_fuera', 1)} onDecrement={() => handleStatChange(player.id, 't_fuera', -1)} />
                                             </TableCell>
-                                             <TableCell onClick={(e) => e.stopPropagation()}>
+                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.recup} onIncrement={() => handleStatChange(player.id, 'recup', 1)} onDecrement={() => handleStatChange(player.id, 'recup', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.perdidas} onIncrement={() => handleStatChange(player.id, 'perdidas', 1)} onDecrement={() => handleStatChange(player.id, 'perdidas', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.paradas} onIncrement={() => handleStatChange(player.id, 'paradas', 1)} onDecrement={() => handleStatChange(player.id, 'paradas', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.gc} onIncrement={() => handleStatChange(player.id, 'gc', 1)} onDecrement={() => handleStatChange(player.id, 'gc', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.vs1} onIncrement={() => handleStatChange(player.id, 'vs1', 1)} onDecrement={() => handleStatChange(player.id, 'vs1', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.ta} onIncrement={() => handleStatChange(player.id, 'ta', 1)} onDecrement={() => handleStatChange(player.id, 'ta', -1)} />
                                             </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.tr} onIncrement={() => handleStatChange(player.id, 'tr', 1)} onDecrement={() => handleStatChange(player.id, 'tr', -1)} />
                                             </TableCell>
                                         </TableRow>
@@ -336,20 +336,20 @@ export default function EstadisticasPartidoPage() {
                                 </TableBody>
                                 <TableFooter>
                                     <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
-                                        <TableCell>Total {period}</TableCell>
-                                        <TableCell></TableCell>
-                                        <TableCell className="text-center">{totals.g}</TableCell>
-                                        <TableCell className="text-center">{totals.a}</TableCell>
-                                        <TableCell className="text-center">{totals.fouls}</TableCell>
-                                        <TableCell className="text-center">{totals.t_puerta}</TableCell>
-                                        <TableCell className="text-center">{totals.t_fuera}</TableCell>
-                                        <TableCell className="text-center">{totals.recup}</TableCell>
-                                        <TableCell className="text-center">{totals.perdidas}</TableCell>
-                                        <TableCell className="text-center">{totals.paradas}</TableCell>
-                                        <TableCell className="text-center">{totals.gc}</TableCell>
-                                        <TableCell className="text-center">{totals.vs1}</TableCell>
-                                        <TableCell className="text-center">{totals.ta}</TableCell>
-                                        <TableCell className="text-center">{totals.tr}</TableCell>
+                                        <TableCell className="sticky left-0 bg-muted/50 min-w-[150px] p-2">Total {period}</TableCell>
+                                        <TableCell className="p-2"></TableCell>
+                                        <TableCell className="text-center p-2">{totals.g}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.a}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.fouls}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.t_puerta}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.t_fuera}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.recup}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.perdidas}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.paradas}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.gc}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.vs1}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.ta}</TableCell>
+                                        <TableCell className="text-center p-2">{totals.tr}</TableCell>
                                     </TableRow>
                                 </TableFooter>
                             </Table>
@@ -395,3 +395,6 @@ export default function EstadisticasPartidoPage() {
 
     
 
+
+
+    
