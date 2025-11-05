@@ -32,9 +32,11 @@ export default function MisEjerciciosPage() {
       </div>
 
       <div className="flex justify-center gap-4 mb-8">
-        <Button variant="outline">
-          <Upload className="mr-2" />
-          Subir Ejercicio
+        <Button variant="outline" asChild>
+          <Link href="/ejercicios/subir-ejercicio">
+            <Upload className="mr-2" />
+            Subir Ejercicio
+          </Link>
         </Button>
         <Button>
           <List className="mr-2" />
