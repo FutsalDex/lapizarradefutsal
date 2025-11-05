@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -129,9 +130,11 @@ export function Header() {
                             <span>Mi Perfil</span>
                         </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        <Star className="mr-2 h-4 w-4" />
-                        <span>Suscripción y Puntos</span>
+                    <DropdownMenuItem asChild>
+                        <Link href="/suscripcion">
+                            <Star className="mr-2 h-4 w-4" />
+                            <span>Suscripción y Puntos</span>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
