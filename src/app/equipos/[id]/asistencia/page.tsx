@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -59,6 +60,20 @@ const attendanceHistory = [
     { dorsal: '16', nombre: 'Salva', p: 17, a: 0, j: 1, l: 0, total: 18 },
 ];
 
+const recordedDates = [
+  new Date(2025, 9, 30),
+  new Date(2025, 10, 2),
+  new Date(2025, 10, 5),
+  new Date(2025, 10, 7),
+  new Date(2025, 10, 9),
+  new Date(2025, 10, 14),
+  new Date(2025, 10, 16),
+  new Date(2025, 10, 21),
+  new Date(2025, 10, 23),
+  new Date(2025, 10, 28),
+  new Date(2025, 10, 30),
+];
+
 export default function AsistenciaPage() {
   const params = useParams();
   const { toast } = useToast();
@@ -101,6 +116,12 @@ export default function AsistenciaPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <style>{`
+        .day-with-record {
+          border: 2px solid hsl(var(--foreground));
+          border-radius: var(--radius);
+        }
+      `}</style>
       <div className="flex justify-between items-start mb-8">
         <div className="flex items-center gap-4">
             <div className="bg-muted p-3 rounded-full">
@@ -150,7 +171,9 @@ export default function AsistenciaPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     initialFocus
-                                    // You can add logic to highlight days with records
+                                    month={new Date('2025-10-01T00:00:00')}
+                                    modifiers={{ 'with-record': recordedDates }}
+                                    modifiersClassNames={{ 'with-record': 'day-with-record' }}
                                 />
                             </PopoverContent>
                         </Popover>
