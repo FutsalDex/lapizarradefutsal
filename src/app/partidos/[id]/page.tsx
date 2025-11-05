@@ -23,14 +23,18 @@ const goalChronology = [
 ];
 
 const playerStats = [
-    { id: 1, name: "Manel", g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 2, name: "Marc Montoro", g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 5, name: "Dani", g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 6, name: "Adam", g: 3, a: 1, fouls: 2, t_puerta: 5, t_fuera: 1, recup: 4, perdidas: 3, paradas: 0, gc: 0, vs1: 2, ta: 0, tr: 0 },
-    { id: 7, name: "Hugo", g: 2, a: 0, fouls: 1, t_puerta: 3, t_fuera: 2, recup: 2, perdidas: 1, paradas: 0, gc: 0, vs1: 1, ta: 0, tr: 0 },
-    { id: 8, name: "Victor", g: 0, a: 1, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 3, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 9, name: "Marc Romera", g: 2, a: 2, fouls: 0, t_puerta: 4, t_fuera: 0, recup: 5, perdidas: 2, paradas: 0, gc: 0, vs1: 3, ta: 1, tr: 0 },
-    { id: 12, name: "Marc Muñoz", g: 1, a: 0, fouls: 0, t_puerta: 1, t_fuera: 1, recup: 1, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 1, name: "Manel", timePlayed: "25:00", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 2, gc: 1, vs1: 1 },
+    { id: 2, name: "Marc Montoro", timePlayed: "22:57", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
+    { id: 5, name: "Dani", timePlayed: "19:02", g: 0, a: 2, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
+    { id: 6, name: "Adam", timePlayed: "24:22", g: 3, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
+    { id: 7, name: "Hugo", timePlayed: "17:40", g: 2, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
+    { id: 8, name: "Victor", timePlayed: "22:05", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
+    { id: 9, name: "Marc Romera", timePlayed: "18:32", g: 2, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
+    { id: 10, name: "Iker Rando", timePlayed: "18:15", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
+    { id: 11, name: "Roger", timePlayed: "19:30", g: 0, a: 1, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
+    { id: 12, name: "Marc Muñoz", timePlayed: "16:10", g: 1, a: 1, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
+    { id: 15, name: "Lucas", timePlayed: "25:00", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 1, gc: 0, vs1: 1 },
+    { id: 16, name: "Salva", timePlayed: "14:09", g: 0, a: 1, ta: 0, tr: 0, fouls: 0, paradas: 2, gc: 0, vs1: 0 },
 ];
 
 
@@ -54,21 +58,26 @@ export default function PartidoDetallePage() {
   
   const [localTeam, visitorTeam] = match.opponent.split(' vs ');
 
-  const totals = playerStats.reduce((acc, player) => {
+    const totals = playerStats.reduce((acc, player) => {
         acc.g += player.g;
         acc.a += player.a;
+        acc.ta += player.ta;
+        acc.tr += player.tr;
         acc.fouls += player.fouls;
-        acc.t_puerta += player.t_puerta;
-        acc.t_fuera += player.t_fuera;
-        acc.recup += player.recup;
-        acc.perdidas += player.perdidas;
         acc.paradas += player.paradas;
         acc.gc += player.gc;
         acc.vs1 += player.vs1;
-        acc.ta += player.ta;
-        acc.tr += player.tr;
+        
+        const [mins, secs] = player.timePlayed.split(':').map(Number);
+        acc.totalSeconds += (mins * 60) + secs;
+
         return acc;
-    }, { g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 });
+    }, { g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0, totalSeconds: 0 });
+
+    const totalMinutes = Math.floor(totals.totalSeconds / 60);
+    const totalSecondsRemaining = totals.totalSeconds % 60;
+    const totalTimeFormatted = `${totalMinutes}:${String(totalSecondsRemaining).padStart(2, '0')}`;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -105,7 +114,7 @@ export default function PartidoDetallePage() {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="cronologia">
+      <Tabs defaultValue="estadisticas">
         <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="cronologia">Cronología de Goles</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas de Jugadores</TabsTrigger>
@@ -142,83 +151,60 @@ export default function PartidoDetallePage() {
         </TabsContent>
         <TabsContent value="estadisticas">
             <Card>
+                <CardHeader>
+                    <CardTitle>Estadísticas de Jugadores</CardTitle>
+                </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                        <Table className="text-xs">
+                        <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                    <TableHead className="p-2 text-center">G</TableHead>
-                                    <TableHead className="p-2 text-center">A</TableHead>
-                                    <TableHead className="p-2 text-center">Faltas</TableHead>
-                                    <TableHead className="p-2 text-center">T. Puerta</TableHead>
-                                    <TableHead className="p-2 text-center">T. Fuera</TableHead>
-                                    <TableHead className="p-2 text-center">Recup.</TableHead>
-                                    <TableHead className="p-2 text-center">Perdidas</TableHead>
-                                    <TableHead className="p-2 text-center">Paradas</TableHead>
-                                    <TableHead className="p-2 text-center">GC</TableHead>
-                                    <TableHead className="p-2 text-center">1vs1</TableHead>
-                                    <TableHead className="p-2 text-center">TA</TableHead>
-                                    <TableHead className="p-2 text-center">TR</TableHead>
+                                    <TableHead className="w-[50px] text-center">#</TableHead>
+                                    <TableHead>Nombre</TableHead>
+                                    <TableHead className="text-center">Min.</TableHead>
+                                    <TableHead className="text-center">G</TableHead>
+                                    <TableHead className="text-center">As</TableHead>
+                                    <TableHead className="text-center">TA</TableHead>
+                                    <TableHead className="text-center">TR</TableHead>
+                                    <TableHead className="text-center">F</TableHead>
+                                    <TableHead className="text-center">Par.</TableHead>
+                                    <TableHead className="text-center">GC</TableHead>
+                                    <TableHead className="text-center">1vs1</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {playerStats.map((player) => (
                                     <TableRow key={player.id}>
-                                        <TableCell className="sticky left-0 bg-card font-medium p-2">{player.name}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.g}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.a}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.fouls}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.t_puerta}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.t_fuera}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.recup}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.perdidas}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.paradas}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.gc}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.vs1}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.ta}</TableCell>
-                                        <TableCell className="p-2 text-center">{player.tr}</TableCell>
+                                        <TableCell className="text-center font-medium">{player.id}</TableCell>
+                                        <TableCell>{player.name}</TableCell>
+                                        <TableCell className="text-center">{player.timePlayed}</TableCell>
+                                        <TableCell className="text-center">{player.g}</TableCell>
+                                        <TableCell className="text-center">{player.a}</TableCell>
+                                        <TableCell className="text-center">{player.ta}</TableCell>
+                                        <TableCell className="text-center">{player.tr}</TableCell>
+                                        <TableCell className="text-center">{player.fouls}</TableCell>
+                                        <TableCell className="text-center">{player.paradas}</TableCell>
+                                        <TableCell className="text-center">{player.gc}</TableCell>
+                                        <TableCell className="text-center">{player.vs1}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                              <TableFooter>
                                 <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
-                                    <TableCell className="sticky left-0 bg-muted/50 min-w-[150px] p-2">Total</TableCell>
-                                    <TableCell className="text-center p-2">{totals.g}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.a}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.fouls}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.t_puerta}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.t_fuera}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.recup}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.perdidas}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.paradas}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.gc}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.vs1}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.ta}</TableCell>
-                                    <TableCell className="text-center p-2">{totals.tr}</TableCell>
+                                    <TableCell colSpan={2}>Total Equipo</TableCell>
+                                    <TableCell className="text-center">{totalTimeFormatted}</TableCell>
+                                    <TableCell className="text-center">{totals.g}</TableCell>
+                                    <TableCell className="text-center">{totals.a}</TableCell>
+                                    <TableCell className="text-center">{totals.ta}</TableCell>
+                                    <TableCell className="text-center">{totals.tr}</TableCell>
+                                    <TableCell className="text-center">{totals.fouls}</TableCell>
+                                    <TableCell className="text-center">{totals.paradas}</TableCell>
+                                    <TableCell className="text-center">{totals.gc}</TableCell>
+                                    <TableCell className="text-center">{totals.vs1}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
                     </div>
-                </CardContent>
-            </Card>
-             <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle>Leyenda</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-2 text-sm text-muted-foreground">
-                    <div><span className="font-semibold text-foreground">G:</span> Goles</div>
-                    <div><span className="font-semibold text-foreground">A:</span> Asistencias</div>
-                    <div><span className="font-semibold text-foreground">TA:</span> T. Amarilla</div>
-                    <div><span className="font-semibold text-foreground">TR:</span> T. Roja</div>
-                    <div><span className="font-semibold text-foreground">Faltas:</span> Faltas</div>
-                    <div><span className="font-semibold text-foreground">T. Puerta:</span> Tiros a Puerta</div>
-                    <div><span className="font-semibold text-foreground">T. Fuera:</span> Tiros Fuera</div>
-                    <div><span className="font-semibold text-foreground">Recup.:</span> Recuperaciones</div>
-                    <div><span className="font-semibold text-foreground">Perdidas:</span> Perdidas</div>
-                    <div><span className="font-semibold text-foreground">Paradas:</span> Paradas</div>
-                    <div><span className="font-semibold text-foreground">GC:</span> Goles en Contra</div>
-                    <div><span className="font-semibold text-foreground">1vs1:</span> Duelos 1vs1 ganados</div>
                 </CardContent>
             </Card>
         </TabsContent>
@@ -226,3 +212,4 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
+
