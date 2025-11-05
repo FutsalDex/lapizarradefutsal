@@ -6,7 +6,7 @@ import { matches as initialMatches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
@@ -34,6 +34,7 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
     const [teamAScore, teamBScore] = score.split(' - ').map(Number);
     const opponentNameParts = opponent.split(' vs ');
     const teamA_name = opponentNameParts[0];
+    const teamB_name = opponentNameParts[1];
     
     const isDraw = teamAScore === teamBScore;
 
@@ -54,10 +55,16 @@ export default function PartidosPage() {
     const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
     
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
     const [matches, setMatches] = React.useState<Match[]>(initialMatches);
 
-    const [date, setDate] = React.useState<Date>();
+    const [newMatch, setNewMatch] = React.useState({
+        localTeam: '',
+        visitorTeam: '',
+        date: undefined as Date | undefined,
+        type: 'Liga'
+    });
 
 
     const handleSelectAll = (checked: boolean) => {
@@ -92,6 +99,26 @@ export default function PartidosPage() {
     
     const handleEditFormChange = (field: string, value: any) => {
         setEditingMatch((prev: any) => ({ ...prev, [field]: value }));
+    };
+
+    const handleNewMatchChange = (field: string, value: any) => {
+        setNewMatch((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleCreateMatch = () => {
+        if (!newMatch.localTeam || !newMatch.visitorTeam || !newMatch.date) return;
+
+        const newMatchData: Match = {
+            id: String(Date.now()),
+            opponent: `${newMatch.localTeam} vs ${newMatch.visitorTeam}`,
+            date: newMatch.date.toISOString(),
+            score: '0 - 0',
+            result: 'Empate',
+            competition: newMatch.type,
+        };
+        setMatches(prev => [newMatchData, ...prev]);
+        setIsAddDialogOpen(false);
+        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, type: 'Liga' });
     };
     
     const handleSaveChanges = () => {
@@ -129,7 +156,7 @@ export default function PartidosPage() {
                 </Link>
             </Button>
         </div>
-        <Dialog>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
@@ -144,15 +171,15 @@ export default function PartidosPage() {
                     <div className="space-y-2">
                         <Label htmlFor="local-team-add">Equipo Local</Label>
                         <div className="flex gap-2">
-                            <Input id="local-team-add" placeholder="Nombre del equipo" />
-                            <Button variant="outline">Mi Equipo</Button>
+                            <Input id="local-team-add" placeholder="Nombre del equipo" value={newMatch.localTeam} onChange={(e) => handleNewMatchChange('localTeam', e.target.value)} />
+                            <Button variant="outline" onClick={() => handleNewMatchChange('localTeam', teamName)}>Mi Equipo</Button>
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="visitor-team-add">Equipo Visitante</Label>
                          <div className="flex gap-2">
-                            <Input id="visitor-team-add" placeholder="Nombre del equipo" />
-                            <Button variant="outline">Mi Equipo</Button>
+                            <Input id="visitor-team-add" placeholder="Nombre del equipo" value={newMatch.visitorTeam} onChange={(e) => handleNewMatchChange('visitorTeam', e.target.value)} />
+                            <Button variant="outline" onClick={() => handleNewMatchChange('visitorTeam', teamName)}>Mi Equipo</Button>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -163,18 +190,18 @@ export default function PartidosPage() {
                                     variant={"outline"}
                                     className={cn(
                                     "w-full justify-start text-left font-normal",
-                                    !date && "text-muted-foreground"
+                                    !newMatch.date && "text-muted-foreground"
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date ? format(date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                    {newMatch.date ? format(newMatch.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0">
                                 <Calendar
                                     mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
+                                    selected={newMatch.date}
+                                    onSelect={(date) => handleNewMatchChange('date', date)}
                                     initialFocus
                                 />
                             </PopoverContent>
@@ -182,7 +209,7 @@ export default function PartidosPage() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="type-add">Tipo</Label>
-                        <Select defaultValue="Amistoso">
+                        <Select value={newMatch.type} onValueChange={(value) => handleNewMatchChange('type', value)}>
                             <SelectTrigger id="type-add">
                                 <SelectValue placeholder="Seleccionar tipo" />
                             </SelectTrigger>
@@ -199,7 +226,7 @@ export default function PartidosPage() {
                     <DialogClose asChild>
                         <Button variant="ghost">Cancelar</Button>
                     </DialogClose>
-                    <Button><Save className="mr-2" /> Crear Partido</Button>
+                    <Button onClick={handleCreateMatch}><Save className="mr-2" /> Crear Partido</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
