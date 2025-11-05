@@ -329,7 +329,7 @@ export default function EstadisticasPartidoPage() {
                                 <TableFooter>
                                     <TableRow className="bg-muted/50 font-bold">
                                         <TableCell>Total {period}</TableCell>
-                                        <TableCell></TableCell> {/* Empty for Min */}
+                                        <TableCell></TableCell>
                                         <TableCell className="text-center">{totals.g}</TableCell>
                                         <TableCell className="text-center">{totals.a}</TableCell>
                                         <TableCell className="text-center">{totals.fouls}</TableCell>
