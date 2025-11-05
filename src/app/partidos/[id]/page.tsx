@@ -136,7 +136,7 @@ export default function PartidoDetallePage() {
             <Card>
                 <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                        <div className="text-center">
+                         <div className="text-center">
                             <h3 className="font-bold text-lg mb-4">Cronología de Goles</h3>
                         </div>
                         <div className="flex justify-between font-bold text-sm text-muted-foreground border-b pb-2">
@@ -156,8 +156,8 @@ export default function PartidoDetallePage() {
                                      <div className="w-[1px] bg-border h-4"></div>
 
                                     {goal.team === 'rival' ? (
-                                        <div className="w-1/2 flex justify-end items-center pl-4">
-                                             <span className="text-muted-foreground mr-4">{goal.minute}'</span>
+                                        <div className="w-1/2 flex justify-between items-center pl-4">
+                                            <span className="text-muted-foreground">{goal.minute}'</span>
                                             <span className="font-medium text-right">{goal.player}</span>
                                         </div>
                                     ) : <div className="w-1/2 pl-4"></div>}
@@ -246,4 +246,5 @@ export default function PartidoDetallePage() {
   );
 }
 
+    
     
