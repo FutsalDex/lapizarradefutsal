@@ -136,28 +136,29 @@ export default function PartidoDetallePage() {
             <Card>
                 <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                        <h3 className="font-bold text-center text-lg">Cronología de Goles</h3>
-                        <div className="flex justify-between font-bold border-b pb-2 mb-4">
-                            <h4 className="w-1/3">{localTeam}</h4>
-                            <div className="w-1/3 text-center"></div>
-                            <h4 className="w-1/3 text-right">{visitorTeam}</h4>
+                        <h3 className="font-bold text-lg mb-4">Cronología de Goles</h3>
+                        <div className="flex justify-between font-bold text-sm text-muted-foreground border-b pb-2">
+                            <h4 className="w-1/2">{localTeam}</h4>
+                            <h4 className="w-1/2 text-right">{visitorTeam}</h4>
                         </div>
                         <div className="space-y-4">
                             {goalChronology.map((goal, index) => (
-                                <div key={index} className="flex items-center text-sm">
+                                <div key={index} className="flex items-center text-sm border-b last:border-none pb-2">
                                     {goal.team === 'local' ? (
-                                        <>
-                                            <div className="w-1/3 font-medium">{goal.player}</div>
-                                            <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                            <div className="w-1/3"></div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="w-1/3"></div>
-                                            <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                            <div className="w-1/3 text-right font-medium">{goal.player}</div>
-                                        </>
-                                    )}
+                                        <div className="w-1/2 flex justify-between items-center pr-4">
+                                            <span className="font-medium">{goal.player}</span>
+                                            <span className="text-muted-foreground">{goal.minute}'</span>
+                                        </div>
+                                    ) : <div className="w-1/2 pr-4"></div>}
+                                    
+                                     <div className="w-[1px] bg-border h-4"></div>
+
+                                    {goal.team === 'rival' ? (
+                                        <div className="w-1/2 flex justify-between items-center pl-4">
+                                            <span className="font-medium">{goal.player}</span>
+                                            <span className="text-muted-foreground">{goal.minute}'</span>
+                                        </div>
+                                    ) : <div className="w-1/2 pl-4"></div>}
                                 </div>
                             ))}
                         </div>
