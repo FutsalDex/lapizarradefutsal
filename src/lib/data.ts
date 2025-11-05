@@ -1,3 +1,4 @@
+
 import placeholderImages from './placeholder-images.json';
 
 const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.startsWith('exercise-'));
@@ -17,6 +18,7 @@ export type Exercise = {
   imageUrl: string;
   imageHint: string;
   tacticsUrl: string;
+  intensity?: 'Baja' | 'Media' | 'Alta';
 };
 
 export const exercises: Exercise[] = [
@@ -35,6 +37,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
     imageHint: exerciseImages[0]?.imageHint || 'futsal drill',
     tacticsUrl: 'https://picsum.photos/seed/tactic1/600/400',
+    intensity: 'Media',
   },
   {
     id: '2',
@@ -51,6 +54,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
     imageHint: exerciseImages[1]?.imageHint || 'futsal attack',
     tacticsUrl: 'https://picsum.photos/seed/tactic2/600/400',
+     intensity: 'Alta',
   },
   {
     id: '3',
@@ -67,6 +71,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
     imageHint: exerciseImages[2]?.imageHint || 'agility ladder',
     tacticsUrl: 'https://picsum.photos/seed/tactic3/600/400',
+    intensity: 'Alta',
   },
   {
     id: '4',
@@ -83,6 +88,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
     imageHint: exerciseImages[3]?.imageHint || 'futsal game',
     tacticsUrl: 'https://picsum.photos/seed/tactic4/600/400',
+    intensity: 'Media',
   },
   {
     id: '5',
@@ -99,6 +105,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
     imageHint: exerciseImages[4]?.imageHint || 'futsal shot',
     tacticsUrl: 'https://picsum.photos/seed/tactic5/600/400',
+    intensity: 'Media',
   },
   {
     id: '6',
@@ -115,6 +122,7 @@ export const exercises: Exercise[] = [
     imageUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
     imageHint: exerciseImages[5]?.imageHint || 'futsal tactics',
     tacticsUrl: 'https://picsum.photos/seed/tactic6/600/400',
+    intensity: 'Alta',
   },
   {
     id: '7',
@@ -131,6 +139,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex7/600/400',
     imageHint: 'futsal dribbling',
     tacticsUrl: 'https://picsum.photos/seed/tactic7/600/400',
+    intensity: 'Baja',
   },
   {
     id: '8',
@@ -147,6 +156,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex8/600/400',
     imageHint: 'futsal defense',
     tacticsUrl: 'https://picsum.photos/seed/tactic8/600/400',
+    intensity: 'Media',
   },
   {
     id: '9',
@@ -163,6 +173,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex9/600/400',
     imageHint: 'futsal running',
     tacticsUrl: 'https://picsum.photos/seed/tactic9/600/400',
+    intensity: 'Alta',
   },
   {
     id: '10',
@@ -179,6 +190,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex10/600/400',
     imageHint: 'goalkeeper training',
     tacticsUrl: 'https://picsum.photos/seed/tactic10/600/400',
+    intensity: 'Media',
   },
   {
     id: '11',
@@ -195,6 +207,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex11/600/400',
     imageHint: 'futsal strategy',
     tacticsUrl: 'https://picsum.photos/seed/tactic11/600/400',
+    intensity: 'Baja',
   },
   {
     id: '12',
@@ -211,6 +224,7 @@ export const exercises: Exercise[] = [
     imageUrl: 'https://picsum.photos/seed/ex12/600/400',
     imageHint: 'futsal passing',
     tacticsUrl: 'https://picsum.photos/seed/tactic12/600/400',
+    intensity: 'Baja',
   },
 ];
 
@@ -248,7 +262,9 @@ export type Match = {
     date: string;
     result: 'Victoria' | 'Derrota' | 'Empate';
     score: string;
-    stats: {
+    competition: string;
+    playersCalled?: string;
+    stats?: {
         goals: number;
         assists: number;
         shots: number;
@@ -259,41 +275,51 @@ export type Match = {
 export const matches: Match[] = [
     {
         id: '1',
-        opponent: 'Titanes del Futsal',
-        date: '2024-07-28',
+        opponent: 'Juvenil B vs FSC Horta C',
+        date: '2025-09-07',
         result: 'Victoria',
-        score: '5 - 3',
-        stats: {
-            goals: 5,
-            assists: 4,
-            shots: 15,
-            possession: 65,
-        }
+        score: '6 - 1',
+        competition: 'Amistoso',
     },
     {
         id: '2',
-        opponent: 'Inter Sala',
-        date: '2024-07-21',
+        opponent: 'FS Prat Advantis vs Juvenil B',
+        date: '2025-09-14',
         result: 'Derrota',
-        score: '2 - 4',
-        stats: {
-            goals: 2,
-            assists: 1,
-            shots: 8,
-            possession: 45,
-        }
+        score: '1 - 2',
+        competition: 'Amistoso',
     },
     {
         id: '3',
-        opponent: 'Furia Roja FS',
-        date: '2024-07-14',
-        result: 'Empate',
-        score: '2 - 2',
-        stats: {
-            goals: 2,
-            assists: 2,
-            shots: 12,
-            possession: 55,
-        }
+        opponent: 'Masnou vs Juvenil B',
+        date: '2025-09-21',
+        result: 'Victoria',
+        score: '1 - 11',
+        competition: 'Amistoso',
+    },
+    {
+        id: '4',
+        opponent: 'Juvenil B vs FS Parets',
+        date: '2025-09-27',
+        result: 'Victoria',
+        score: '3 - 2',
+        competition: 'Amistoso',
+    },
+    {
+        id: '5',
+        opponent: 'Juvenil B vs Cerdanyola',
+        date: '2025-09-28',
+        result: 'Derrota',
+        score: '0 - 5',
+        competition: 'Amistoso',
+    },
+    {
+        id: '6',
+        opponent: 'Juvenil B vs MARISTES ADEMAR CLUB ESPORTIU A',
+        date: '2025-10-04',
+        result: 'Victoria',
+        score: '8 - 1',
+        competition: 'Liga',
+        playersCalled: '12 Jug.'
     }
 ]
