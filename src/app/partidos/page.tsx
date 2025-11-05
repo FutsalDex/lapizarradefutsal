@@ -202,8 +202,10 @@ export default function PartidosPage() {
                         <BarChart />
                     </Link>
                 </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                    <Eye />
+                <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Link href={`/partidos/${match.id}`}>
+                        <Eye />
+                    </Link>
                 </Button>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}>
                     <Edit />
