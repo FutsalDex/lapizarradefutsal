@@ -7,10 +7,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
-const usersData = [
+type User = {
+  name: string;
+  email: string;
+  plan: string;
+  endDate: string;
+};
+
+const usersData: User[] = [
   { name: 'Michel', email: 'mixel_75@hotmail.com', plan: 'Pro', endDate: '04/11/2026' },
   { name: '-', email: 'rauldrup10@hotmail.com', plan: 'Pro', endDate: '01/10/2026' },
   { name: '-', email: 'dani.ruiz46@gmail.com', plan: 'Pro', endDate: '01/10/2026' },
@@ -25,11 +55,17 @@ const usersData = [
 
 export default function GestionUsuariosPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [users, setUsers] = useState<User[]>(usersData);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const filteredUsers = usersData.filter(user =>
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDeleteUser = (email: string) => {
+    setUsers(users.filter(user => user.email !== email));
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -52,7 +88,7 @@ export default function GestionUsuariosPage() {
       <Card>
         <CardHeader>
           <CardTitle>Todos los Usuarios</CardTitle>
-          <CardDescription>{usersData.length} usuarios en total.</CardDescription>
+          <CardDescription>{users.length} usuarios en total.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -85,12 +121,66 @@ export default function GestionUsuariosPage() {
                     <TableCell>{user.endDate}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Dialog onOpenChange={(open) => !open && setSelectedUser(null)}>
+                           <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => setSelectedUser(user)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                           </DialogTrigger>
+                           {selectedUser && (
+                               <DialogContent>
+                                   <DialogHeader>
+                                       <DialogTitle>Gestionar Suscripción</DialogTitle>
+                                       <DialogDescription>
+                                           Activa un plan anual para {selectedUser.email}.
+                                       </DialogDescription>
+                                   </DialogHeader>
+                                   <div className="py-4 space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="plan">Plan</Label>
+                                            <Select>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecciona un plan..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="basico">Básico (19.95€/año)</SelectItem>
+                                                    <SelectItem value="pro">Pro (39.95€/año)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                   </div>
+                                   <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline">Cancelar</Button>
+                                        </DialogClose>
+                                       <Button>Activar Suscripción por 1 Año</Button>
+                                   </DialogFooter>
+                               </DialogContent>
+                           )}
+                        </Dialog>
+                        
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará permanentemente al usuario {user.email}. No se puede deshacer.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteUser(user.email)}>
+                                Sí, eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+
                       </div>
                     </TableCell>
                   </TableRow>
