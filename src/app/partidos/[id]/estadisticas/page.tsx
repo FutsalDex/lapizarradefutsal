@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, TimerOff } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, TimerOff, Flag } from "lucide-react";
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -60,8 +60,8 @@ const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncr
 
 
 export default function EstadisticasPartidoPage() {
-    const [teamFouls, setTeamFouls] = useState(3);
-    const [opponentFouls, setOpponentFouls] = useState(4);
+    const [teamFouls, setTeamFouls] = useState(0);
+    const [opponentFouls, setOpponentFouls] = useState(0);
     const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
     
@@ -160,13 +160,10 @@ export default function EstadisticasPartidoPage() {
         });
     };
     
-    const resetAll = () => {
-        setPlayerStats(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
-        setTeamFouls(0);
-        setOpponentFouls(0);
-        resetTimer();
-        setPeriod('1ª Parte');
-        setSelectedPlayerIds(new Set());
+    const finishGame = () => {
+        // Logic to finish game, for now just shows an alert
+        alert("Partido Finalizado. (Lógica de guardado pendiente)");
+        setIsActive(false);
     }
 
   return (
@@ -186,18 +183,18 @@ export default function EstadisticasPartidoPage() {
                 <Button><Save className="mr-2"/>Guardar</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive"><RotateCcw className="mr-2"/>Reiniciar Todo</Button>
+                    <Button variant="destructive"><Flag className="mr-2"/>Finalizar</Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogTitle>¿Finalizar partido?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Esta acción reiniciará el temporizador, el marcador y todas las estadísticas a sus valores iniciales. No se puede deshacer.
+                        Esta acción detendrá el cronómetro y guardará el estado final del partido. No podrás volver a editarlo.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={resetAll}>Sí, reiniciar</AlertDialogAction>
+                      <AlertDialogAction onClick={finishGame}>Sí, finalizar</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -211,11 +208,9 @@ export default function EstadisticasPartidoPage() {
                     <div className="flex flex-col items-center gap-4">
                         <h2 className="text-2xl font-bold">Juvenil B</h2>
                         <div className="flex items-center gap-2">
-                             <Button variant="outline" size="sm" onClick={() => handleTeamFoulChange('local', -1)}>-</Button>
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`w-4 h-4 rounded-full ${i < teamFouls ? 'bg-red-500' : 'bg-muted'}`}></div>
+                                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < teamFouls ? 'bg-red-500 border-red-500' : 'border-muted'}`}></div>
                             ))}
-                             <Button variant="outline" size="sm" onClick={() => handleTeamFoulChange('local', 1)}>+</Button>
                         </div>
                          <Button variant="outline" size="sm"><TimerOff className="mr-2"/>TM</Button>
                     </div>
@@ -238,13 +233,11 @@ export default function EstadisticasPartidoPage() {
 
                     {/* Team B */}
                     <div className="flex flex-col items-center gap-4">
-                        <h2 className="text-2xl font-bold truncate">MARISTES ADEMAR CLUB ESPORTI...</h2>
+                        <h2 className="text-2xl font-bold truncate">FS Vencedores</h2>
                          <div className="flex items-center gap-2">
-                             <Button variant="outline" size="sm" onClick={() => handleTeamFoulChange('opponent', -1)}>-</Button>
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`w-4 h-4 rounded-full ${i < opponentFouls ? 'bg-red-500' : 'bg-muted'}`}></div>
+                                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < opponentFouls ? 'bg-red-500 border-red-500' : 'border-muted'}`}></div>
                             ))}
-                             <Button variant="outline" size="sm" onClick={() => handleTeamFoulChange('opponent', 1)}>+</Button>
                         </div>
                         <Button variant="outline" size="sm"><TimerOff className="mr-2"/>TM</Button>
                     </div>
@@ -255,7 +248,7 @@ export default function EstadisticasPartidoPage() {
         <Tabs defaultValue="team-a">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="team-a">Juvenil B</TabsTrigger>
-                <TabsTrigger value="team-b">MARISTES ADEMAR CLUB ESPORTIU A</TabsTrigger>
+                <TabsTrigger value="team-b">FS Vencedores</TabsTrigger>
             </TabsList>
             <TabsContent value="team-a">
                 <Card>
@@ -379,7 +372,7 @@ export default function EstadisticasPartidoPage() {
             <TabsContent value="team-b">
                  <Card>
                     <CardHeader>
-                        <CardTitle>MARISTES ADEMAR CLUB ESPORTIU A - Estadísticas {period}</CardTitle>
+                        <CardTitle>FS Vencedores - Estadísticas {period}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="text-muted-foreground text-center">Las estadísticas del equipo rival no están disponibles.</p>
