@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -160,22 +159,17 @@ export default function EstadisticasPartidoPage() {
         // This effect runs when the 'period' state changes.
         setIsActive(false);
 
-        // Save the current working stats into the main 'stats' object for the period we are leaving.
-        setStats(prevStats => {
-            const periodToSave = period === '1ª Parte' ? '2ª Parte' : '1ª Parte'; // The period we just left
-            const updatedStats = { ...prevStats };
+        setStats(prev => {
+            const periodToSave = period === '1ª Parte' ? '2ª Parte' : '1ª Parte';
+            const updatedStats = { ...prev };
             
             // This is a snapshot of the state right before the period change was requested.
-            // We need to save it to the *other* period slot.
-            // But since the `period` state has already updated, `period` now represents the *new* period.
-            // So we save to the one that is NOT the current `period`.
             if (period === '2ª Parte') {
                  updatedStats['1ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
             } else {
                  updatedStats['2ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
             }
-            
-            // Now load the stats for the new, current period
+
             const newPeriodStats = updatedStats[period];
             setPlayerStats(newPeriodStats.playerStats);
             setOpponentStats(newPeriodStats.opponentStats);
@@ -184,7 +178,7 @@ export default function EstadisticasPartidoPage() {
 
             return updatedStats;
         });
-        
+
         // Reset timer and selections
         setTime(25 * 60);
         setSelectedPlayerIds(new Set());
@@ -294,23 +288,21 @@ export default function EstadisticasPartidoPage() {
     };
     
     const handlePlayerSelection = (playerId: number) => {
-        setSelectedPlayerIds(prevIds => {
-            const newIds = new Set(prevIds);
-            if (newIds.has(playerId)) {
-                newIds.delete(playerId);
+        const newIds = new Set(selectedPlayerIds);
+        if (newIds.has(playerId)) {
+            newIds.delete(playerId);
+        } else {
+            if (newIds.size < 5) {
+                newIds.add(playerId);
             } else {
-                if (newIds.size < 5) {
-                    newIds.add(playerId);
-                } else {
-                     toast({
-                        variant: "destructive",
-                        title: "Límite alcanzado",
-                        description: "Solo puedes seleccionar 5 jugadores a la vez.",
-                    })
-                }
+                toast({
+                    variant: "destructive",
+                    title: "Límite alcanzado",
+                    description: "Solo puedes seleccionar 5 jugadores a la vez.",
+                });
             }
-            return newIds;
-        });
+        }
+        setSelectedPlayerIds(newIds);
     };
     
     const finishGame = () => {
@@ -598,5 +590,3 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
-
-    
