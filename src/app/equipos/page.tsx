@@ -49,9 +49,11 @@ export default function EquiposPage() {
                   <p className="text-sm text-muted-foreground">FS Ràpid Santa Coloma</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm">
-                    <Settings className="mr-2" />
-                    Gestionar
+                  <Button size="sm" asChild>
+                    <Link href="/equipos/1">
+                      <Settings className="mr-2" />
+                      Gestionar
+                    </Link>
                   </Button>
                   <Button variant="ghost" size="icon">
                     <Edit className="w-4 h-4" />
