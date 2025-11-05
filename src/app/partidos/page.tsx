@@ -5,13 +5,20 @@ import { matches } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import React from 'react';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const initialPlayers = [
     { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
@@ -44,6 +51,7 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
 export default function PartidosPage() {
     const teamName = "Juvenil B";
     const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
+    const [date, setDate] = React.useState<Date | undefined>(new Date('2025-10-04T00:00:00'));
 
     const handleSelectAll = (checked: boolean) => {
         const newSelectedPlayers: Record<string, boolean> = {};
@@ -171,9 +179,86 @@ export default function PartidosPage() {
                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <Eye />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                            <Edit />
-                        </Button>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                    <Edit />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Editar Partido</DialogTitle>
+                                    <DialogDescription>Modifica los datos del partido.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="local-team">Equipo Local</Label>
+                                        <div className="flex gap-2">
+                                            <Input id="local-team" defaultValue="Juvenil B" />
+                                            <Button variant="outline">Mi Equipo</Button>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="visitor-team">Equipo Visitante</Label>
+                                         <div className="flex gap-2">
+                                            <Input id="visitor-team" defaultValue="MARISTES ADEMAR CLUB ESPORTIU A" />
+                                            <Button variant="outline">Mi Equipo</Button>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Fecha del partido</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                    "w-full justify-start text-left font-normal",
+                                                    !date && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date ? format(date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={date}
+                                                    onSelect={setDate}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="type">Tipo</Label>
+                                        <Select defaultValue="Liga">
+                                            <SelectTrigger id="type">
+                                                <SelectValue placeholder="Seleccionar tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Liga">Liga</SelectItem>
+                                                <SelectItem value="Copa">Copa</SelectItem>
+                                                <SelectItem value="Torneo">Torneo</SelectItem>
+                                                <SelectItem value="Amistoso">Amistoso</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="competition">Competición</Label>
+                                        <Input id="competition" defaultValue="LLIGA TERCERA DIVISIÓ JUVENIL FUTBOL SALA - BCN Gr 5" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="round">Jornada</Label>
+                                        <Input id="round" type="number" defaultValue="1" />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="ghost">Cancelar</Button>
+                                    <Button><Save className="mr-2" /> Guardar Cambios</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardFooter>
                 </Card>
                 ))}
@@ -235,5 +320,3 @@ export default function PartidosPage() {
     </div>
   );
 }
-
-    
