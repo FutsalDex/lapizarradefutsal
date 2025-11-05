@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Send } from "lucide-react";
 import Link from "next/link";
 
 const basicFeatures = [
@@ -85,6 +85,34 @@ export default function PlanesPage() {
             </Button>
           </CardFooter>
         </Card>
+      </div>
+
+      <div className="max-w-4xl mx-auto mt-16">
+        <div className="flex items-center gap-2 mb-2">
+            <Send className="w-5 h-5 text-foreground" />
+            <h2 className="text-2xl font-bold font-headline">Instrucciones de Pago</h2>
+        </div>
+        <p className="text-muted-foreground mb-6">
+          Para activar o renovar tu suscripción, sigue estos sencillos pasos.
+        </p>
+        <div className="space-y-6">
+          <div>
+            <p className="font-medium mb-2">1. Envía tu pago por Bizum al:</p>
+            <div className="bg-muted p-4 rounded-lg text-center">
+              <p className="text-2xl font-bold text-primary tracking-widest">607 820 029</p>
+            </div>
+          </div>
+          <div>
+            <p className="font-medium mb-2">2. Usa el siguiente concepto en el pago:</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="font-mono">LaPizarra (futsaldex@gmail.com)</p>
+              <p className="text-xs text-muted-foreground mt-1">Ejemplo: LaPizarra (entrenadordefutsal@gmail.com)</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-muted-foreground mt-6 text-sm text-center">
+          Tu cuenta se activará o renovará en un plazo máximo de 24 horas. Recibirás un correo de confirmación. ¡Gracias por tu confianza!
+        </p>
       </div>
     </div>
   );
