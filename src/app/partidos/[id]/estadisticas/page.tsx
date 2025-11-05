@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, TimerOff, Flag } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, Flag } from "lucide-react";
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -61,7 +61,6 @@ const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncr
 
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
-    const [teamFouls, setTeamFouls] = useState(0);
     const [opponentFouls, setOpponentFouls] = useState(0);
     const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
@@ -72,6 +71,8 @@ export default function EstadisticasPartidoPage() {
 
     const localTeamScore = playerStats.reduce((acc, player) => acc + player.g, 0);
     const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0);
+
+    const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
 
     const totals = playerStats.reduce((acc, player) => {
         acc.g += player.g;
@@ -140,9 +141,7 @@ export default function EstadisticasPartidoPage() {
     };
     
     const handleTeamFoulChange = (team: 'local' | 'opponent', delta: number) => {
-        if (team === 'local') {
-            setTeamFouls(prev => Math.max(0, Math.min(5, prev + delta)));
-        } else {
+        if (team === 'opponent') {
             setOpponentFouls(prev => Math.max(0, Math.min(5, prev + delta)));
         }
     }
@@ -216,10 +215,10 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold">Juvenil B</h2>
                         <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < teamFouls ? 'bg-red-500 border-red-500' : 'border-muted'}`}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls && 'bg-destructive')}></div>
                             ))}
                         </div>
-                         <Button variant="outline" size="sm"><TimerOff className="mr-2"/>TM</Button>
+                         <Button variant="outline" size="sm">TM</Button>
                     </div>
 
                     {/* Score and Timer */}
@@ -243,10 +242,10 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">FS Vencedores</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={`w-4 h-4 rounded-full border-2 ${i < opponentFouls ? 'bg-red-500 border-red-500' : 'border-muted'}`}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentFouls && 'bg-destructive')}></div>
                             ))}
                         </div>
-                        <Button variant="outline" size="sm"><TimerOff className="mr-2"/>TM</Button>
+                        <Button variant="outline" size="sm">TM</Button>
                     </div>
                 </div>
             </CardContent>
@@ -292,7 +291,10 @@ export default function EstadisticasPartidoPage() {
                                                 'bg-green-100/50 dark:bg-green-900/30 hover:bg-green-100/60 dark:hover:bg-green-900/40': selectedPlayerIds.has(player.id)
                                             })}
                                         >
-                                            <TableCell className={cn("font-medium sticky left-0 bg-card min-w-[150px] p-2", {"bg-inherit": selectedPlayerIds.has(player.id), "text-destructive": selectedPlayerIds.has(player.id)})}>{player.id}. {player.name}</TableCell>
+                                            <TableCell className={cn(
+                                                "font-medium sticky left-0 p-2 min-w-[150px]", 
+                                                selectedPlayerIds.has(player.id) ? "bg-green-100/50 dark:bg-green-900/30 text-destructive" : "bg-card"
+                                            )}>{player.id}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.g} onIncrement={() => handleStatChange(player.id, 'g', 1)} onDecrement={() => handleStatChange(player.id, 'g', -1)} />
@@ -335,7 +337,7 @@ export default function EstadisticasPartidoPage() {
                                 </TableBody>
                                 <TableFooter>
                                      <TableRow>
-                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2">Jugador</TableHead>
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
                                         <TableHead className="p-2 text-center">Min</TableHead>
                                         <TableHead className="p-2 text-center">G</TableHead>
                                         <TableHead className="p-2 text-center">A</TableHead>
@@ -405,4 +407,3 @@ export default function EstadisticasPartidoPage() {
         </Tabs>
     </div>
   );
-}
