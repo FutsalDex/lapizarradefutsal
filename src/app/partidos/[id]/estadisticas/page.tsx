@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, Flag, ShieldAlert, Target, RefreshCw, XCircle, Goal, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, Flag, ShieldAlert, Target, RefreshCw, XCircle, Goal, ArrowRightLeft, Lock, Unlock } from "lucide-react";
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -112,6 +112,7 @@ type PeriodStats = {
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
     const [period, setPeriod] = useState<Period>('1ª Parte');
+    const [isFinished, setIsFinished] = useState(false);
 
     const [stats, setStats] = useState<Record<Period, PeriodStats>>({
         '1ª Parte': {
@@ -161,10 +162,6 @@ export default function EstadisticasPartidoPage() {
     
     // Effect to update current period stats when period or the main stats object changes
     useEffect(() => {
-        // Save current period's working stats before switching
-        saveStats(true);
-        
-        // Load new period's stats from main state
         const newPeriodStats = stats[period];
         setPlayerStats(newPeriodStats.playerStats);
         setOpponentStats(newPeriodStats.opponentStats);
@@ -178,7 +175,7 @@ export default function EstadisticasPartidoPage() {
     }, [period]);
 
     // Save current stats before changing period
-    const handlePeriodChange = (newPeriod: Period) => {
+    const handlePeriodChange = (newPeriod: string) => {
         if (period === newPeriod) return;
 
         // Save current period's data into the main state
@@ -187,7 +184,7 @@ export default function EstadisticasPartidoPage() {
             [period]: { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken }
         }));
         // Switch to the new period
-        setPeriod(newPeriod);
+        setPeriod(newPeriod as Period);
     };
 
     const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
@@ -197,9 +194,14 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
-    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
-    
+    const period1LocalGoals = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
+    const period2LocalGoals = period === '2ª Parte' ? playerStats.reduce((acc, p) => acc + p.g, 0) : stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalLocalScore = period1LocalGoals + period2LocalGoals;
+
+    const period1OpponentGoals = stats['1ª Parte'].opponentStats.goles;
+    const period2OpponentGoals = period === '2ª Parte' ? opponentStats.goles : stats['2ª Parte'].opponentStats.goles;
+    const totalOpponentScore = period1OpponentGoals + period2OpponentGoals;
+
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.faltas;
 
@@ -290,7 +292,7 @@ export default function EstadisticasPartidoPage() {
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
                 });
-                return; // Important: stop execution here
+                return;
             }
             newIds.add(playerId);
             setSelectedPlayerIds(newIds);
@@ -299,8 +301,20 @@ export default function EstadisticasPartidoPage() {
     
     const finishGame = () => {
         saveStats(true);
-        alert("Partido Finalizado. (Lógica de guardado pendiente)");
+        setIsFinished(true);
         setIsActive(false);
+        toast({
+            title: "Partido Finalizado",
+            description: "El partido ha sido marcado como finalizado.",
+        });
+    }
+
+    const reopenGame = () => {
+        setIsFinished(false);
+        toast({
+            title: "Partido Reabierto",
+            description: "Ahora puedes continuar editando las estadísticas.",
+        });
     }
     
   return (
@@ -318,23 +332,27 @@ export default function EstadisticasPartidoPage() {
                     </Link>
                 </Button>
                 <Button onClick={() => saveStats()}><Save className="mr-2"/>Guardar</Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive"><Flag className="mr-2"/>Finalizar</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>¿Finalizar partido?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta acción detendrá el cronómetro y guardará el estado final del partido. No podrás volver a editarlo.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={finishGame}>Sí, finalizar</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                {isFinished ? (
+                     <Button variant="outline" onClick={reopenGame}><Unlock className="mr-2"/>Reabrir</Button>
+                ) : (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive"><Flag className="mr-2"/>Finalizar</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Finalizar partido?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción detendrá el cronómetro y guardará el estado final del partido. No podrás volver a editarlo hasta que lo reabras.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={finishGame}>Sí, finalizar</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                )}
             </div>
         </div>
 
@@ -382,7 +400,7 @@ export default function EstadisticasPartidoPage() {
             </CardContent>
         </Card>
 
-        <Tabs defaultValue="team-a" value="team-a">
+        <Tabs defaultValue="team-a" value="team-a" onValueChange={saveStats.bind(null, true)}>
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="team-a">Juvenil B</TabsTrigger>
                 <TabsTrigger value="team-b">FS Vencedores</TabsTrigger>
@@ -423,10 +441,10 @@ export default function EstadisticasPartidoPage() {
                                             })}
                                         >
                                             <TableCell className={cn(
-                                                "sticky left-0 p-2 min-w-[150px] font-medium", 
+                                                "sticky left-0 p-2 min-w-[150px]", 
                                                 selectedPlayerIds.has(player.id) 
                                                     ? "bg-green-100/50 dark:bg-green-900/30 font-bold" 
-                                                    : "bg-card"
+                                                    : "bg-card font-medium"
                                             )}>{player.id}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
