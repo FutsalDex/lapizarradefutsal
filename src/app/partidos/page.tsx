@@ -37,13 +37,13 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
     
     const isDraw = teamAScore === teamBScore;
 
-    if (isDraw) return 'text-accent';
+    if (isDraw) return 'text-muted-foreground';
 
     if (teamA_name.trim() === teamName.trim()) { // We are team A (local)
-        if (teamAScore > teamBScore) return 'text-green-600'; // Win
+        if (teamAScore > teamBScore) return 'text-primary'; // Win
         return 'text-destructive'; // Loss
     } else { // We are team B (visitor)
-        if (teamBScore > teamAScore) return 'text-green-600'; // Win
+        if (teamBScore > teamAScore) return 'text-primary'; // Win
         return 'text-destructive'; // Loss
     }
 };
@@ -498,6 +498,7 @@ export default function PartidosPage() {
     
 
     
+
 
 
 
