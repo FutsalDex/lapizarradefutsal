@@ -1,7 +1,6 @@
-
 "use client";
 
-import { matches } from '@/lib/data';
+import { matches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,7 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
     
     const isDraw = teamAScore === teamBScore;
 
-    if (isDraw) return 'text-accent';
+    if (isDraw) return 'text-accent-foreground';
 
     if (teamA_name === teamName) { // We are team A (local)
         if (teamAScore > teamBScore) return 'text-primary'; // Win
@@ -51,7 +50,10 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
 export default function PartidosPage() {
     const teamName = "Juvenil B";
     const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
-    const [date, setDate] = React.useState<Date | undefined>(new Date('2025-10-04T00:00:00'));
+    
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+    const [editingMatch, setEditingMatch] = React.useState<any>(null);
+
 
     const handleSelectAll = (checked: boolean) => {
         const newSelectedPlayers: Record<string, boolean> = {};
@@ -68,6 +70,23 @@ export default function PartidosPage() {
             ...prev,
             [playerId]: checked
         }));
+    };
+
+    const handleOpenEditDialog = (match: Match) => {
+        const [localTeam, visitorTeam] = match.opponent.split(' vs ');
+        setEditingMatch({
+            ...match,
+            localTeam,
+            visitorTeam,
+            date: new Date(match.date),
+            type: match.competition,
+            round: '1', // Placeholder
+        });
+        setIsEditDialogOpen(true);
+    };
+    
+    const handleEditFormChange = (field: string, value: any) => {
+        setEditingMatch((prev: any) => ({ ...prev, [field]: value }));
     };
     
     const allSelected = initialPlayers.length > 0 && initialPlayers.every(p => selectedPlayers[p.dorsal]);
@@ -179,86 +198,9 @@ export default function PartidosPage() {
                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <Eye />
                         </Button>
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                    <Edit />
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Editar Partido</DialogTitle>
-                                    <DialogDescription>Modifica los datos del partido.</DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="local-team">Equipo Local</Label>
-                                        <div className="flex gap-2">
-                                            <Input id="local-team" defaultValue="Juvenil B" />
-                                            <Button variant="outline">Mi Equipo</Button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="visitor-team">Equipo Visitante</Label>
-                                         <div className="flex gap-2">
-                                            <Input id="visitor-team" defaultValue="MARISTES ADEMAR CLUB ESPORTIU A" />
-                                            <Button variant="outline">Mi Equipo</Button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Fecha del partido</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                    "w-full justify-start text-left font-normal",
-                                                    !date && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {date ? format(date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={date}
-                                                    onSelect={setDate}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                     <div className="space-y-2">
-                                        <Label htmlFor="type">Tipo</Label>
-                                        <Select defaultValue="Liga">
-                                            <SelectTrigger id="type">
-                                                <SelectValue placeholder="Seleccionar tipo" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Liga">Liga</SelectItem>
-                                                <SelectItem value="Copa">Copa</SelectItem>
-                                                <SelectItem value="Torneo">Torneo</SelectItem>
-                                                <SelectItem value="Amistoso">Amistoso</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="competition">Competición</Label>
-                                        <Input id="competition" defaultValue="LLIGA TERCERA DIVISIÓ JUVENIL FUTBOL SALA - BCN Gr 5" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="round">Jornada</Label>
-                                        <Input id="round" type="number" defaultValue="1" />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="ghost">Cancelar</Button>
-                                    <Button><Save className="mr-2" /> Guardar Cambios</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
+                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}>
+                            <Edit />
+                        </Button>
                     </CardFooter>
                 </Card>
                 ))}
@@ -281,7 +223,7 @@ export default function PartidosPage() {
                             </Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><BarChart /></Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Edit /></Button>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
                         </CardFooter>
                     </Card>
                 ))}
@@ -309,14 +251,116 @@ export default function PartidosPage() {
                             </Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><BarChart /></Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Edit /></Button>
+                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
                         </CardFooter>
                     </Card>
                 ))}
             </div>
         </TabsContent>
-
       </Tabs>
+      
+      {editingMatch && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Editar Partido</DialogTitle>
+                    <DialogDescription>Modifica los datos del partido.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="local-team">Equipo Local</Label>
+                        <div className="flex gap-2">
+                            <Input 
+                                id="local-team" 
+                                value={editingMatch.localTeam} 
+                                onChange={(e) => handleEditFormChange('localTeam', e.target.value)} 
+                            />
+                            <Button variant="outline" onClick={() => handleEditFormChange('localTeam', teamName)}>Mi Equipo</Button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="visitor-team">Equipo Visitante</Label>
+                         <div className="flex gap-2">
+                            <Input 
+                                id="visitor-team" 
+                                value={editingMatch.visitorTeam} 
+                                onChange={(e) => handleEditFormChange('visitorTeam', e.target.value)} 
+                            />
+                            <Button variant="outline" onClick={() => handleEditFormChange('visitorTeam', teamName)}>Mi Equipo</Button>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Fecha del partido</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !editingMatch.date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {editingMatch.date ? format(editingMatch.date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={editingMatch.date}
+                                    onSelect={(date) => handleEditFormChange('date', date)}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="type">Tipo</Label>
+                        <Select 
+                            value={editingMatch.type}
+                            onValueChange={(value) => handleEditFormChange('type', value)}
+                        >
+                            <SelectTrigger id="type">
+                                <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Liga">Liga</SelectItem>
+                                <SelectItem value="Copa">Copa</SelectItem>
+                                <SelectItem value="Torneo">Torneo</SelectItem>
+                                <SelectItem value="Amistoso">Amistoso</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {editingMatch.type === 'Liga' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="competition">Competición</Label>
+                                <Input 
+                                    id="competition" 
+                                    value={editingMatch.competition}
+                                    onChange={(e) => handleEditFormChange('competition', e.target.value)} 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="round">Jornada</Label>
+                                <Input 
+                                    id="round" 
+                                    type="number" 
+                                    value={editingMatch.round}
+                                    onChange={(e) => handleEditFormChange('round', e.target.value)} 
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                    <Button onClick={() => setIsEditDialogOpen(false)}><Save className="mr-2" /> Guardar Cambios</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
