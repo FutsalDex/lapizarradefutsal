@@ -1,16 +1,28 @@
 // src/firebase/config.ts
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 
-// Configuración de tu proyecto Firebase
+// Your web app's Firebase configuration
+// This is safe to expose on the client side
 export const firebaseConfig = {
-  projectId: "lapizarra-95eqd",
-  appId: "1:303306895935:web:463b38b92cc31842ccfe8a",
-  apiKey: "AIzaSyA2XHO-VnkYuAwx3-cQ8xrWb3gzdzvTSow",
-  authDomain: "lapizarra-95eqd.firebaseapp.com",
-  storageBucket: "lapizarra-95eqd.appspot.com",
-  measurementId: "",
-  messagingSenderId: "303306895935",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
+
+// Helper function to initialize Firebase, ensuring it only runs once.
+function initializeFirebaseApp(): FirebaseApp {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+  return initializeApp(firebaseConfig);
+}
+
+// Export a function that will be called on the client to get the initialized app.
+// This prevents any server-side execution of initializeApp.
+export function getFirebaseApp(): FirebaseApp {
+  return initializeFirebaseApp();
+}
