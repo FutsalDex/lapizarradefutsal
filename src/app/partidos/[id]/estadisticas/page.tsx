@@ -19,12 +19,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 
 type PlayerStat = {
   id: number;
   name: string;
-  min: string;
+  timePlayed: number; // in seconds
   g: number;
   a: number;
   fouls: number;
@@ -40,13 +41,13 @@ type PlayerStat = {
 };
 
 const initialPlayerStats: PlayerStat[] = [
-    { id: 1, name: "Manel", min: "00:00", g: 0, a: 0, fouls: 0, t_puerta: 2, t_fuera: 1, recup: 1, perdidas: 0, paradas: 2, gc: 1, vs1: 0, ta: 0, tr: 0 },
-    { id: 2, name: "Marc Montoro", min: "00:00", g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 2, recup: 1, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 5, name: "Dani", min: "00:00", g: 0, a: 1, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 1, perdidas: 1, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 6, name: "Adam", min: "00:00", g: 2, a: 0, fouls: 1, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 7, name: "Hugo", min: "00:00", g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 1, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 8, name: "Victor", min: "00:00", g: 0, a: 1, fouls: 1, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
-    { id: 9, name: "Marc Romera", min: "00:00", g: 1, a: 0, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 1, name: "Manel", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 2, t_fuera: 1, recup: 1, perdidas: 0, paradas: 2, gc: 1, vs1: 0, ta: 0, tr: 0 },
+    { id: 2, name: "Marc Montoro", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 2, recup: 1, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 5, name: "Dani", timePlayed: 0, g: 0, a: 1, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 1, perdidas: 1, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 6, name: "Adam", timePlayed: 0, g: 2, a: 0, fouls: 1, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 7, name: "Hugo", timePlayed: 0, g: 0, a: 0, fouls: 0, t_puerta: 1, t_fuera: 1, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 8, name: "Victor", timePlayed: 0, g: 0, a: 1, fouls: 1, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
+    { id: 9, name: "Marc Romera", timePlayed: 0, g: 1, a: 0, fouls: 0, t_puerta: 1, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 },
 ];
 
 const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncrement: () => void, onDecrement: () => void }) => (
@@ -61,7 +62,8 @@ const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncr
 export default function EstadisticasPartidoPage() {
     const [teamFouls, setTeamFouls] = useState(3);
     const [opponentFouls, setOpponentFouls] = useState(4);
-    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats);
+    const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
+    const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
     
     const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
     const [isActive, setIsActive] = useState(false);
@@ -74,16 +76,23 @@ export default function EstadisticasPartidoPage() {
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
         if (isActive && time > 0) {
-        interval = setInterval(() => {
-            setTime((time) => time - 1);
-        }, 1000);
-        } else if (!isActive && time !== 0) {
-        if(interval) clearInterval(interval);
+            interval = setInterval(() => {
+                setTime((prevTime) => prevTime - 1);
+                setPlayerStats(prevStats => 
+                    prevStats.map(player => 
+                        selectedPlayerIds.has(player.id)
+                            ? { ...player, timePlayed: player.timePlayed + 1 }
+                            : player
+                    )
+                );
+            }, 1000);
+        } else {
+            if(interval) clearInterval(interval);
         }
         return () => {
-        if(interval) clearInterval(interval);
+            if(interval) clearInterval(interval);
         };
-    }, [isActive, time]);
+    }, [isActive, time, selectedPlayerIds]);
     
     const toggleTimer = () => {
         setIsActive(!isActive);
@@ -104,7 +113,7 @@ export default function EstadisticasPartidoPage() {
         setPlayerStats(prevStats =>
             prevStats.map(player => {
                 if (player.id === playerId) {
-                    const currentVal = player[stat as keyof typeof player] as number;
+                    const currentVal = player[stat as keyof Omit<PlayerStat, 'name' | 'timePlayed'>] as number;
                     const newVal = Math.max(0, currentVal + delta);
                     return { ...player, [stat]: newVal };
                 }
@@ -121,12 +130,27 @@ export default function EstadisticasPartidoPage() {
         }
     }
     
+    const handlePlayerSelection = (playerId: number) => {
+        setSelectedPlayerIds(prevIds => {
+            const newIds = new Set(prevIds);
+            if (newIds.has(playerId)) {
+                newIds.delete(playerId);
+            } else {
+                if (newIds.size < 5) {
+                    newIds.add(playerId);
+                }
+            }
+            return newIds;
+        });
+    };
+    
     const resetAll = () => {
-        setPlayerStats(initialPlayerStats);
+        setPlayerStats(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
         setTeamFouls(0);
         setOpponentFouls(0);
         resetTimer();
         setPeriod('1ª Parte');
+        setSelectedPlayerIds(new Set());
     }
 
   return (
@@ -245,43 +269,49 @@ export default function EstadisticasPartidoPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {playerStats.map((player) => (
-                                        <TableRow key={player.id}>
+                                        <TableRow 
+                                            key={player.id} 
+                                            onClick={() => handlePlayerSelection(player.id)}
+                                            className={cn("cursor-pointer", {
+                                                'bg-green-100/50 dark:bg-green-900/30 hover:bg-green-100/60 dark:hover:bg-green-900/40': selectedPlayerIds.has(player.id)
+                                            })}
+                                        >
                                             <TableCell className="font-medium">{player.id}. {player.name}</TableCell>
-                                            <TableCell>{player.min}</TableCell>
-                                            <TableCell>
+                                            <TableCell>{formatTime(player.timePlayed)}</TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.g} onIncrement={() => handleStatChange(player.id, 'g', 1)} onDecrement={() => handleStatChange(player.id, 'g', -1)} />
                                             </TableCell>
-                                             <TableCell>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.a} onIncrement={() => handleStatChange(player.id, 'a', 1)} onDecrement={() => handleStatChange(player.id, 'a', -1)} />
                                             </TableCell>
-                                             <TableCell>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.fouls} onIncrement={() => handleStatChange(player.id, 'fouls', 1)} onDecrement={() => handleStatChange(player.id, 'fouls', -1)} />
                                             </TableCell>
-                                             <TableCell>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.t_puerta} onIncrement={() => handleStatChange(player.id, 't_puerta', 1)} onDecrement={() => handleStatChange(player.id, 't_puerta', -1)} />
                                             </TableCell>
-                                             <TableCell>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.t_fuera} onIncrement={() => handleStatChange(player.id, 't_fuera', 1)} onDecrement={() => handleStatChange(player.id, 't_fuera', -1)} />
                                             </TableCell>
-                                             <TableCell>
+                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.recup} onIncrement={() => handleStatChange(player.id, 'recup', 1)} onDecrement={() => handleStatChange(player.id, 'recup', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.perdidas} onIncrement={() => handleStatChange(player.id, 'perdidas', 1)} onDecrement={() => handleStatChange(player.id, 'perdidas', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.paradas} onIncrement={() => handleStatChange(player.id, 'paradas', 1)} onDecrement={() => handleStatChange(player.id, 'paradas', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.gc} onIncrement={() => handleStatChange(player.id, 'gc', 1)} onDecrement={() => handleStatChange(player.id, 'gc', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.vs1} onIncrement={() => handleStatChange(player.id, 'vs1', 1)} onDecrement={() => handleStatChange(player.id, 'vs1', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.ta} onIncrement={() => handleStatChange(player.id, 'ta', 1)} onDecrement={() => handleStatChange(player.id, 'ta', -1)} />
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.tr} onIncrement={() => handleStatChange(player.id, 'tr', 1)} onDecrement={() => handleStatChange(player.id, 'tr', -1)} />
                                             </TableCell>
                                         </TableRow>
@@ -305,6 +335,5 @@ export default function EstadisticasPartidoPage() {
         </Tabs>
     </div>
   );
-}
 
     
