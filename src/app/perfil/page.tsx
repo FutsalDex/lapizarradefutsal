@@ -74,9 +74,9 @@ export default function PerfilPage() {
         <TabsContent value="seguridad">
           <Card>
             <CardHeader>
-              <CardTitle>Seguridad</CardTitle>
+              <CardTitle>Cambiar Contraseña</CardTitle>
               <CardDescription>
-                Cambia tu contraseña y gestiona la seguridad de tu cuenta.
+                Para mayor seguridad, te recomendamos que uses una contraseña única.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -88,7 +88,11 @@ export default function PerfilPage() {
                 <Label htmlFor="new-password">Nueva Contraseña</Label>
                 <Input id="new-password" type="password" />
               </div>
-               <div className="flex justify-end">
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirmar Nueva Contraseña</Label>
+                <Input id="confirm-password" type="password" />
+              </div>
+               <div className="flex justify-end pt-4">
                     <Button>
                       <Save className="mr-2 h-4 w-4" />
                       Cambiar Contraseña
