@@ -242,11 +242,3 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
-
-
-
-    
-
-    
-
-
