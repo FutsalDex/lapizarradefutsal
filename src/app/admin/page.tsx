@@ -31,7 +31,7 @@ const adminItems = [
     title: 'Gestión de Ejercicios',
     description: 'Añade ejercicios a la biblioteca, individualmente o en lote.',
     buttonText: 'Ir a Gestión de Ejercicios',
-    href: '#',
+    href: '/admin/ejercicios',
   },
 ];
 
