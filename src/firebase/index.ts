@@ -1,3 +1,4 @@
+
 'use client';
 
 // This file is the main entry point for all client-side Firebase related functionality.
@@ -13,4 +14,4 @@ export * from './errors';
 export * from './error-emitter';
 export * from './use-auth-user';
 export * from './use-memo-firebase';
-export { getFirebaseApp } from './config';
+export { initializeFirebase } from './config';

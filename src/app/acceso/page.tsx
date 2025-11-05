@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -74,6 +75,7 @@ export default function AccesoPage() {
               break;
           case 'auth/wrong-password':
           case 'auth/user-not-found':
+          case 'auth/invalid-credential':
               friendlyMessage = 'El correo electrónico o la contraseña son incorrectos.';
               break;
           case 'auth/invalid-email':

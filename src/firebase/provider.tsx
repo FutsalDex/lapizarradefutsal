@@ -4,26 +4,25 @@
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
-// Combined state for the Firebase context
+// This interface now only defines the services provided.
+// User state is handled by the useUser hook.
 export interface FirebaseContextState {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
   storage: FirebaseStorage | null;
-  user: User | null;
-  isUserLoading: boolean;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 // React Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
 /**
- * FirebaseProvider manages and provides Firebase services and user authentication state.
+ * FirebaseProvider now focuses solely on providing the core Firebase service instances.
+ * It no longer manages authentication state directly.
  */
 export const FirebaseProvider: React.FC<{
   children: ReactNode;
@@ -31,33 +30,16 @@ export const FirebaseProvider: React.FC<{
   firestore: Firestore;
   auth: Auth;
   storage: FirebaseStorage;
+  // User state props are removed from here
 }> = ({ children, firebaseApp, firestore, auth, storage }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
 
-  // Effect to subscribe to Firebase auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setIsUserLoading(false);
-    }, (error) => {
-      console.error("FirebaseProvider: onAuthStateChanged error:", error);
-      setUser(null);
-      setIsUserLoading(false);
-    });
-    return () => unsubscribe();
-  }, [auth]);
-
-  // Memoize the context value
+  // The context value is now stable as it only contains the service instances.
   const contextValue = useMemo((): FirebaseContextState => ({
     firebaseApp,
     firestore,
     auth,
     storage,
-    user,
-    isUserLoading,
-    setUser, // Expose setter for specific use cases like profile update
-  }), [firebaseApp, firestore, auth, storage, user, isUserLoading]);
+  }), [firebaseApp, firestore, auth, storage]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>

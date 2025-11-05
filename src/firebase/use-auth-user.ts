@@ -1,8 +1,8 @@
 
 'use client';
-import { useContext } from 'react';
-import { FirebaseContext } from './provider';
-import { User } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from './provider';
 
 // Return type for useUser() - specific to user auth state
 export interface UserHookResult {
@@ -12,18 +12,32 @@ export interface UserHookResult {
 }
 
 /**
- * Hook specifically for accessing the authenticated user's state.
- * This provides the User object, loading status, and any auth errors.
- * @returns {UserHookResult} Object with user, isUserLoading.
+ * Hook specifically for accessing and managing the authenticated user's state.
+ * This provides the User object, loading status, and subscribes to auth state changes.
+ * @returns {UserHookResult} Object with user, isUserLoading, and a setUser function.
  */
 export const useUser = (): UserHookResult => {
-  const context = useContext(FirebaseContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a FirebaseProvider.');
-  }
+  const auth = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setIsUserLoading(false);
+    }, (error) => {
+      console.error("useUser: onAuthStateChanged error:", error);
+      setUser(null);
+      setIsUserLoading(false);
+    });
+    
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [auth]);
+
   return { 
-      user: context.user, 
-      isUserLoading: context.isUserLoading, 
-      setUser: context.setUser as (user: User | null) => void
-    };
+      user, 
+      isUserLoading, 
+      setUser: (newUser) => setUser(newUser) // Provide a way to manually update user state if needed
+  };
 };
