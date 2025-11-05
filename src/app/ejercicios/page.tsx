@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { exercises, Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Eye, Heart } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -23,8 +23,8 @@ export default function EjerciciosPage() {
     const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'Todos' || exercise.category === categoryFilter;
-    const matchesFase = faseFilter === 'Todos' || exercise.fase === faseFilter;
-    const matchesEdad = edadFilter === 'Todos' || exercise.edad === edadFilter;
+    const matchesFase = faseFilter === 'Todos' || exercise.fase.includes(faseFilter);
+    const matchesEdad = edadFilter === 'Todos' || exercise.edad.includes(edadFilter);
     return matchesSearch && matchesCategory && matchesFase && matchesEdad;
   });
 
@@ -45,6 +45,11 @@ export default function EjerciciosPage() {
       setCurrentPage(currentPage - 1);
     }
   };
+  
+    const allFases = [...new Set(exercises.map(e => e.fase))];
+    const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
+    const uniqueEdades = [...new Set(allEdades)].filter(Boolean);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -73,9 +78,7 @@ export default function EjerciciosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todas las Fases</SelectItem>
-                  <SelectItem value="Inicio">Inicio</SelectItem>
-                  <SelectItem value="Desarrollo">Desarrollo</SelectItem>
-                  <SelectItem value="Final">Final</SelectItem>
+                  {allFases.map(fase => <SelectItem key={fase} value={fase}>{fase}</SelectItem>)}
                 </SelectContent>
             </Select>
             <Select onValueChange={value => { setCategoryFilter(value); setCurrentPage(1); }} defaultValue="Todos">
@@ -96,9 +99,7 @@ export default function EjerciciosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todas las Edades</SelectItem>
-                  <SelectItem value="Iniciación">Iniciación</SelectItem>
-                  <SelectItem value="Formación">Formación</SelectItem>
-                  <SelectItem value="Rendimiento">Rendimiento</SelectItem>
+                  {uniqueEdades.map(edad => <SelectItem key={edad} value={edad}>{edad}</SelectItem>)}
                 </SelectContent>
             </Select>
         </div>
@@ -120,20 +121,25 @@ export default function EjerciciosPage() {
                   className="object-cover"
                   data-ai-hint={exercise.imageHint}
                 />
+                 <Badge variant="secondary" className="absolute top-2 right-2">{exercise.category}</Badge>
               </div>
             </CardHeader>
             <CardContent className="p-6 flex-grow flex flex-col">
-              <div className="flex justify-between items-start mb-2">
-                <CardTitle className="font-headline text-xl">{exercise.title}</CardTitle>
-                <Badge variant={exercise.intensity === 'Alta' ? 'destructive' : exercise.intensity === 'Media' ? 'secondary' : 'default'}>
-                  {exercise.intensity}
-                </Badge>
+              <CardTitle className="font-headline text-xl truncate mb-2" title={exercise.title}>{exercise.title}</CardTitle>
+              
+              <div className="space-y-1 text-sm text-muted-foreground mb-4">
+                <p><span className="font-semibold text-foreground">Fase:</span> {exercise.fase}</p>
+                <p><span className="font-semibold text-foreground">Edad:</span> {exercise.edad}</p>
+                <p><span className="font-semibold text-foreground">Duración:</span> {exercise.duration}</p>
+                 <p className="line-clamp-2"><span className="font-semibold text-foreground">Descripción:</span> {exercise.description}</p>
               </div>
-              <p className="text-muted-foreground text-sm mb-4">{exercise.description}</p>
-              <div className="mt-auto pt-4 flex gap-2">
-                 <Badge variant="outline">{exercise.category}</Badge>
-                 <Badge variant="outline">{exercise.fase}</Badge>
-                 <Badge variant="outline">{exercise.edad}</Badge>
+
+              <div className="mt-auto pt-4 flex justify-between items-center">
+                 <Button variant="outline" size="sm">
+                    <Eye className="mr-2 h-4 w-4" />
+                    Ver Ficha
+                 </Button>
+                 <Heart className="w-6 h-6 text-destructive/50 hover:text-destructive hover:fill-destructive transition-colors cursor-pointer" />
               </div>
             </CardContent>
           </Card>

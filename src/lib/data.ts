@@ -7,9 +7,9 @@ export type Exercise = {
   title: string;
   description: string;
   category: 'Técnica' | 'Táctica' | 'Físico' | 'Porteros';
-  intensity: 'Baja' | 'Media' | 'Alta';
-  fase: 'Inicio' | 'Desarrollo' | 'Final';
-  edad: 'Iniciación' | 'Formación' | 'Rendimiento';
+  fase: string;
+  edad: string;
+  duration: string;
   imageUrl: string;
   imageHint: string;
 };
@@ -20,9 +20,9 @@ export const exercises: Exercise[] = [
     title: 'Rondo 4 vs 1',
     description: 'Cuatro jugadores en un círculo pasan el balón mientras uno en el centro intenta interceptarlo. Mejora la presión y el pase rápido.',
     category: 'Técnica',
-    intensity: 'Media',
-    fase: 'Inicio',
-    edad: 'Formación',
+    fase: 'Calentamiento',
+    edad: 'Alevín, Infantil',
+    duration: '10 min',
     imageUrl: exerciseImages[0]?.imageUrl || 'https://picsum.photos/seed/ex1/600/400',
     imageHint: exerciseImages[0]?.imageHint || 'futsal drill'
   },
@@ -31,9 +31,9 @@ export const exercises: Exercise[] = [
     title: 'Finalización 2 vs 1',
     description: 'Dos atacantes contra un defensor, buscando la mejor opción para finalizar en portería. Fomenta la toma de decisiones.',
     category: 'Táctica',
-    intensity: 'Alta',
-    fase: 'Desarrollo',
-    edad: 'Rendimiento',
+    fase: 'Principal',
+    edad: 'Cadete, Juvenil, Senior',
+    duration: '15 min',
     imageUrl: exerciseImages[1]?.imageUrl || 'https://picsum.photos/seed/ex2/600/400',
     imageHint: exerciseImages[1]?.imageHint || 'futsal attack'
   },
@@ -42,9 +42,9 @@ export const exercises: Exercise[] = [
     title: 'Circuito de Agilidad',
     description: 'Recorrido con conos, escaleras y vallas para mejorar la coordinación, velocidad y cambios de dirección.',
     category: 'Físico',
-    intensity: 'Alta',
-    fase: 'Inicio',
-    edad: 'Rendimiento',
+    fase: 'Preparación Física',
+    edad: 'Todas',
+    duration: '20 min',
     imageUrl: exerciseImages[2]?.imageUrl || 'https://picsum.photos/seed/ex3/600/400',
     imageHint: exerciseImages[2]?.imageHint || 'agility ladder'
   },
@@ -53,9 +53,9 @@ export const exercises: Exercise[] = [
     title: 'Juego de Posesión 3 vs 3',
     description: 'Partido en espacio reducido con el objetivo de mantener la posesión del balón el mayor tiempo posible.',
     category: 'Táctica',
-    intensity: 'Media',
-    fase: 'Desarrollo',
-    edad: 'Formación',
+    fase: 'Principal',
+    edad: 'Infantil, Cadete',
+    duration: '15 min',
     imageUrl: exerciseImages[3]?.imageUrl || 'https://picsum.photos/seed/ex4/600/400',
     imageHint: exerciseImages[3]?.imageHint || 'futsal game'
   },
@@ -64,9 +64,9 @@ export const exercises: Exercise[] = [
     title: 'Tiros a Puerta con Oposición',
     description: 'Ejercicios de finalización con un defensor activo para simular condiciones de partido real.',
     category: 'Técnica',
-    intensity: 'Media',
-    fase: 'Final',
-    edad: 'Iniciación',
+    fase: 'Principal',
+    edad: 'Benjamín, Alevín',
+    duration: '15 min',
     imageUrl: exerciseImages[4]?.imageUrl || 'https://picsum.photos/seed/ex5/600/400',
     imageHint: exerciseImages[4]?.imageHint || 'futsal shot'
   },
@@ -75,9 +75,9 @@ export const exercises: Exercise[] = [
     title: 'Salida de Presión',
     description: 'El equipo defensor practica cómo superar una presión alta del rival desde su propia área.',
     category: 'Táctica',
-    intensity: 'Alta',
-    fase: 'Desarrollo',
-    edad: 'Rendimiento',
+    fase: 'Principal',
+    edad: 'Juvenil, Senior',
+    duration: '20 min',
     imageUrl: exerciseImages[5]?.imageUrl || 'https://picsum.photos/seed/ex6/600/400',
     imageHint: exerciseImages[5]?.imageHint || 'futsal tactics'
   },
@@ -86,9 +86,9 @@ export const exercises: Exercise[] = [
     title: 'Conducción de Balón',
     description: 'Ejercicios para mejorar el control del balón mientras se corre a diferentes velocidades.',
     category: 'Técnica',
-    intensity: 'Baja',
-    fase: 'Inicio',
-    edad: 'Iniciación',
+    fase: 'Calentamiento',
+    edad: 'Pre-Benjamín, Benjamín',
+    duration: '10 min',
     imageUrl: 'https://picsum.photos/seed/ex7/600/400',
     imageHint: 'futsal dribbling'
   },
@@ -97,9 +97,9 @@ export const exercises: Exercise[] = [
     title: 'Defensa en Inferioridad',
     description: 'Un defensor se enfrenta a dos atacantes, practicando el posicionamiento y la temporización.',
     category: 'Táctica',
-    intensity: 'Media',
-    fase: 'Desarrollo',
-    edad: 'Formación',
+    fase: 'Principal',
+    edad: 'Cadete, Juvenil',
+    duration: '15 min',
     imageUrl: 'https://picsum.photos/seed/ex8/600/400',
     imageHint: 'futsal defense'
   },
@@ -108,9 +108,9 @@ export const exercises: Exercise[] = [
     title: 'Resistencia Intermitente',
     description: 'Carreras de alta intensidad seguidas de periodos cortos de recuperación para simular el ritmo de un partido.',
     category: 'Físico',
-    intensity: 'Alta',
-    fase: 'Inicio',
-    edad: 'Rendimiento',
+    fase: 'Preparación Física',
+    edad: 'Juvenil, Senior',
+    duration: '20 min',
     imageUrl: 'https://picsum.photos/seed/ex9/600/400',
     imageHint: 'futsal running'
   },
@@ -119,9 +119,9 @@ export const exercises: Exercise[] = [
     title: 'Entrenamiento de Portero: Reflejos',
     description: 'Tiros cercanos y rápidos para mejorar los reflejos y la velocidad de reacción del portero.',
     category: 'Porteros',
-    intensity: 'Media',
-    fase: 'Desarrollo',
-    edad: 'Formación',
+    fase: 'Específico',
+    edad: 'Todas',
+    duration: '15 min',
     imageUrl: 'https://picsum.photos/seed/ex10/600/400',
     imageHint: 'goalkeeper training'
   },
@@ -130,9 +130,9 @@ export const exercises: Exercise[] = [
     title: 'Estrategia de Córner',
     description: 'Práctica de jugadas ensayadas tanto ofensivas como defensivas en los saques de esquina.',
     category: 'Táctica',
-    intensity: 'Baja',
-    fase: 'Final',
-    edad: 'Rendimiento',
+    fase: 'Vuelta a la Calma',
+    edad: 'Cadete, Juvenil, Senior',
+    duration: '10 min',
     imageUrl: 'https://picsum.photos/seed/ex11/600/400',
     imageHint: 'futsal strategy'
   },
@@ -141,9 +141,9 @@ export const exercises: Exercise[] = [
     title: 'Control y Pase a Primer Toque',
     description: 'Los jugadores se organizan en parejas y deben controlar y pasar el balón con un solo toque.',
     category: 'Técnica',
-    intensity: 'Media',
-    fase: 'Inicio',
-    edad: 'Formación',
+    fase: 'Calentamiento',
+    edad: 'Infantil, Cadete',
+    duration: '10 min',
     imageUrl: 'https://picsum.photos/seed/ex12/600/400',
     imageHint: 'futsal passing'
   },
