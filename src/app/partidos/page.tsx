@@ -1,6 +1,7 @@
+
 "use client";
 
-import { matches, Match } from '@/lib/data';
+import { matches as initialMatches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,7 @@ export default function PartidosPage() {
     
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
+    const [matches, setMatches] = React.useState<Match[]>(initialMatches);
 
 
     const handleSelectAll = (checked: boolean) => {
@@ -89,6 +91,26 @@ export default function PartidosPage() {
         setEditingMatch((prev: any) => ({ ...prev, [field]: value }));
     };
     
+    const handleSaveChanges = () => {
+        if (!editingMatch) return;
+    
+        setMatches(prevMatches =>
+          prevMatches.map(match =>
+            match.id === editingMatch.id
+              ? {
+                  ...match,
+                  opponent: `${editingMatch.localTeam} vs ${editingMatch.visitorTeam}`,
+                  date: editingMatch.date.toISOString(),
+                  competition: editingMatch.type,
+                  // Any other fields to update
+                }
+              : match
+          )
+        );
+        setIsEditDialogOpen(false);
+        setEditingMatch(null);
+    };
+
     const allSelected = initialPlayers.length > 0 && initialPlayers.every(p => selectedPlayers[p.dorsal]);
     const selectedCount = Object.values(selectedPlayers).filter(Boolean).length;
 
@@ -355,7 +377,7 @@ export default function PartidosPage() {
                 </div>
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                    <Button onClick={() => setIsEditDialogOpen(false)}><Save className="mr-2" /> Guardar Cambios</Button>
+                    <Button onClick={handleSaveChanges}><Save className="mr-2" /> Guardar Cambios</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -364,3 +386,5 @@ export default function PartidosPage() {
     </div>
   );
 }
+
+    
