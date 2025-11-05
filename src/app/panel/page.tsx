@@ -15,7 +15,7 @@ const panelItems = [
   {
     icon: <Calendar className="w-8 h-8 text-primary" />,
     title: 'Mis Sesiones',
-    description: 'Encuentra y organiza todas las sesiones de entrenamiento que has creado manualmente.',
+    description: 'Encuentra y organiza todas las sesiones de entrenamiento que has creado manually.',
     buttonText: 'Ir a Mis Sesiones',
     href: '/sesiones',
   },
@@ -24,7 +24,7 @@ const panelItems = [
     title: 'Mis Ejercicios',
     description: 'Aporta ejercicios a la comunidad, gestiónalos y gana puntos para tu suscripción.',
     buttonText: 'Ir a Mis Ejercicios',
-    href: '/ejercicios/crear', // Placeholder link
+    href: '/ejercicios/mis-ejercicios',
   },
   {
     icon: <CalendarClock className="w-8 h-8 text-primary" />,
