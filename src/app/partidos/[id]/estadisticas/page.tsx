@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, TimerOff } from "lucide-react";
 import Link from 'next/link';
@@ -71,6 +71,22 @@ export default function EstadisticasPartidoPage() {
 
     const localTeamScore = playerStats.reduce((acc, player) => acc + player.g, 0);
     const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0);
+
+    const totals = playerStats.reduce((acc, player) => {
+        acc.g += player.g;
+        acc.a += player.a;
+        acc.fouls += player.fouls;
+        acc.t_puerta += player.t_puerta;
+        acc.t_fuera += player.t_fuera;
+        acc.recup += player.recup;
+        acc.perdidas += player.perdidas;
+        acc.paradas += player.paradas;
+        acc.gc += player.gc;
+        acc.vs1 += player.vs1;
+        acc.ta += player.ta;
+        acc.tr += player.tr;
+        return acc;
+    }, { g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0 });
 
 
     useEffect(() => {
@@ -317,8 +333,46 @@ export default function EstadisticasPartidoPage() {
                                         </TableRow>
                                     ))}
                                 </TableBody>
+                                <TableFooter>
+                                    <TableRow className="bg-muted/50 font-bold">
+                                        <TableCell>Total {period}</TableCell>
+                                        <TableCell></TableCell> {/* Empty for Min */}
+                                        <TableCell className="text-center">{totals.g}</TableCell>
+                                        <TableCell className="text-center">{totals.a}</TableCell>
+                                        <TableCell className="text-center">{totals.fouls}</TableCell>
+                                        <TableCell className="text-center">{totals.t_puerta}</TableCell>
+                                        <TableCell className="text-center">{totals.t_fuera}</TableCell>
+                                        <TableCell className="text-center">{totals.recup}</TableCell>
+                                        <TableCell className="text-center">{totals.perdidas}</TableCell>
+                                        <TableCell className="text-center">{totals.paradas}</TableCell>
+                                        <TableCell className="text-center">{totals.gc}</TableCell>
+                                        <TableCell className="text-center">{totals.vs1}</TableCell>
+                                        <TableCell className="text-center">{totals.ta}</TableCell>
+                                        <TableCell className="text-center">{totals.tr}</TableCell>
+                                    </TableRow>
+                                </TableFooter>
                             </Table>
                         </div>
+                    </CardContent>
+                </Card>
+                 <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle>Leyenda</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-2 text-sm text-muted-foreground">
+                        <div><span className="font-semibold text-foreground">Min:</span> Minutos (Total Partido)</div>
+                        <div><span className="font-semibold text-foreground">G:</span> Goles</div>
+                        <div><span className="font-semibold text-foreground">A:</span> Asistencias</div>
+                        <div><span className="font-semibold text-foreground">TA:</span> T. Amarilla</div>
+                        <div><span className="font-semibold text-foreground">TR:</span> T. Roja</div>
+                        <div><span className="font-semibold text-foreground">Faltas:</span> Faltas</div>
+                        <div><span className="font-semibold text-foreground">T. Puerta:</span> Tiros a Puerta</div>
+                        <div><span className="font-semibold text-foreground">T. Fuera:</span> Tiros Fuera</div>
+                        <div><span className="font-semibold text-foreground">Recup:</span> Recuperaciones</div>
+                        <div><span className="font-semibold text-foreground">Perdidas:</span> Perdidas</div>
+                        <div><span className="font-semibold text-foreground">Paradas:</span> Paradas</div>
+                        <div><span className="font-semibold text-foreground">GC:</span> Goles en Contra</div>
+                        <div><span className="font-semibold text-foreground">1vs1:</span> Duelos 1vs1 ganados</div>
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -335,5 +389,7 @@ export default function EstadisticasPartidoPage() {
         </Tabs>
     </div>
   );
+
+    
 
     
