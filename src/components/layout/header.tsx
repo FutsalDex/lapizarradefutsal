@@ -37,7 +37,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Logo />
+            
             <span className="hidden font-bold sm:inline-block font-headline text-lg">
               LaPizarra
             </span>
@@ -63,7 +63,7 @@ export function Header() {
         
         <div className="flex flex-1 items-center justify-between md:hidden">
            <Link href="/" className="flex items-center space-x-2">
-            <Logo />
+            
             <span className="font-bold font-headline">
               LaPizarra
             </span>
