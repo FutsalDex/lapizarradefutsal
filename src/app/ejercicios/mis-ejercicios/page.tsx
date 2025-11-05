@@ -46,7 +46,7 @@ export default function MisEjerciciosPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Ejercicios que Has Subido</CardTitle>
+          <CardTitle>Ejercicios que has Subido</CardTitle>
           <CardDescription>
             Aquí puedes ver y gestionar todos los ejercicios que has aportado a la comunidad.
           </CardDescription>
