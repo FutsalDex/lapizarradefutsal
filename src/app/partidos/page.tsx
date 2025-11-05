@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import React from 'react';
 
 const initialPlayers = [
     { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
@@ -41,6 +42,28 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
 
 export default function PartidosPage() {
     const teamName = "Juvenil B";
+    const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
+
+    const handleSelectAll = (checked: boolean) => {
+        const newSelectedPlayers: Record<string, boolean> = {};
+        if (checked) {
+            initialPlayers.forEach(player => {
+                newSelectedPlayers[player.dorsal] = true;
+            });
+        }
+        setSelectedPlayers(newSelectedPlayers);
+    };
+
+    const handlePlayerSelect = (playerId: string, checked: boolean) => {
+        setSelectedPlayers(prev => ({
+            ...prev,
+            [playerId]: checked
+        }));
+    };
+    
+    const allSelected = initialPlayers.length > 0 && initialPlayers.every(p => selectedPlayers[p.dorsal]);
+    const selectedCount = Object.values(selectedPlayers).filter(Boolean).length;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -103,19 +126,36 @@ export default function PartidosPage() {
                                     <DialogHeader>
                                         <DialogTitle>Convocar Jugadores</DialogTitle>
                                         <DialogDescription>
-                                            Selecciona un máximo de 12 jugadores para el partido.
+                                            Selecciona un máximo de 12 jugadores para el partido. ({selectedCount}/12)
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <div className="grid grid-cols-2 gap-4 py-4">
-                                        {initialPlayers.map(player => (
-                                            <div key={player.dorsal} className="flex items-center space-x-2">
-                                                <Checkbox id={`player-${player.dorsal}`} />
-                                                <Label htmlFor={`player-${player.dorsal}`} className="flex items-center gap-2 text-sm font-normal">
-                                                    <span className="font-bold w-6 text-right">({player.dorsal})</span>
-                                                    <span>{player.nombre}</span>
-                                                </Label>
-                                            </div>
-                                        ))}
+                                    <div className="py-4 space-y-4">
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox 
+                                                id="select-all"
+                                                checked={allSelected}
+                                                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                                            />
+                                            <Label htmlFor="select-all" className="font-semibold">
+                                                Seleccionar Todos
+                                            </Label>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {initialPlayers.map(player => (
+                                                <div key={player.dorsal} className="flex items-center space-x-2">
+                                                    <Checkbox 
+                                                        id={`player-${player.dorsal}`} 
+                                                        checked={!!selectedPlayers[player.dorsal]}
+                                                        onCheckedChange={(checked) => handlePlayerSelect(player.dorsal, checked as boolean)}
+                                                        disabled={selectedCount >= 12 && !selectedPlayers[player.dorsal]}
+                                                    />
+                                                    <Label htmlFor={`player-${player.dorsal}`} className="flex items-center gap-2 text-sm font-normal">
+                                                        <span className="font-bold w-6 text-right">({player.dorsal})</span>
+                                                        <span>{player.nombre}</span>
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                     <DialogFooter>
                                         <Button><Save className="mr-2" /> Guardar Convocatoria</Button>
@@ -194,3 +234,5 @@ export default function PartidosPage() {
     </div>
   );
 }
+
+    
