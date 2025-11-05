@@ -155,8 +155,8 @@ export default function PartidoDetallePage() {
 
                                     {goal.team === 'rival' ? (
                                         <div className="w-1/2 flex justify-between items-center pl-4">
-                                            <span className="font-medium">{goal.player}</span>
-                                            <span className="text-muted-foreground">{goal.minute}'</span>
+                                             <span className="text-muted-foreground text-right w-full mr-4">{goal.minute}'</span>
+                                            <span className="font-medium text-right w-full">{goal.player}</span>
                                         </div>
                                     ) : <div className="w-1/2 pl-4"></div>}
                                 </div>
@@ -206,32 +206,32 @@ export default function PartidoDetallePage() {
                             <TableBody>
                                 {playerStats.map((player) => (
                                     <TableRow key={player.id}>
-                                        <TableCell className="text-center font-medium">{player.id}</TableCell>
-                                        <TableCell>{player.name}</TableCell>
-                                        <TableCell className="text-center">{player.timePlayed}</TableCell>
-                                        <TableCell className="text-center">{player.g}</TableCell>
-                                        <TableCell className="text-center">{player.a}</TableCell>
-                                        <TableCell className="text-center">{player.ta}</TableCell>
-                                        <TableCell className="text-center">{player.tr}</TableCell>
-                                        <TableCell className="text-center">{player.fouls}</TableCell>
-                                        <TableCell className="text-center">{player.paradas}</TableCell>
-                                        <TableCell className="text-center">{player.gc}</TableCell>
-                                        <TableCell className="text-center">{player.vs1}</TableCell>
+                                        <TableCell className="text-center font-medium py-3 px-4">{player.id}</TableCell>
+                                        <TableCell className="py-3 px-4">{player.name}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.timePlayed}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.g}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.a}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.ta}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.tr}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.fouls}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.paradas}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.gc}</TableCell>
+                                        <TableCell className="text-center py-3 px-4">{player.vs1}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                              <TableFooter>
                                 <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
-                                    <TableCell colSpan={2}>Total Equipo</TableCell>
-                                    <TableCell className="text-center">{totalTimeFormatted}</TableCell>
-                                    <TableCell className="text-center">{totals.g}</TableCell>
-                                    <TableCell className="text-center">{totals.a}</TableCell>
-                                    <TableCell className="text-center">{totals.ta}</TableCell>
-                                    <TableCell className="text-center">{totals.tr}</TableCell>
-                                    <TableCell className="text-center">{totals.fouls}</TableCell>
-                                    <TableCell className="text-center">{totals.paradas}</TableCell>
-                                    <TableCell className="text-center">{totals.gc}</TableCell>
-                                    <TableCell className="text-center">{totals.vs1}</TableCell>
+                                    <TableCell colSpan={2} className="py-3 px-4">Total Equipo</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totalTimeFormatted}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.g}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.a}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.ta}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.tr}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.fouls}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.paradas}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.gc}</TableCell>
+                                    <TableCell className="text-center py-3 px-4">{totals.vs1}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>
@@ -243,3 +243,5 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
+
+    
