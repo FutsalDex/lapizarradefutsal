@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, BookOpen, Upload, Save } from "lucide-react";
+import { ArrowLeft, BookOpen, Upload, Save, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -141,19 +141,23 @@ export default function SubirEjercicioPage() {
                         <Input id="ia-hint" placeholder="ej: futsal drill" />
                     </div>
                 </div>
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                    <Label htmlFor="visibility-switch" className="text-sm">
-                        Visible en la biblioteca pública
-                    </Label>
+                <div className="flex items-start justify-between rounded-lg border p-4">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="visibility-switch" className="text-sm">
+                            Visible en la biblioteca pública
+                        </Label>
+                         <p className="text-xs text-muted-foreground">
+                            Si está activado, el ejercicio pasará a revisión del administrador antes de ser público y sumar puntos.
+                        </p>
+                    </div>
                     <Switch id="visibility-switch" defaultChecked />
                 </div>
             </div>
             
-            <div className="flex justify-end gap-4 pt-4">
-                <Button variant="outline">Guardar Borrador</Button>
+            <div className="flex justify-end pt-4">
                 <Button>
-                    <Save className="mr-2" />
-                    Enviar a Revisión
+                    <PlusCircle className="mr-2" />
+                    Añadir Ejercicio
                 </Button>
             </div>
         </CardContent>
@@ -161,3 +165,5 @@ export default function SubirEjercicioPage() {
     </div>
   );
 }
+
+    
