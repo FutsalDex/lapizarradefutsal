@@ -39,7 +39,7 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
 
     if (isDraw) return 'text-accent-foreground';
 
-    if (teamA_name === teamName) { // We are team A (local)
+    if (teamA_name.trim() === teamName.trim()) { // We are team A (local)
         if (teamAScore > teamBScore) return 'text-primary'; // Win
         return 'text-destructive'; // Loss
     } else { // We are team B (visitor)
@@ -286,8 +286,10 @@ export default function PartidosPage() {
                             </Dialog>
                         )}
 
-                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                            <BarChart />
+                         <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                            <Link href={`/partidos/${match.id}/estadisticas`}>
+                                <BarChart />
+                            </Link>
                         </Button>
                          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <Eye />
@@ -315,7 +317,11 @@ export default function PartidosPage() {
                             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                                 <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><BarChart /></Button>
+                            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                <Link href={`/partidos/${match.id}/estadisticas`}>
+                                    <BarChart />
+                                </Link>
+                            </Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
                         </CardFooter>
@@ -343,7 +349,11 @@ export default function PartidosPage() {
                             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                                 <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
                             </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><BarChart /></Button>
+                            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                <Link href={`/partidos/${match.id}/estadisticas`}>
+                                    <BarChart />
+                                </Link>
+                            </Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
                             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
                         </CardFooter>
@@ -458,5 +468,7 @@ export default function PartidosPage() {
     </div>
   );
 }
+
+    
 
     
