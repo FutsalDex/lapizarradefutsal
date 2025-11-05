@@ -62,7 +62,9 @@ export default function PartidosPage() {
         localTeam: '',
         visitorTeam: '',
         date: undefined as Date | undefined,
-        type: 'Liga'
+        type: 'Amistoso',
+        competition: '',
+        round: ''
     });
 
 
@@ -113,11 +115,11 @@ export default function PartidosPage() {
             date: newMatch.date.toISOString(),
             score: '0 - 0',
             result: 'Empate',
-            competition: newMatch.type,
+            competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
         };
         setMatches(prev => [newMatchData, ...prev]);
         setIsAddDialogOpen(false);
-        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, type: 'Liga' });
+        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, type: 'Amistoso', competition: '', round: '' });
     };
     
     const handleSaveChanges = () => {
@@ -130,8 +132,7 @@ export default function PartidosPage() {
                   ...match,
                   opponent: `${editingMatch.localTeam} vs ${editingMatch.visitorTeam}`,
                   date: editingMatch.date.toISOString(),
-                  competition: editingMatch.type,
-                  // Any other fields to update
+                  competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
                 }
               : match
           )
@@ -220,6 +221,29 @@ export default function PartidosPage() {
                             </SelectContent>
                         </Select>
                     </div>
+                     {newMatch.type === 'Liga' && (
+                        <>
+                            <div className="space-y-2">
+                                <Label htmlFor="competition-add">Competición</Label>
+                                <Input 
+                                    id="competition-add" 
+                                    placeholder="Nombre de la competición"
+                                    value={newMatch.competition}
+                                    onChange={(e) => handleNewMatchChange('competition', e.target.value)} 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="round-add">Jornada</Label>
+                                <Input 
+                                    id="round-add" 
+                                    type="number" 
+                                    placeholder="Número de jornada"
+                                    value={newMatch.round}
+                                    onChange={(e) => handleNewMatchChange('round', e.target.value)} 
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
@@ -331,7 +355,7 @@ export default function PartidosPage() {
         {/* You can add more TabsContent for each category */}
         <TabsContent value="Liga">
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.filter(m => m.competition === 'Liga').map((match) => (
+                {matches.filter(m => m.competition.includes('Liga')).map((match) => (
                     <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
                         <CardContent className="p-6 text-center flex-grow">
                             <p className="font-semibold">{match.opponent}</p>
@@ -494,11 +518,3 @@ export default function PartidosPage() {
     </div>
   );
 }
-
-    
-
-    
-
-
-
-
