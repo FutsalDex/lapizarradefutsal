@@ -24,13 +24,16 @@ const initialPlayers = [
 const getResultColor = (score: string, teamName: string, opponent: string): string => {
     const [teamAScore, teamBScore] = score.split(' - ').map(Number);
     const isTeamAWinner = teamAScore > teamBScore;
+    const isDraw = teamAScore === teamBScore;
+
+    if (isDraw) return 'text-accent';
 
     if (opponent.includes(teamName)) { // teamName is teamB
-        if (teamBScore > teamAScore) return 'text-primary';
-        if (teamBScore < teamAScore) return 'text-destructive';
+        if (teamBScore > teamAScore) return 'text-primary'; // Win
+        if (teamBScore < teamAScore) return 'text-destructive'; // Loss
     } else { // teamName is teamA
-        if (teamAScore > teamBScore) return 'text-primary';
-        if (teamAScore < teamBScore) return 'text-destructive';
+        if (teamAScore > teamBScore) return 'text-primary'; // Win
+        if (teamAScore < teamBScore) return 'text-destructive'; // Loss
     }
     return 'text-muted-foreground';
 };
