@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Logo } from "./logo";
 import {
   Sheet,
   SheetContent,
@@ -124,9 +123,11 @@ export function Header() {
                     </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Mi Perfil</span>
+                    <DropdownMenuItem asChild>
+                        <Link href="/perfil">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Mi Perfil</span>
+                        </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                         <Star className="mr-2 h-4 w-4" />
