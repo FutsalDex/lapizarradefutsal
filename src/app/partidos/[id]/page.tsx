@@ -134,7 +134,7 @@ export default function PartidoDetallePage() {
         </TabsList>
         <TabsContent value="datos">
             <Card>
-                <CardContent className="p-6 space-y-8">
+                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                         <h3 className="font-bold text-center text-lg">Cronología de Goles</h3>
                         <div className="flex justify-between font-bold border-b pb-2 mb-4">
@@ -248,4 +248,5 @@ export default function PartidoDetallePage() {
     
 
     
+
 
