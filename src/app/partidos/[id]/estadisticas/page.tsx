@@ -156,22 +156,27 @@ export default function EstadisticasPartidoPage() {
         return () => clearInterval(interval);
     }, [saveStats]);
 
-    // This effect runs when the period changes
     useEffect(() => {
+        // This effect runs when the 'period' state changes.
         setIsActive(false);
 
-        // Save current stats to the corresponding period before switching
-        const previousPeriod = period === '1ª Parte' ? '2ª Parte' : '1ª Parte';
+        // Save the current working stats into the main 'stats' object for the period we are leaving.
         setStats(prevStats => {
-            const currentPeriodToSave = period; // The period we are switching FROM
-            const updatedStats = {
-                ...prevStats,
-                [currentPeriodToSave]: { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken }
-            };
+            const periodToSave = period === '1ª Parte' ? '2ª Parte' : '1ª Parte'; // The period we just left
+            const updatedStats = { ...prevStats };
             
-            // Load stats for the new period we are switching TO
-            const newPeriodKey = period; // The period we are switching TO
-            const newPeriodStats = updatedStats[newPeriodKey];
+            // This is a snapshot of the state right before the period change was requested.
+            // We need to save it to the *other* period slot.
+            // But since the `period` state has already updated, `period` now represents the *new* period.
+            // So we save to the one that is NOT the current `period`.
+            if (period === '2ª Parte') {
+                 updatedStats['1ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
+            } else {
+                 updatedStats['2ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
+            }
+            
+            // Now load the stats for the new, current period
+            const newPeriodStats = updatedStats[period];
             setPlayerStats(newPeriodStats.playerStats);
             setOpponentStats(newPeriodStats.opponentStats);
             setLocalTimeoutTaken(newPeriodStats.localTimeoutTaken);
@@ -187,9 +192,9 @@ export default function EstadisticasPartidoPage() {
     }, [period]);
 
     const handlePeriodChange = (newPeriod: Period) => {
-        if(period === newPeriod) return;
+        if (period === newPeriod) return;
 
-        // Save current period stats before switching
+        // First, save the current state before updating the period
         setStats(prev => ({
             ...prev,
             [period]: {
@@ -199,6 +204,8 @@ export default function EstadisticasPartidoPage() {
                 opponentTimeoutTaken
             }
         }));
+        
+        // Then, set the new period, which will trigger the useEffect
         setPeriod(newPeriod);
     };
 
@@ -591,11 +598,5 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
 
     
