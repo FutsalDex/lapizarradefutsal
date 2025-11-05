@@ -17,7 +17,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 
 type Stat = {
     goles: number;
@@ -76,7 +89,15 @@ export default function MarcadorRapidoPage() {
         '2ª Parte': JSON.parse(JSON.stringify(initialPeriodStats)),
     });
 
-    const [time, setTime] = useState(25 * 60);
+    const [localTeamName, setLocalTeamName] = useState('Local');
+    const [visitorTeamName, setVisitorTeamName] = useState('Visitante');
+    const [matchDuration, setMatchDuration] = useState(25);
+
+    const [tempLocalTeamName, setTempLocalTeamName] = useState(localTeamName);
+    const [tempVisitorTeamName, setTempVisitorTeamName] = useState(visitorTeamName);
+    const [tempMatchDuration, setTempMatchDuration] = useState(matchDuration);
+
+    const [time, setTime] = useState(matchDuration * 60);
     const [isActive, setIsActive] = useState(false);
     
     const currentStats = stats[periodo];
@@ -100,8 +121,8 @@ export default function MarcadorRapidoPage() {
 
     const resetTimer = useCallback(() => {
         setIsActive(false);
-        setTime(25 * 60);
-    }, []);
+        setTime(matchDuration * 60);
+    }, [matchDuration]);
     
     const handleStatChange = (
         team: 'local' | 'visitante', 
@@ -111,6 +132,7 @@ export default function MarcadorRapidoPage() {
         setStats(prev => {
             const newStats = {...prev};
             const currentVal = newStats[periodo][team][stat];
+            if (stat === 'faltas' && newStats[periodo][team][stat] >= 5 && delta > 0) return newStats;
             newStats[periodo][team][stat] = Math.max(0, currentVal + delta);
             return newStats;
         });
@@ -133,7 +155,7 @@ export default function MarcadorRapidoPage() {
         });
         toast({
             title: "Tiempo Muerto",
-            description: `El equipo ${team === 'local' ? 'Local' : 'Visitante'} ha solicitado tiempo muerto.`,
+            description: `El equipo ${team === 'local' ? localTeamName : visitorTeamName} ha solicitado tiempo muerto.`,
         });
     }
 
@@ -147,6 +169,18 @@ export default function MarcadorRapidoPage() {
         toast({
             title: "Marcador reiniciado",
             description: "Todas las estadísticas y el tiempo han sido restablecidos.",
+        });
+    }
+
+    const applySettings = () => {
+        setLocalTeamName(tempLocalTeamName);
+        setVisitorTeamName(tempVisitorTeamName);
+        setMatchDuration(tempMatchDuration);
+        setTime(tempMatchDuration * 60);
+        setIsActive(false);
+        toast({
+            title: "Configuración guardada",
+            description: "Los cambios se han aplicado al marcador.",
         });
     }
 
@@ -191,7 +225,7 @@ export default function MarcadorRapidoPage() {
                     <div className="grid grid-cols-3 items-center text-center">
                         {/* Equipo Local */}
                         <div className="flex flex-col items-center gap-4">
-                            <h2 className="text-xl font-bold">Local</h2>
+                            <h2 className="text-xl font-bold">{localTeamName}</h2>
                             <div className="flex items-center gap-2">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < currentStats.local.faltas ? 'bg-destructive' : '')}></div>
@@ -217,7 +251,7 @@ export default function MarcadorRapidoPage() {
 
                         {/* Equipo Visitante */}
                         <div className="flex flex-col items-center gap-4">
-                            <h2 className="text-xl font-bold">Visitante</h2>
+                            <h2 className="text-xl font-bold">{visitorTeamName}</h2>
                             <div className="flex items-center gap-2">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < currentStats.visitante.faltas ? 'bg-destructive' : '')}></div>
@@ -238,9 +272,44 @@ export default function MarcadorRapidoPage() {
                             {isActive ? <><Pause className="mr-2"/>Pausar</> : <><Play className="mr-2"/>Iniciar</>}
                         </Button>
                         <Button variant="outline" onClick={resetTimer}><RotateCcw className="mr-2"/>Reiniciar</Button>
-                        <Button variant="ghost" size="icon" onClick={() => toast({ title: "Próximamente", description: "La configuración avanzada estará disponible en futuras actualizaciones."})}>
-                            <Settings />
-                        </Button>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                 <Button variant="ghost" size="icon">
+                                    <Settings />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Configuración del Marcador</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="local-team-name">Equipo Local</Label>
+                                        <Input id="local-team-name" value={tempLocalTeamName} onChange={(e) => setTempLocalTeamName(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="visitor-team-name">Equipo Visitante</Label>
+                                        <Input id="visitor-team-name" value={tempVisitorTeamName} onChange={(e) => setTempVisitorTeamName(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="match-duration">Tiempo (min)</Label>
+                                        <Input id="match-duration" type="number" value={tempMatchDuration} onChange={(e) => setTempMatchDuration(Number(e.target.value))} />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button type="button" variant="secondary">
+                                            Cancelar
+                                        </Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                        <Button type="button" onClick={applySettings}>
+                                            Aplicar Cambios
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                     <div className="flex justify-center gap-2 mt-4">
                         <Button variant={periodo === '1ª Parte' ? 'secondary' : 'ghost'} size="sm" onClick={() => handlePeriodChange('1ª Parte')}>1ª Parte</Button>
@@ -273,7 +342,7 @@ export default function MarcadorRapidoPage() {
                 <CardContent className="p-6 space-y-4">
                     <div className="grid grid-cols-2 gap-8">
                         <div className="space-y-4">
-                            <h3 className="font-bold text-center">Local</h3>
+                            <h3 className="font-bold text-center">{localTeamName}</h3>
                              <StatCounter 
                                 title="Goles"
                                 value={currentStats.local.goles}
@@ -304,7 +373,7 @@ export default function MarcadorRapidoPage() {
                            />
                         </div>
                          <div className="space-y-4">
-                            <h3 className="font-bold text-center">Visitante</h3>
+                            <h3 className="font-bold text-center">{visitorTeamName}</h3>
                              <StatCounter 
                                 title="Goles"
                                 value={currentStats.visitante.goles}
