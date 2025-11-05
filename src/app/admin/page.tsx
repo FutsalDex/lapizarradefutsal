@@ -10,7 +10,7 @@ const adminItems = [
     title: 'Gestión de Usuarios',
     description: 'Activa y gestiona las suscripciones de todos los usuarios.',
     buttonText: 'Ir a Gestión de Usuarios',
-    href: '#',
+    href: '/admin/users',
   },
   {
     icon: <Gift className="w-8 h-8 text-primary" />,
