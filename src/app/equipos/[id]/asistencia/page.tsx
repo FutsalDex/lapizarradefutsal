@@ -8,13 +8,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, Calendar as CalendarIcon, Save, Trash2, RotateCcw, CalendarCheck2 } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, Save, Trash2, RotateCcw, CalendarCheck2, History } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from '@/components/ui/progress';
+
 
 type AttendanceStatus = 'presente' | 'ausente' | 'justificado' | 'lesionado';
 
@@ -38,6 +40,21 @@ const initialPlayers = [
     { id: 12, dorsal: '12', nombre: 'Marc Muñoz', status: 'presente' as AttendanceStatus },
     { id: 15, dorsal: '15', nombre: 'Lucas', status: 'presente' as AttendanceStatus },
     { id: 16, dorsal: '16', nombre: 'Salva', status: 'presente' as AttendanceStatus },
+];
+
+const attendanceHistory = [
+    { dorsal: '1', nombre: 'Manel', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '2', nombre: 'Marc Montoro', p: 14, a: 0, j: 3, l: 1, total: 18 },
+    { dorsal: '5', nombre: 'Dani', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '6', nombre: 'Adam', p: 17, a: 0, j: 1, l: 0, total: 18 },
+    { dorsal: '7', nombre: 'Hugo', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '8', nombre: 'Victor', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '9', nombre: 'Marc Romera', p: 16, a: 0, j: 2, l: 0, total: 18 },
+    { dorsal: '10', nombre: 'Iker Rando', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '11', nombre: 'Roger', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '12', nombre: 'Marc Muñoz', p: 17, a: 0, j: 1, l: 0, total: 18 },
+    { dorsal: '15', nombre: 'Lucas', p: 18, a: 0, j: 0, l: 0, total: 18 },
+    { dorsal: '16', nombre: 'Salva', p: 17, a: 0, j: 1, l: 0, total: 18 },
 ];
 
 export default function AsistenciaPage() {
@@ -176,12 +193,63 @@ export default function AsistenciaPage() {
         <TabsContent value="historial">
             <Card>
                 <CardHeader>
-                    <CardTitle>Historial de Asistencia</CardTitle>
-                    <CardDescription>Aquí podrás ver el historial completo de asistencia del equipo.</CardDescription>
+                    <div className="flex items-center gap-3">
+                        <History className="w-5 h-5 text-primary"/>
+                        <CardTitle>Historial de Asistencia</CardTitle>
+                    </div>
+                    <CardDescription>Resumen de la asistencia de los jugadores a todos los entrenamientos registrados.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-center text-muted-foreground">Esta sección está en desarrollo.</p>
+                   <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[80px]">#</TableHead>
+                                    <TableHead>Nombre</TableHead>
+                                    <TableHead className="text-center">P</TableHead>
+                                    <TableHead className="text-center">A</TableHead>
+                                    <TableHead className="text-center">J</TableHead>
+                                    <TableHead className="text-center">L</TableHead>
+                                    <TableHead className="text-center">Total</TableHead>
+                                    <TableHead className="w-[200px] text-center">% Asistencia</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {attendanceHistory.map(player => {
+                                    const percentage = player.total > 0 ? Math.round((player.p / player.total) * 100) : 0;
+                                    return (
+                                        <TableRow key={player.dorsal}>
+                                            <TableCell className="font-medium">{player.dorsal}</TableCell>
+                                            <TableCell>{player.nombre}</TableCell>
+                                            <TableCell className="text-center">{player.p}</TableCell>
+                                            <TableCell className="text-center">{player.a}</TableCell>
+                                            <TableCell className="text-center">{player.j}</TableCell>
+                                            <TableCell className="text-center">{player.l}</TableCell>
+                                            <TableCell className="text-center font-bold">{player.total}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Progress value={percentage} className="w-2/3" />
+                                                    <span className="text-sm text-muted-foreground w-1/3 text-right">{percentage}%</span>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
+                 <CardFooter>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                        <div className="flex gap-4">
+                            <p><span className="font-semibold">P:</span> Presente</p>
+                            <p><span className="font-semibold">A:</span> Ausente</p>
+                            <p><span className="font-semibold">J:</span> Ausencia Justificada</p>
+                            <p><span className="font-semibold">L:</span> Lesionado</p>
+                        </div>
+                        <p>* El % de asistencia se calcula como: (Presente / Sesiones Totales) * 100.</p>
+                    </div>
+                </CardFooter>
             </Card>
         </TabsContent>
       </Tabs>
