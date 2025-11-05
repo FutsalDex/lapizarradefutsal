@@ -37,7 +37,7 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
     
     const isDraw = teamAScore === teamBScore;
 
-    if (isDraw) return 'text-primary';
+    if (isDraw) return 'text-accent';
 
     if (teamA_name.trim() === teamName.trim()) { // We are team A (local)
         if (teamAScore > teamBScore) return 'text-green-600'; // Win
@@ -498,5 +498,6 @@ export default function PartidosPage() {
     
 
     
+
 
 
