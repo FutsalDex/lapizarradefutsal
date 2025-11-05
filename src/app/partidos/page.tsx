@@ -55,7 +55,9 @@ export default function PartidosPage() {
     
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+    const [isConvocatoriaOpen, setIsConvocatoriaOpen] = React.useState(false);
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
+    const [matchForConvocatoria, setMatchForConvocatoria] = React.useState<Match | null>(null);
     const [matches, setMatches] = React.useState<Match[]>(initialMatches);
 
     const [newMatch, setNewMatch] = React.useState({
@@ -84,6 +86,28 @@ export default function PartidosPage() {
             [playerId]: checked
         }));
     };
+    
+    const handleOpenConvocatoriaDialog = (match: Match) => {
+        setMatchForConvocatoria(match);
+        // Pre-fill selection based on match.playersCalled if needed
+        setSelectedPlayers({}); // Reset selection
+        setIsConvocatoriaOpen(true);
+    };
+    
+    const handleSaveConvocatoria = () => {
+        if (!matchForConvocatoria) return;
+        
+        const count = Object.values(selectedPlayers).filter(Boolean).length;
+        const updatedMatches = matches.map(m => 
+            m.id === matchForConvocatoria.id 
+            ? { ...m, playersCalled: `${count} Jug.` } 
+            : m
+        );
+        setMatches(updatedMatches);
+        setIsConvocatoriaOpen(false);
+        setMatchForConvocatoria(null);
+    };
+
 
     const handleOpenEditDialog = (match: Match) => {
         const [localTeam, visitorTeam] = match.opponent.split(' vs ');
@@ -92,7 +116,8 @@ export default function PartidosPage() {
             localTeam,
             visitorTeam,
             date: new Date(match.date),
-            type: match.competition,
+            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? match.competition : 'Liga',
+            competition: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? '' : match.competition,
             round: '1', // Placeholder
         });
         setIsEditDialogOpen(true);
@@ -283,58 +308,9 @@ export default function PartidosPage() {
                         <Badge variant="secondary">{match.competition}</Badge>
                     </CardContent>
                     <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                        {match.playersCalled ? (
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                                <Users className="mr-1" /> {match.playersCalled}
-                            </Button>
-                        ) : (
-                             <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                                        <Users className="mr-1" /> Convocar
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Convocar Jugadores</DialogTitle>
-                                        <DialogDescription>
-                                            Selecciona un máximo de 12 jugadores para el partido. ({selectedCount}/12)
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="py-4 space-y-4">
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox 
-                                                id="select-all"
-                                                checked={allSelected}
-                                                onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                                            />
-                                            <Label htmlFor="select-all" className="font-semibold">
-                                                Seleccionar Todos
-                                            </Label>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {initialPlayers.map(player => (
-                                                <div key={player.dorsal} className="flex items-center space-x-2">
-                                                    <Checkbox 
-                                                        id={`player-${player.dorsal}`} 
-                                                        checked={!!selectedPlayers[player.dorsal]}
-                                                        onCheckedChange={(checked) => handlePlayerSelect(player.dorsal, checked as boolean)}
-                                                        disabled={selectedCount >= 12 && !selectedPlayers[player.dorsal]}
-                                                    />
-                                                    <Label htmlFor={`player-${player.dorsal}`} className="flex items-center gap-2 text-sm font-normal">
-                                                        <span className="font-bold w-6 text-right">({player.dorsal})</span>
-                                                        <span>{player.nombre}</span>
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button><Save className="mr-2" /> Guardar Convocatoria</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        )}
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
+                            <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
+                        </Button>
 
                          <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                             <Link href={`/partidos/${match.id}/estadisticas`}>
@@ -364,7 +340,7 @@ export default function PartidosPage() {
                             <Badge variant="secondary">{match.competition}</Badge>
                         </CardContent>
                         <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
                                 <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
                             </Button>
                             <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -396,7 +372,7 @@ export default function PartidosPage() {
                             <Badge variant="secondary">{match.competition}</Badge>
                         </CardContent>
                         <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+                           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
                                 <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
                             </Button>
                             <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -413,6 +389,48 @@ export default function PartidosPage() {
         </TabsContent>
       </Tabs>
       
+      <Dialog open={isConvocatoriaOpen} onOpenChange={setIsConvocatoriaOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Convocar Jugadores</DialogTitle>
+                    <DialogDescription>
+                        Selecciona un máximo de 12 jugadores para el partido. ({selectedCount}/12)
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox 
+                            id="select-all"
+                            checked={allSelected}
+                            onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                        />
+                        <Label htmlFor="select-all" className="font-semibold">
+                            Seleccionar Todos
+                        </Label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        {initialPlayers.map(player => (
+                            <div key={player.dorsal} className="flex items-center space-x-2">
+                                <Checkbox 
+                                    id={`player-${player.dorsal}`} 
+                                    checked={!!selectedPlayers[player.dorsal]}
+                                    onCheckedChange={(checked) => handlePlayerSelect(player.dorsal, checked as boolean)}
+                                    disabled={selectedCount >= 12 && !selectedPlayers[player.dorsal]}
+                                />
+                                <Label htmlFor={`player-${player.dorsal}`} className="flex items-center gap-2 text-sm font-normal">
+                                    <span className="font-bold w-6 text-right">({player.dorsal})</span>
+                                    <span>{player.nombre}</span>
+                                </Label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleSaveConvocatoria}><Save className="mr-2" /> Guardar Convocatoria</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       {editingMatch && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent>
