@@ -1,0 +1,158 @@
+
+"use client";
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Edit, Search, Trash2, Filter } from 'lucide-react';
+import Link from 'next/link';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Image from 'next/image';
+
+type Exercise = {
+  id: number;
+  name: string;
+  category: string;
+  visible: boolean;
+};
+
+const exercisesData: Exercise[] = [
+    { id: 1, name: 'RONDO CON PASE DIAGONAL', category: 'Pase y control', visible: true },
+    { id: 2, name: 'POSESION CON CUATRO PORTERIAS PEQUEÑAS', category: 'Posesión y circulación del balón', visible: true },
+    { id: 3, name: 'PARALELA DOBLANDO CON PASE AL PIVOT', category: 'Finalización', visible: true },
+    { id: 4, name: 'JUEGO EN CUATRO ZONAS', category: 'Superioridades e inferioridades numéricas', visible: true },
+    { id: 5, name: 'CHUTES EN CRUZ CON PARALELA', category: 'Finalización', visible: true },
+    { id: 6, name: '2C2 CON REPLIEGUE + 1 COMODIN EXTERIOR', category: 'Transiciones (ofensivas y defensivas)', visible: true },
+    { id: 7, name: '2C2 CON REPLIEGUE', category: 'Transiciones (ofensivas y defensivas)', visible: true },
+    { id: 8, name: '3C1 DOBLANDO', category: 'Técnica individual y combinada', visible: true },
+    { id: 9, name: '3C3 CON 2 COMODINES EXTERIORES', category: 'Superioridades e inferioridades numéricas', visible: true },
+    { id: 10, name: 'POSESION EN IGUALDAD CON APOYOS EXTERIORES Y FINALIZACION', category: 'Posesión y circulación del balón', visible: true },
+    { id: 11, name: 'CIRCUITO FISICO - REPLIEGUE Y COORDINACION', category: 'Coordinación, agilidad y velocidad', visible: true },
+    { id: 13, name: 'RONDO CON REPLIEGUE', category: 'Posesión y circulación del balón', visible: true },
+    { id: 14, name: 'SISTEMA 3-1 (ATACAR EL CAMBIO)', category: 'sistema táctico ofensivo', visible: true },
+    { id: 15, name: 'FINTA, CONTROL ORIENTADO Y FINALIZACION', category: 'Finalización', visible: true },
+    { id: 16, name: '2 RONDOS CON CAMBIO DE RONDO', category: 'Técnica individual y combinada', visible: true },
+    { id: 17, name: '1C1 ENTRANDO Y SALIENDO', category: 'Técnica individual y combinada', visible: true },
+    { id: 18, name: 'CIRCUITO FISICO - RESISTENCIA Y VELOCIDAD ESPECIFICA', category: 'Coordinación, agilidad y velocidad', visible: true },
+    { id: 19, name: 'JUGADA DE CORNER - AMAGO + BLOQUEO', category: 'Balón parado y remates', visible: true },
+];
+
+const allCategories = [...new Set(exercisesData.map(ex => ex.category))];
+
+export default function LibraryManagementPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('Todas');
+  const [exercises, setExercises] = useState<Exercise[]>(exercisesData);
+
+  const handleVisibilityChange = (id: number, checked: boolean) => {
+    setExercises(prev => 
+      prev.map(ex => ex.id === id ? { ...ex, visible: checked } : ex)
+    );
+  };
+  
+  const filteredExercises = exercises.filter(exercise => {
+    const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-6">
+        <Button variant="outline" asChild>
+          <Link href="/admin/ejercicios">
+            <ArrowLeft className="mr-2" />
+            Volver a Gestión de Ejercicios
+          </Link>
+        </Button>
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold font-headline text-primary">Gestionar Biblioteca de Ejercicios</h1>
+        <p className="text-lg text-muted-foreground mt-2">
+          Activa o desactiva la visibilidad de los ejercicios para los usuarios.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Listado de Todos los Ejercicios</CardTitle>
+          <CardDescription>Usa el interruptor para cambiar la visibilidad de un ejercicio en la biblioteca pública.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-4">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar ejercicio por nombre..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[280px]">
+                    <SelectValue placeholder="Todas las Categorías" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Todas">Todas las Categorías</SelectItem>
+                    {allCategories.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Número</TableHead>
+                  <TableHead className="w-24">Imagen</TableHead>
+                  <TableHead>Nombre del Ejercicio</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredExercises.map((exercise) => (
+                  <TableRow key={exercise.id}>
+                    <TableCell className="font-medium">{exercise.id}</TableCell>
+                    <TableCell>
+                      <Image 
+                        src={`https://picsum.photos/seed/ex${exercise.id}/64/48`}
+                        alt={exercise.name}
+                        width={64}
+                        height={48}
+                        className="rounded-sm object-cover"
+                      />
+                    </TableCell>
+                    <TableCell>{exercise.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{exercise.category}</Badge>
+                    </TableCell>
+                    <TableCell className="flex items-center justify-end gap-2">
+                      <Switch 
+                        checked={exercise.visible} 
+                        onCheckedChange={(checked) => handleVisibilityChange(exercise.id, checked)}
+                      />
+                      <Button variant="ghost" size="icon">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

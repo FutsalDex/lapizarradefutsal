@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ const exerciseOptions = [
     title: 'Listado de Ejercicios',
     description: 'Visualiza y explora todos los ejercicios de la biblioteca pública.',
     buttonText: 'Acceder',
-    href: '/ejercicios',
+    href: '/admin/ejercicios/biblioteca',
   },
 ];
 
