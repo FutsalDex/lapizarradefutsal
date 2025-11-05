@@ -156,39 +156,21 @@ export default function EstadisticasPartidoPage() {
     }, [saveStats]);
 
     useEffect(() => {
-        // This effect runs when the 'period' state changes.
         setIsActive(false);
 
-        setStats(prev => {
-            const periodToSave = period === '1ª Parte' ? '2ª Parte' : '1ª Parte';
-            const updatedStats = { ...prev };
-            
-            // This is a snapshot of the state right before the period change was requested.
-            if (period === '2ª Parte') {
-                 updatedStats['1ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
-            } else {
-                 updatedStats['2ª Parte'] = { playerStats, opponentStats, localTimeoutTaken, opponentTimeoutTaken };
-            }
-
-            const newPeriodStats = updatedStats[period];
-            setPlayerStats(newPeriodStats.playerStats);
-            setOpponentStats(newPeriodStats.opponentStats);
-            setLocalTimeoutTaken(newPeriodStats.localTimeoutTaken);
-            setOpponentTimeoutTaken(newPeriodStats.opponentTimeoutTaken);
-
-            return updatedStats;
-        });
-
-        // Reset timer and selections
+        const newPeriodStats = stats[period];
+        setPlayerStats(newPeriodStats.playerStats);
+        setOpponentStats(newPeriodStats.opponentStats);
+        setLocalTimeoutTaken(newPeriodStats.localTimeoutTaken);
+        setOpponentTimeoutTaken(newPeriodStats.opponentTimeoutTaken);
+        
         setTime(25 * 60);
         setSelectedPlayerIds(new Set());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [period]);
+    }, [period, stats]);
 
     const handlePeriodChange = (newPeriod: Period) => {
         if (period === newPeriod) return;
 
-        // First, save the current state before updating the period
         setStats(prev => ({
             ...prev,
             [period]: {
@@ -199,7 +181,6 @@ export default function EstadisticasPartidoPage() {
             }
         }));
         
-        // Then, set the new period, which will trigger the useEffect
         setPeriod(newPeriod);
     };
 
@@ -210,9 +191,9 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
-    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + stats['2ª Parte'].opponentStats.goles;
-
+    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + (period === '1ª Parte' ? 0 : playerStats.reduce((acc, p) => acc + p.g, 0));
+    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + (period === '1ª Parte' ? 0 : opponentStats.goles);
+    
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
 
     const handleTimeout = (team: 'local' | 'opponent') => {
@@ -291,9 +272,11 @@ export default function EstadisticasPartidoPage() {
         const newIds = new Set(selectedPlayerIds);
         if (newIds.has(playerId)) {
             newIds.delete(playerId);
+            setSelectedPlayerIds(newIds);
         } else {
             if (newIds.size < 5) {
                 newIds.add(playerId);
+                setSelectedPlayerIds(newIds);
             } else {
                 toast({
                     variant: "destructive",
@@ -302,7 +285,6 @@ export default function EstadisticasPartidoPage() {
                 });
             }
         }
-        setSelectedPlayerIds(newIds);
     };
     
     const finishGame = () => {
@@ -405,7 +387,7 @@ export default function EstadisticasPartidoPage() {
                             <Table className="text-xs">
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2">Jugador</TableHead>
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
                                         <TableHead className="p-2 text-center">Min</TableHead>
                                         <TableHead className="p-2 text-center">G</TableHead>
                                         <TableHead className="p-2 text-center">A</TableHead>
