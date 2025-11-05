@@ -10,7 +10,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Calendar, Bell, User, LogOut, ArrowRight, Settings, CreditCard } from "lucide-react";
+import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Calendar, Bell, User, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,11 +22,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const navLinks = [
-  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen /> },
-  { href: "/sesiones", label: "Crear Sesión", icon: <PenSquare /> },
-  { href: "/favoritos", label: "Favoritos", icon: <Star /> },
-  { href: "/panel", label: "Mi Panel", icon: <LayoutDashboard /> },
-  { href: "/admin", label: "Panel Admin", icon: <UserCog /> },
+  { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="w-5 h-5"/> },
+  { href: "/sesiones", label: "Crear Sesión", icon: <PenSquare className="w-5 h-5"/> },
+  { href: "/favoritos", label: "Favoritos", icon: <Star className="w-5 h-5"/> },
+  { href: "/panel", label: "Mi Panel", icon: <LayoutDashboard className="w-5 h-5"/> },
+  { href: "/admin", label: "Panel Admin", icon: <UserCog className="w-5 h-5"/> },
 ];
 
 export function Header() {
