@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, PlusCircle, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
 import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,8 +15,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
 import { exercises, Exercise } from '@/lib/data';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SessionPhase = 'warmup' | 'main' | 'cooldown';
 
@@ -45,8 +46,24 @@ export default function CrearSesionPage() {
       return prev;
     });
   };
+  
+    const allCategories = [...new Set(exercises.map(e => e.category))];
+    const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
+    const uniqueEdades = [...new Set(allEdades)].filter(Boolean);
 
-  const ExercisePicker = ({ phase }: { phase: SessionPhase }) => (
+  const ExercisePicker = ({ phase }: { phase: SessionPhase }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('Todos');
+    const [edadFilter, setEdadFilter] = useState('Todos');
+
+    const filteredExercises = exercises.filter(exercise => {
+      const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'Todos' || exercise.category === categoryFilter;
+      const matchesEdad = edadFilter === 'Todos' || exercise.edad.includes(edadFilter);
+      return matchesSearch && matchesCategory && matchesEdad;
+    });
+
+    return (
     <Dialog>
       <DialogTrigger asChild>
         <button className="w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-8 text-muted-foreground hover:bg-muted transition-colors">
@@ -54,23 +71,55 @@ export default function CrearSesionPage() {
           <span>Añadir Tarea</span>
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Seleccionar Ejercicio</DialogTitle>
+          <CardDescription>Busca y selecciona un ejercicio de tu biblioteca.</CardDescription>
         </DialogHeader>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar por nombre..." 
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select onValueChange={setCategoryFilter} defaultValue="Todos">
+              <SelectTrigger>
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todos">Todas las Categorías</SelectItem>
+                 {allCategories.map(category => <SelectItem key={category} value={category}>{category}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={setEdadFilter} defaultValue="Todos">
+                <SelectTrigger>
+                  <SelectValue placeholder="Edad" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todas las Edades</SelectItem>
+                  {uniqueEdades.map(edad => <SelectItem key={edad} value={edad}>{edad}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
         <ScrollArea className="h-[60vh]">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-            {exercises.map(exercise => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+            {filteredExercises.map(exercise => (
               <DialogClose key={exercise.id} asChild>
                 <Card 
-                  className="cursor-pointer hover:shadow-lg"
+                  className="cursor-pointer hover:shadow-lg overflow-hidden flex flex-col"
                   onClick={() => addExercise(phase, exercise)}
                 >
-                  <CardContent className="p-2">
-                    <div className="relative h-24 w-full mb-2">
-                      <Image src={exercise.imageUrl} alt={exercise.title} layout="fill" objectFit="cover" className="rounded-md" />
+                  <CardContent className="p-0 flex flex-col flex-grow">
+                    <div className="relative aspect-video w-full bg-primary/80">
+                      <Image src={exercise.tacticsUrl} alt={exercise.title} layout="fill" objectFit="contain" className="p-2" />
                     </div>
-                    <p className="text-sm font-semibold truncate">{exercise.title}</p>
+                    <div className="p-2 text-center border-t bg-card">
+                        <p className="text-xs font-semibold truncate">{exercise.title}</p>
+                    </div>
                   </CardContent>
                 </Card>
               </DialogClose>
@@ -79,7 +128,8 @@ export default function CrearSesionPage() {
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  );
+    );
+  };
   
   const PhaseSection = ({ phase, title, subtitle }: { phase: SessionPhase; title: string; subtitle: string }) => {
     const exercisesForPhase = selectedExercises[phase];
