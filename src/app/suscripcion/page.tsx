@@ -1,8 +1,8 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { FileText, Users, Star, Euro, Calendar, Gift } from "lucide-react";
+import { FileText, Users, Star, Euro, Calendar, Gift, Award } from "lucide-react";
 
 export default function SuscripcionPage() {
   return (
@@ -78,7 +78,7 @@ export default function SuscripcionPage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Gift className="w-6 h-6 text-primary" />
@@ -93,6 +93,33 @@ export default function SuscripcionPage() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <Award className="w-6 h-6 text-primary" />
+                    <CardTitle className="font-headline text-2xl">Canjear Puntos</CardTitle>
+                </div>
+                <CardDescription className="pt-2">Usa tus puntos acumulados para conseguir meses gratis de suscripción y seguir disfrutando de todas las ventajas.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4 flex flex-col justify-between">
+                    <div>
+                        <p className="font-bold">1 mes gratis - Plan Básico</p>
+                        <p className="text-primary font-bold text-lg">100 Puntos</p>
+                    </div>
+                    <Button variant="outline" className="mt-4 w-full">Canjear</Button>
+                </div>
+                <div className="border rounded-lg p-4 flex flex-col justify-between">
+                    <div>
+                        <p className="font-bold">1 mes gratis - Plan Pro</p>
+                        <p className="text-primary font-bold text-lg">200 Puntos</p>
+                    </div>
+                    <Button variant="outline" className="mt-4 w-full" disabled>Puntos insuficientes</Button>
+                </div>
+            </CardContent>
+        </Card>
+
       </div>
     </div>
   );
