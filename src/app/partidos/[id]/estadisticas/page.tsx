@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -88,13 +89,15 @@ const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon }: {
 
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
-    const [opponentFouls, setOpponentFouls] = useState(0);
     const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
     const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<number>>(new Set());
     
     const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
     const [isActive, setIsActive] = useState(false);
     const [period, setPeriod] = useState('1ª Parte');
+
+    const [localTimeoutTaken, setLocalTimeoutTaken] = useState(false);
+    const [opponentTimeoutTaken, setOpponentTimeoutTaken] = useState(false);
 
     const [opponentStats, setOpponentStats] = useState<OpponentStats>({
         goles: 0,
@@ -116,6 +119,15 @@ export default function EstadisticasPartidoPage() {
     const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0) + opponentStats.goles;
 
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
+
+    const handleTimeout = (team: 'local' | 'opponent') => {
+        if (team === 'local') {
+            setLocalTimeoutTaken(!localTimeoutTaken);
+        } else {
+            setOpponentTimeoutTaken(!opponentTimeoutTaken);
+        }
+    };
+
 
     const totals = playerStats.reduce((acc, player) => {
         acc.g += player.g;
@@ -182,12 +194,6 @@ export default function EstadisticasPartidoPage() {
             })
         );
     };
-    
-    const handleTeamFoulChange = (team: 'local' | 'opponent', delta: number) => {
-        if (team === 'opponent') {
-            setOpponentFouls(prev => Math.max(0, Math.min(5, prev + delta)));
-        }
-    }
     
     const handlePlayerSelection = (playerId: number) => {
         setSelectedPlayerIds(prevIds => {
@@ -261,7 +267,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < teamFouls ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
                             ))}
                         </div>
-                         <Button variant="outline" size="sm">TM</Button>
+                         <Button variant={localTimeoutTaken ? "default" : "outline"} size="sm" onClick={() => handleTimeout('local')}>TM</Button>
                     </div>
 
                     {/* Score and Timer */}
@@ -288,7 +294,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < opponentStats.faltas ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
                             ))}
                         </div>
-                        <Button variant="outline" size="sm">TM</Button>
+                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} size="sm" onClick={() => handleTimeout('opponent')}>TM</Button>
                     </div>
                 </div>
             </CardContent>
@@ -494,3 +500,5 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
+
+    
