@@ -22,6 +22,11 @@ const goalChronology = [
     { team: 'local', player: 'Hugo', minute: 48 },
 ];
 
+const teamStats = {
+    local: { tirosPuerta: 18, tirosFuera: 10, faltas: 6, recuperaciones: 25, perdidas: 15 },
+    visitor: { tirosPuerta: 8, tirosFuera: 5, faltas: 8, recuperaciones: 18, perdidas: 22 },
+};
+
 const playerStats = [
     { id: 1, name: "Manel", timePlayed: "25:00", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 2, gc: 1, vs1: 1 },
     { id: 2, name: "Marc Montoro", timePlayed: "22:57", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
@@ -78,6 +83,14 @@ export default function PartidoDetallePage() {
     const totalSecondsRemaining = totals.totalSeconds % 60;
     const totalTimeFormatted = `${totalMinutes}:${String(totalSecondsRemaining).padStart(2, '0')}`;
 
+    const StatRow = ({ label, localValue, visitorValue }: { label: string; localValue: number; visitorValue: number }) => (
+        <div className="flex justify-between items-center py-2 border-b last:border-none">
+            <span className="font-bold text-lg">{localValue}</span>
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="font-bold text-lg">{visitorValue}</span>
+        </div>
+    );
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -114,37 +127,56 @@ export default function PartidoDetallePage() {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="estadisticas">
+      <Tabs defaultValue="datos">
         <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="cronologia">Cronología de Goles</TabsTrigger>
+            <TabsTrigger value="datos">Datos del Partido</TabsTrigger>
             <TabsTrigger value="estadisticas">Estadísticas de Jugadores</TabsTrigger>
         </TabsList>
-        <TabsContent value="cronologia">
+        <TabsContent value="datos">
             <Card>
                 <CardContent className="p-6">
-                    <div className="flex justify-between font-bold border-b pb-2 mb-4">
-                        <h3 className="w-1/3">{localTeam}</h3>
-                        <div className="w-1/3 text-center"></div>
-                        <h3 className="w-1/3 text-right">{visitorTeam}</h3>
-                    </div>
-                    <div className="space-y-4">
-                        {goalChronology.map((goal, index) => (
-                            <div key={index} className="flex items-center text-sm">
-                                {goal.team === 'local' ? (
-                                    <>
-                                        <div className="w-1/3 font-medium">{goal.player}</div>
-                                        <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                        <div className="w-1/3"></div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="w-1/3"></div>
-                                        <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                        <div className="w-1/3 text-right font-medium">{goal.player}</div>
-                                    </>
-                                )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                           <h3 className="font-bold text-center mb-4 text-lg">Estadísticas del Equipo</h3>
+                           <div className="flex justify-between font-bold border-b pb-2 mb-2">
+                                <h4 className="text-left">{localTeam}</h4>
+                                <h4 className="text-right">{visitorTeam}</h4>
                             </div>
-                        ))}
+                           <div className="space-y-2">
+                                <StatRow label="Tiros a Puerta" localValue={teamStats.local.tirosPuerta} visitorValue={teamStats.visitor.tirosPuerta} />
+                                <StatRow label="Tiros Fuera" localValue={teamStats.local.tirosFuera} visitorValue={teamStats.visitor.tirosFuera} />
+                                <StatRow label="Faltas" localValue={teamStats.local.faltas} visitorValue={teamStats.visitor.faltas} />
+                                <StatRow label="Recuperaciones" localValue={teamStats.local.recuperaciones} visitorValue={teamStats.visitor.recuperaciones} />
+                                <StatRow label="Pérdidas" localValue={teamStats.local.perdidas} visitorValue={teamStats.visitor.perdidas} />
+                            </div>
+                        </div>
+                         <div>
+                            <h3 className="font-bold text-center mb-4 text-lg">Cronología de Goles</h3>
+                            <div className="flex justify-between font-bold border-b pb-2 mb-4">
+                                <h4 className="w-1/3">{localTeam}</h4>
+                                <div className="w-1/3 text-center"></div>
+                                <h4 className="w-1/3 text-right">{visitorTeam}</h4>
+                            </div>
+                            <div className="space-y-4">
+                                {goalChronology.map((goal, index) => (
+                                    <div key={index} className="flex items-center text-sm">
+                                        {goal.team === 'local' ? (
+                                            <>
+                                                <div className="w-1/3 font-medium">{goal.player}</div>
+                                                <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
+                                                <div className="w-1/3"></div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-1/3"></div>
+                                                <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
+                                                <div className="w-1/3 text-right font-medium">{goal.player}</div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -213,3 +245,6 @@ export default function PartidoDetallePage() {
   );
 }
 
+
+
+    
