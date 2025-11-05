@@ -16,6 +16,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 type AttendanceStatus = 'presente' | 'ausente' | 'justificado' | 'lesionado';
@@ -59,8 +61,9 @@ const attendanceHistory = [
 
 export default function AsistenciaPage() {
   const params = useParams();
+  const { toast } = useToast();
   const teamName = "Juvenil B";
-  const [date, setDate] = useState<Date>(new Date('2025-11-05T00:00:00'));
+  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-05T00:00:00'));
   const [attendance, setAttendance] = useState<PlayerAttendance[]>(initialPlayers);
 
   const handleStatusChange = (playerId: number, status: AttendanceStatus) => {
@@ -73,6 +76,27 @@ export default function AsistenciaPage() {
   
   const clearRecords = () => {
     setAttendance(initialPlayers.map(p => ({ ...p, status: 'presente' })));
+     toast({
+        title: "Registros limpiados",
+        description: "Se ha restablecido la asistencia de todos los jugadores a 'Presente'.",
+    });
+  }
+
+  const saveAttendance = () => {
+      toast({
+          title: "Asistencia Guardada",
+          description: `Se ha guardado la asistencia para el día ${format(date!, 'PPP', { locale: es })}.`,
+      });
+  }
+
+  const deleteRecord = () => {
+      toast({
+          variant: "destructive",
+          title: "Registro Eliminado",
+          description: `Se ha eliminado el registro de asistencia para el día ${format(date!, 'PPP', { locale: es })}.`,
+      });
+      // Here you would typically call an API to delete the record.
+      // For now, we just show a toast.
   }
 
   return (
@@ -149,7 +173,7 @@ export default function AsistenciaPage() {
                                     <TableCell>{player.nombre}</TableCell>
                                     <TableCell className="text-right">
                                         <RadioGroup
-                                            defaultValue={player.status}
+                                            value={player.status}
                                             className="flex justify-end gap-4"
                                             onValueChange={(value) => handleStatusChange(player.id, value as AttendanceStatus)}
                                         >
@@ -181,10 +205,27 @@ export default function AsistenciaPage() {
                     <Button variant="outline" onClick={clearRecords}>
                         <RotateCcw className="mr-2" /> Limpiar Registros
                     </Button>
-                    <Button variant="destructive">
-                        <Trash2 className="mr-2" /> Eliminar Registro
-                    </Button>
-                    <Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive">
+                                <Trash2 className="mr-2" /> Eliminar Registro
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar este registro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta acción no se puede deshacer. Se eliminará permanentemente el registro de asistencia para
+                                    el día {date ? format(date, "PPP", { locale: es }) : ''}.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={deleteRecord}>Sí, eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <Button onClick={saveAttendance}>
                         <Save className="mr-2" /> Guardar Asistencia
                     </Button>
                 </CardFooter>
