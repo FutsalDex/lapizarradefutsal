@@ -268,19 +268,19 @@ export default function EstadisticasPartidoPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="sticky left-0 bg-card min-w-[150px] p-2">Jugador</TableHead>
-                                        <TableHead className="p-2">Min</TableHead>
-                                        <TableHead className="p-2">G</TableHead>
-                                        <TableHead className="p-2">A</TableHead>
-                                        <TableHead className="p-2">Faltas</TableHead>
-                                        <TableHead className="p-2">T. Puerta</TableHead>
-                                        <TableHead className="p-2">T. Fuera</TableHead>
-                                        <TableHead className="p-2">Recup.</TableHead>
-                                        <TableHead className="p-2">Perdidas</TableHead>
-                                        <TableHead className="p-2">Paradas</TableHead>
-                                        <TableHead className="p-2">GC</TableHead>
-                                        <TableHead className="p-2">1vs1</TableHead>
-                                        <TableHead className="p-2">TA</TableHead>
-                                        <TableHead className="p-2">TR</TableHead>
+                                        <TableHead className="p-2 text-center">Min</TableHead>
+                                        <TableHead className="p-2 text-center">G</TableHead>
+                                        <TableHead className="p-2 text-center">A</TableHead>
+                                        <TableHead className="p-2 text-center">Faltas</TableHead>
+                                        <TableHead className="p-2 text-center">T. Puerta</TableHead>
+                                        <TableHead className="p-2 text-center">T. Fuera</TableHead>
+                                        <TableHead className="p-2 text-center">Recup.</TableHead>
+                                        <TableHead className="p-2 text-center">Perdidas</TableHead>
+                                        <TableHead className="p-2 text-center">Paradas</TableHead>
+                                        <TableHead className="p-2 text-center">GC</TableHead>
+                                        <TableHead className="p-2 text-center">1vs1</TableHead>
+                                        <TableHead className="p-2 text-center">TA</TableHead>
+                                        <TableHead className="p-2 text-center">TR</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -293,7 +293,7 @@ export default function EstadisticasPartidoPage() {
                                             })}
                                         >
                                             <TableCell className={cn("font-medium sticky left-0 bg-card min-w-[150px] p-2", {"bg-inherit": selectedPlayerIds.has(player.id), "text-destructive": selectedPlayerIds.has(player.id)})}>{player.id}. {player.name}</TableCell>
-                                            <TableCell className="p-2">{formatTime(player.timePlayed)}</TableCell>
+                                            <TableCell className="p-2 text-center">{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell className="p-2" onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.g} onIncrement={() => handleStatChange(player.id, 'g', 1)} onDecrement={() => handleStatChange(player.id, 'g', -1)} />
                                             </TableCell>
@@ -334,21 +334,21 @@ export default function EstadisticasPartidoPage() {
                                     ))}
                                 </TableBody>
                                 <TableFooter>
-                                    <TableRow>
+                                     <TableRow>
                                         <TableHead className="sticky left-0 bg-card min-w-[150px] p-2">Jugador</TableHead>
-                                        <TableHead className="p-2">Min</TableHead>
-                                        <TableHead className="p-2">G</TableHead>
-                                        <TableHead className="p-2">A</TableHead>
-                                        <TableHead className="p-2">Faltas</TableHead>
-                                        <TableHead className="p-2">T. Puerta</TableHead>
-                                        <TableHead className="p-2">T. Fuera</TableHead>
-                                        <TableHead className="p-2">Recup.</TableHead>
-                                        <TableHead className="p-2">Perdidas</TableHead>
-                                        <TableHead className="p-2">Paradas</TableHead>
-                                        <TableHead className="p-2">GC</TableHead>
-                                        <TableHead className="p-2">1vs1</TableHead>
-                                        <TableHead className="p-2">TA</TableHead>
-                                        <TableHead className="p-2">TR</TableHead>
+                                        <TableHead className="p-2 text-center">Min</TableHead>
+                                        <TableHead className="p-2 text-center">G</TableHead>
+                                        <TableHead className="p-2 text-center">A</TableHead>
+                                        <TableHead className="p-2 text-center">Faltas</TableHead>
+                                        <TableHead className="p-2 text-center">T. Puerta</TableHead>
+                                        <TableHead className="p-2 text-center">T. Fuera</TableHead>
+                                        <TableHead className="p-2 text-center">Recup.</TableHead>
+                                        <TableHead className="p-2 text-center">Perdidas</TableHead>
+                                        <TableHead className="p-2 text-center">Paradas</TableHead>
+                                        <TableHead className="p-2 text-center">GC</TableHead>
+                                        <TableHead className="p-2 text-center">1vs1</TableHead>
+                                        <TableHead className="p-2 text-center">TA</TableHead>
+                                        <TableHead className="p-2 text-center">TR</TableHead>
                                     </TableRow>
                                     <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
                                         <TableCell className="sticky left-0 bg-muted/50 min-w-[150px] p-2">Total {period}</TableCell>
