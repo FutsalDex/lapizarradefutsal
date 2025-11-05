@@ -38,7 +38,7 @@ const panelItems = [
     title: 'Marcador Rápido',
     description: 'Usa un marcador con crono para un partido rápido o una sesión de entrenamiento.',
     buttonText: 'Ir a Marcador Rápido',
-    href: '/marcador', // Placeholder link
+    href: '/marcador',
   },
   {
     icon: <MessageSquare className="w-8 h-8 text-primary" />,
