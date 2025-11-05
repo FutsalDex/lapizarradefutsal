@@ -6,7 +6,7 @@ import { matches as initialMatches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
@@ -20,6 +20,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 const initialPlayers = [
     { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
@@ -166,8 +178,58 @@ export default function PartidosPage() {
         setEditingMatch(null);
     };
 
+    const handleDeleteMatch = (matchId: string) => {
+        setMatches(prevMatches => prevMatches.filter(match => match.id !== matchId));
+    };
+
     const allSelected = initialPlayers.length > 0 && initialPlayers.every(p => selectedPlayers[p.dorsal]);
     const selectedCount = Object.values(selectedPlayers).filter(Boolean).length;
+
+    const renderMatchCard = (match: Match) => (
+        <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
+            <CardContent className="p-6 text-center flex-grow">
+                <p className="font-semibold">{match.opponent}</p>
+                <p className="text-sm text-muted-foreground mb-4">{new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                <p className={`text-5xl font-bold mb-4 ${getResultColor(match.score, teamName, match.opponent)}`}>{match.score}</p>
+                <Badge variant="secondary">{match.competition}</Badge>
+            </CardContent>
+            <CardFooter className="bg-muted/50 p-3 flex justify-around">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
+                    <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
+                </Button>
+                <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Link href={`/partidos/${match.id}/estadisticas`}>
+                        <BarChart />
+                    </Link>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Eye />
+                </Button>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}>
+                    <Edit />
+                </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                            <Trash2 />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>¿Estás seguro de que quieres eliminar este partido?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta acción no se puede deshacer. Se eliminarán permanentemente los datos del partido, incluidas las estadísticas.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteMatch(match.id)}>Eliminar</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </CardFooter>
+        </Card>
+    );
 
 
   return (
@@ -299,60 +361,12 @@ export default function PartidosPage() {
         
         <TabsContent value="Todos">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.map((match) => (
-                <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
-                    <CardContent className="p-6 text-center flex-grow">
-                        <p className="font-semibold">{match.opponent}</p>
-                        <p className="text-sm text-muted-foreground mb-4">{new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                        <p className={`text-5xl font-bold mb-4 ${getResultColor(match.score, teamName, match.opponent)}`}>{match.score}</p>
-                        <Badge variant="secondary">{match.competition}</Badge>
-                    </CardContent>
-                    <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
-                            <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
-                        </Button>
-
-                         <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                            <Link href={`/partidos/${match.id}/estadisticas`}>
-                                <BarChart />
-                            </Link>
-                        </Button>
-                         <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                            <Eye />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}>
-                            <Edit />
-                        </Button>
-                    </CardFooter>
-                </Card>
-                ))}
+                {matches.map(renderMatchCard)}
             </div>
         </TabsContent>
-        {/* You can add more TabsContent for each category */}
         <TabsContent value="Liga">
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.filter(m => m.competition.includes('Liga')).map((match) => (
-                    <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
-                        <CardContent className="p-6 text-center flex-grow">
-                            <p className="font-semibold">{match.opponent}</p>
-                            <p className="text-sm text-muted-foreground mb-4">{new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                            <p className={`text-5xl font-bold mb-4 ${getResultColor(match.score, teamName, match.opponent)}`}>{match.score}</p>
-                            <Badge variant="secondary">{match.competition}</Badge>
-                        </CardContent>
-                        <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
-                                <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
-                            </Button>
-                            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                <Link href={`/partidos/${match.id}/estadisticas`}>
-                                    <BarChart />
-                                </Link>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                {matches.filter(m => m.competition.includes('Liga')).map(renderMatchCard)}
             </div>
         </TabsContent>
          <TabsContent value="Copa">
@@ -362,29 +376,8 @@ export default function PartidosPage() {
             <p className="text-center text-muted-foreground">No hay partidos de torneo para mostrar.</p>
         </TabsContent>
          <TabsContent value="Amistoso">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg-grid-cols-3 gap-6">
-                {matches.filter(m => m.competition === 'Amistoso').map((match) => (
-                    <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
-                        <CardContent className="p-6 text-center flex-grow">
-                            <p className="font-semibold">{match.opponent}</p>
-                            <p className="text-sm text-muted-foreground mb-4">{new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                            <p className={`text-5xl font-bold mb-4 ${getResultColor(match.score, teamName, match.opponent)}`}>{match.score}</p>
-                            <Badge variant="secondary">{match.competition}</Badge>
-                        </CardContent>
-                        <CardFooter className="bg-muted/50 p-3 flex justify-around">
-                           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
-                                <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
-                            </Button>
-                            <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                                <Link href={`/partidos/${match.id}/estadisticas`}>
-                                    <BarChart />
-                                </Link>
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground"><Eye /></Button>
-                            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenEditDialog(match)}><Edit /></Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {matches.filter(m => m.competition === 'Amistoso').map(renderMatchCard)}
             </div>
         </TabsContent>
       </Tabs>
