@@ -9,29 +9,7 @@ import { PlusCircle, Calendar, ListChecks } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 
-const exampleSessions = [
-    {
-        id: '1',
-        name: 'Sesión 1',
-        date: '2025-11-01',
-        exercises: [],
-        type: 'Basic'
-    },
-    {
-        id: '2',
-        name: 'Sesión 2',
-        date: '2025-11-01',
-        exercises: [],
-        type: 'Basic'
-    },
-    {
-        id: '3',
-        name: 'Sesión 3',
-        date: '2025-11-01',
-        exercises: new Array(6),
-        type: 'Basic'
-    }
-]
+const exampleSessions = sessions;
 
 
 export default function SesionesPage() {
@@ -53,7 +31,8 @@ export default function SesionesPage() {
         {exampleSessions.map((session) => (
           <Card key={session.id} className="flex flex-col hover:border-primary/50 transition-colors">
             <CardHeader className='relative'>
-                <Badge variant="secondary" className="absolute top-4 right-4">{session.type}</Badge>
+                <CardTitle>{session.name}</CardTitle>
+                <Badge variant="secondary" className="absolute top-4 right-4">Básico</Badge>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
                <div className="flex items-center text-muted-foreground">
@@ -66,7 +45,9 @@ export default function SesionesPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full">Ver Detalles</Button>
+                <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/sesiones/${session.id}`}>Ver Detalles</Link>
+                </Button>
             </CardFooter>
           </Card>
         ))}

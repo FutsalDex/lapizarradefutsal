@@ -233,26 +233,42 @@ export type Session = {
     name: string;
     date: string;
     exercises: Exercise[];
+    objectives?: string;
+    club?: string;
+    team?: string;
+    facility?: string;
 }
 
 export const sessions: Session[] = [
     {
         id: '1',
-        name: 'Sesión de Técnica y Posesión',
-        date: '2024-08-01',
-        exercises: [exercises[0], exercises[3], exercises[4]],
+        name: 'Sesión 1',
+        date: '2025-11-01',
+        exercises: [exercises[0], exercises[1], exercises[4], exercises[10]],
+        objectives: 'Mejorar la finalización y el juego bajo presión.',
+        club: 'FS Ràpid Santa Coloma',
+        team: 'Juvenil B',
+        facility: 'Polideportivo Municipal',
     },
     {
         id: '2',
-        name: 'Entrenamiento Físico y Transiciones',
-        date: '2024-08-03',
-        exercises: [exercises[2], exercises[1], exercises[5]],
+        name: 'Sesión 2',
+        date: '2025-11-03',
+        exercises: [exercises[6], exercises[3], exercises[11]],
+        objectives: 'Fomentar la posesión y la táctica a balón parado.',
+        club: 'FS Ràpid Santa Coloma',
+        team: 'Juvenil B',
+        facility: 'Polideportivo Municipal',
     },
     {
         id: '3',
-        name: 'Preparación de Partido',
-        date: '2024-08-05',
-        exercises: [exercises[5], exercises[1]],
+        name: 'Sesión 3',
+        date: '2025-11-05',
+        exercises: [exercises[2], exercises[7], exercises[8], exercises[5]],
+        objectives: 'Trabajo de resistencia y defensa en inferioridad.',
+        club: 'FS Ràpid Santa Coloma',
+        team: 'Juvenil B',
+        facility: 'Polideportivo Municipal',
     }
 ]
 
