@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Search, Eye, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -135,9 +136,11 @@ export default function EjerciciosPage() {
               </div>
 
               <div className="mt-auto pt-4 flex justify-between items-center">
-                 <Button variant="outline" size="sm">
-                    <Eye className="mr-2 h-4 w-4" />
-                    Ver Ficha
+                 <Button variant="outline" size="sm" asChild>
+                    <Link href={`/ejercicios/${exercise.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        Ver Ficha
+                    </Link>
                  </Button>
                  <Heart className="w-6 h-6 text-destructive/50 hover:text-destructive hover:fill-destructive transition-colors cursor-pointer" />
               </div>
