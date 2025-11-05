@@ -215,6 +215,13 @@ export default function EstadisticasPartidoPage() {
         });
     };
     
+    const saveStats = () => {
+        toast({
+            title: "Estadísticas guardadas",
+            description: "Las estadísticas del partido se han guardado correctamente.",
+        });
+    };
+
     const finishGame = () => {
         // Logic to finish game, for now just shows an alert
         alert("Partido Finalizado. (Lógica de guardado pendiente)");
@@ -235,7 +242,7 @@ export default function EstadisticasPartidoPage() {
                         Volver
                     </Link>
                 </Button>
-                <Button><Save className="mr-2"/>Guardar</Button>
+                <Button onClick={saveStats}><Save className="mr-2"/>Guardar</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive"><Flag className="mr-2"/>Finalizar</Button>
@@ -500,5 +507,7 @@ export default function EstadisticasPartidoPage() {
     </div>
   );
 }
+
+    
 
     
