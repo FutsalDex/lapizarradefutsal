@@ -50,7 +50,6 @@ const usersData: User[] = [
   { name: '-', email: 'ibautista2005@gmail.com', plan: 'Pro', endDate: '01/10/2026' },
   { name: '-', email: 'isaac.tarrason@gmail.com', plan: 'Pro', endDate: '01/10/2026' },
   { name: '-', email: 'juanfranro70@gmail.com', plan: 'Pro', endDate: '01/10/2026' },
-  { name: '-', email: 'rauldrup10@hotmail.com', plan: 'Pro', endDate: '01/10/2026' },
 ];
 
 export default function GestionUsuariosPage() {
@@ -111,8 +110,8 @@ export default function GestionUsuariosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.email}>
+                {filteredUsers.map((user, index) => (
+                  <TableRow key={`${user.email}-${index}`}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
