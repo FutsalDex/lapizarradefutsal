@@ -40,7 +40,7 @@ export default function EquipoPanelPage() {
           icon: <BarChart3 className="w-8 h-8 text-primary" />,
           title: 'Mis Estadísticas',
           description: 'Analiza el rendimiento del equipo y los jugadores.',
-          href: `/equipos/${params.id}/estadisticas`,
+          href: `/partidos/6/estadisticas`,
         },
       ];
 
