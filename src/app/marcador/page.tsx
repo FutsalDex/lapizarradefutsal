@@ -55,12 +55,13 @@ const initialStats: Stat = {
     rojas: 0,
 };
 
-const initialPeriodStats: PeriodStats = {
-    local: initialStats,
-    visitante: initialStats,
+const getInitialPeriodStats = (): PeriodStats => ({
+    local: { ...initialStats },
+    visitante: { ...initialStats },
     localTimeout: false,
     visitanteTimeout: false
-}
+});
+
 
 const StatCounter = ({ title, value, onIncrement, onDecrement, icon }: { title: string; value: number; onIncrement: () => void; onDecrement: () => void; icon: React.ReactNode }) => (
     <div className="flex items-center justify-between">
@@ -85,8 +86,8 @@ export default function MarcadorRapidoPage() {
     const [periodo, setPeriodo] = useState<Periodo>('1ª Parte');
     
     const [stats, setStats] = useState<Record<Periodo, PeriodStats>>({
-        '1ª Parte': JSON.parse(JSON.stringify(initialPeriodStats)),
-        '2ª Parte': JSON.parse(JSON.stringify(initialPeriodStats)),
+        '1ª Parte': getInitialPeriodStats(),
+        '2ª Parte': getInitialPeriodStats(),
     });
 
     const [localTeamName, setLocalTeamName] = useState('Local');
@@ -130,7 +131,7 @@ export default function MarcadorRapidoPage() {
         delta: number
     ) => {
         setStats(prev => {
-            const newStats = {...prev};
+            const newStats = JSON.parse(JSON.stringify(prev));
             const currentVal = newStats[periodo][team][stat];
             if (stat === 'faltas' && newStats[periodo][team][stat] >= 5 && delta > 0) return newStats;
             newStats[periodo][team][stat] = Math.max(0, currentVal + delta);
@@ -149,7 +150,7 @@ export default function MarcadorRapidoPage() {
         if (currentStats[team === 'local' ? 'localTimeout' : 'visitanteTimeout']) return;
 
         setStats(prev => {
-            const newStats = {...prev};
+            const newStats = JSON.parse(JSON.stringify(prev));
             newStats[periodo][team === 'local' ? 'localTimeout' : 'visitanteTimeout'] = true;
             return newStats;
         });
@@ -162,8 +163,8 @@ export default function MarcadorRapidoPage() {
     const resetAll = () => {
         resetTimer();
         setStats({
-             '1ª Parte': JSON.parse(JSON.stringify(initialPeriodStats)),
-             '2ª Parte': JSON.parse(JSON.stringify(initialPeriodStats)),
+             '1ª Parte': getInitialPeriodStats(),
+             '2ª Parte': getInitialPeriodStats(),
         });
         setPeriodo('1ª Parte');
         toast({
@@ -175,9 +176,11 @@ export default function MarcadorRapidoPage() {
     const applySettings = () => {
         setLocalTeamName(tempLocalTeamName);
         setVisitorTeamName(tempVisitorTeamName);
-        setMatchDuration(tempMatchDuration);
-        setTime(tempMatchDuration * 60);
-        setIsActive(false);
+        if (matchDuration !== tempMatchDuration) {
+          setMatchDuration(tempMatchDuration);
+          setTime(tempMatchDuration * 60);
+          setIsActive(false);
+        }
         toast({
             title: "Configuración guardada",
             description: "Los cambios se han aplicado al marcador.",
@@ -285,15 +288,15 @@ export default function MarcadorRapidoPage() {
                                 <div className="space-y-4 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="local-team-name">Equipo Local</Label>
-                                        <Input id="local-team-name" value={tempLocalTeamName} onChange={(e) => setTempLocalTeamName(e.target.value)} />
+                                        <Input id="local-team-name" defaultValue={tempLocalTeamName} onChange={(e) => setTempLocalTeamName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="visitor-team-name">Equipo Visitante</Label>
-                                        <Input id="visitor-team-name" value={tempVisitorTeamName} onChange={(e) => setTempVisitorTeamName(e.target.value)} />
+                                        <Input id="visitor-team-name" defaultValue={tempVisitorTeamName} onChange={(e) => setTempVisitorTeamName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="match-duration">Tiempo (min)</Label>
-                                        <Input id="match-duration" type="number" value={tempMatchDuration} onChange={(e) => setTempMatchDuration(Number(e.target.value))} />
+                                        <Input id="match-duration" type="number" defaultValue={tempMatchDuration} onChange={(e) => setTempMatchDuration(Number(e.target.value))} />
                                     </div>
                                 </div>
                                 <DialogFooter>
