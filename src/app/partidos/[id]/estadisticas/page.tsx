@@ -257,7 +257,7 @@ export default function EstadisticasPartidoPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
-                            <Table>
+                            <Table className="text-xs">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Jugador</TableHead>
@@ -327,7 +327,7 @@ export default function EstadisticasPartidoPage() {
                                     ))}
                                 </TableBody>
                                 <TableFooter>
-                                    <TableRow className="bg-muted/50 font-bold">
+                                    <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
                                         <TableCell>Total {period}</TableCell>
                                         <TableCell></TableCell>
                                         <TableCell className="text-center">{totals.g}</TableCell>
