@@ -51,11 +51,6 @@ export default function PlanesPage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button asChild className="w-full bg-primary text-white hover:bg-primary/90">
-              <Link href="#">
-                Suscribirse a Básico <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </CardFooter>
         </Card>
 
@@ -78,11 +73,6 @@ export default function PlanesPage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button asChild className="w-full bg-primary text-white hover:bg-primary/90">
-              <Link href="#">
-                Suscribirse a Pro <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </CardFooter>
         </Card>
       </div>
