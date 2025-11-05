@@ -2,12 +2,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Briefcase, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Briefcase, Trash2, Users, PlusCircle, Save } from "lucide-react";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
 
@@ -133,6 +133,16 @@ export default function PlantillaPage() {
                     </Table>
                 </div>
             </CardContent>
+            <CardFooter className="flex justify-between">
+                <Button variant="outline">
+                    <PlusCircle className="mr-2" />
+                    Añadir Jugador
+                </Button>
+                <Button>
+                    <Save className="mr-2" />
+                    Guardar Plantilla
+                </Button>
+            </CardFooter>
         </Card>
       </div>
     </div>
