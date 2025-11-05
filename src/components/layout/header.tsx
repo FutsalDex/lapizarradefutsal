@@ -33,7 +33,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-accent text-accent-foreground">
+    <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground">
       <div className="container flex h-16 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -51,7 +51,7 @@ export function Header() {
                   "transition-colors hover:text-white flex items-center gap-2",
                   pathname === link.href
                     ? "text-white"
-                    : "text-accent-foreground/80"
+                    : "text-primary-foreground/80"
                 )}
               >
                 {link.icon}
@@ -70,7 +70,7 @@ export function Header() {
           </Link>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="hover:bg-accent/80">
+              <Button variant="ghost" size="icon" className="hover:bg-primary/80">
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Abrir menú</span>
               </Button>
@@ -97,11 +97,11 @@ export function Header() {
           </Sheet>
         </div>
         <div className="hidden md:flex flex-1 items-center justify-end space-x-4">
-            <Button variant="ghost" size="icon" className="hover:bg-accent/80">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/80">
                 <Calendar className="h-5 w-5" />
                 <span className="sr-only">Calendario</span>
             </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-accent/80">
+            <Button variant="ghost" size="icon" className="hover:bg-primary/80">
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Notificaciones</span>
             </Button>
