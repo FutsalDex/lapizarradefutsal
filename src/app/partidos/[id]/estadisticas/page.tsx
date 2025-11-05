@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, Flag } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Play, Pause, Plus, Minus, Flag, ShieldAlert, Target, RefreshCw, XCircle, Goal, ArrowRightLeft } from "lucide-react";
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -58,6 +58,33 @@ const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncr
     </div>
 );
 
+type OpponentStats = {
+    goles: number;
+    tirosPuerta: number;
+    tirosFuera: number;
+    faltas: number;
+    recuperaciones: number;
+    perdidas: number;
+}
+
+const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon }: { title: string; value: number; onIncrement: () => void; onDecrement: () => void; icon: React.ReactNode }) => (
+    <div className="flex items-center justify-between rounded-lg border p-3 bg-card">
+        <div className="flex items-center gap-2">
+            {icon}
+            <span className="font-medium">{title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={onDecrement} disabled={value <= 0}>
+                <Minus className="h-4 w-4" />
+            </Button>
+            <span className="w-6 text-center text-lg font-bold">{value}</span>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={onIncrement}>
+                <Plus className="h-4 w-4" />
+            </Button>
+        </div>
+    </div>
+);
+
 
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
@@ -69,8 +96,24 @@ export default function EstadisticasPartidoPage() {
     const [isActive, setIsActive] = useState(false);
     const [period, setPeriod] = useState('1ª Parte');
 
+    const [opponentStats, setOpponentStats] = useState<OpponentStats>({
+        goles: 0,
+        tirosPuerta: 0,
+        tirosFuera: 0,
+        faltas: 0,
+        recuperaciones: 0,
+        perdidas: 0,
+    });
+
+    const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
+        setOpponentStats(prev => {
+            const newValue = Math.max(0, prev[stat] + delta);
+            return { ...prev, [stat]: newValue };
+        });
+    };
+
     const localTeamScore = playerStats.reduce((acc, player) => acc + player.g, 0);
-    const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0);
+    const opponentTeamScore = playerStats.reduce((acc, player) => acc + player.gc, 0) + opponentStats.goles;
 
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
 
@@ -215,7 +258,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold">Juvenil B</h2>
                         <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls && 'bg-destructive')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < teamFouls ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
                             ))}
                         </div>
                          <Button variant="outline" size="sm">TM</Button>
@@ -242,7 +285,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">FS Vencedores</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentFouls && 'bg-destructive')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < opponentStats.faltas ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
                             ))}
                         </div>
                         <Button variant="outline" size="sm">TM</Button>
@@ -395,15 +438,59 @@ export default function EstadisticasPartidoPage() {
                 </Card>
             </TabsContent>
             <TabsContent value="team-b">
-                 <Card>
+                <Card>
                     <CardHeader>
-                        <CardTitle>FS Vencedores - Estadísticas {period}</CardTitle>
+                        <CardTitle>Estadísticas del Rival - FS Vencedores ({period})</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground text-center">Las estadísticas del equipo rival no están disponibles.</p>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                           <OpponentStatCounter 
+                                title="Goles"
+                                value={opponentStats.goles}
+                                onIncrement={() => handleOpponentStatChange('goles', 1)}
+                                onDecrement={() => handleOpponentStatChange('goles', -1)}
+                                icon={<Goal className="text-muted-foreground" />}
+                           />
+                           <OpponentStatCounter 
+                                title="Tiros a Puerta"
+                                value={opponentStats.tirosPuerta}
+                                onIncrement={() => handleOpponentStatChange('tirosPuerta', 1)}
+                                onDecrement={() => handleOpponentStatChange('tirosPuerta', -1)}
+                                icon={<Target className="text-muted-foreground" />}
+                           />
+                           <OpponentStatCounter 
+                                title="Tiros Fuera"
+                                value={opponentStats.tirosFuera}
+                                onIncrement={() => handleOpponentStatChange('tirosFuera', 1)}
+                                onDecrement={() => handleOpponentStatChange('tirosFuera', -1)}
+                                icon={<XCircle className="text-muted-foreground" />}
+                           />
+                           <OpponentStatCounter 
+                                title="Faltas"
+                                value={opponentStats.faltas}
+                                onIncrement={() => handleOpponentStatChange('faltas', 1)}
+                                onDecrement={() => handleOpponentStatChange('faltas', -1)}
+                                icon={<ShieldAlert className="text-muted-foreground" />}
+                           />
+                           <OpponentStatCounter 
+                                title="Recuperaciones"
+                                value={opponentStats.recuperaciones}
+                                onIncrement={() => handleOpponentStatChange('recuperaciones', 1)}
+                                onDecrement={() => handleOpponentStatChange('recuperaciones', -1)}
+                                icon={<RefreshCw className="text-muted-foreground" />}
+                           />
+                           <OpponentStatCounter 
+                                title="Pérdidas"
+                                value={opponentStats.perdidas}
+                                onIncrement={() => handleOpponentStatChange('perdidas', 1)}
+                                onDecrement={() => handleOpponentStatChange('perdidas', -1)}
+                                icon={<ArrowRightLeft className="text-muted-foreground" />}
+                           />
+                        </div>
                     </CardContent>
                 </Card>
             </TabsContent>
         </Tabs>
     </div>
   );
+}
