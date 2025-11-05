@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 type InvitationStatus = 'Pendiente' | 'Completada' | 'Aprobada';
 
