@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 type PlayerStat = {
@@ -60,6 +61,7 @@ const StatButton = ({ value, onIncrement, onDecrement }: { value: number, onIncr
 
 
 export default function EstadisticasPartidoPage() {
+    const { toast } = useToast();
     const [teamFouls, setTeamFouls] = useState(0);
     const [opponentFouls, setOpponentFouls] = useState(0);
     const [playerStats, setPlayerStats] = useState<PlayerStat[]>(initialPlayerStats.map(p => ({...p, timePlayed: 0})));
@@ -154,6 +156,12 @@ export default function EstadisticasPartidoPage() {
             } else {
                 if (newIds.size < 5) {
                     newIds.add(playerId);
+                } else {
+                     toast({
+                        variant: "destructive",
+                        title: "Límite alcanzado",
+                        description: "Solo puedes seleccionar 5 jugadores a la vez.",
+                    })
                 }
             }
             return newIds;
@@ -285,7 +293,7 @@ export default function EstadisticasPartidoPage() {
                                                 'bg-green-100/50 dark:bg-green-900/30 hover:bg-green-100/60 dark:hover:bg-green-900/40': selectedPlayerIds.has(player.id)
                                             })}
                                         >
-                                            <TableCell className="font-medium">{player.id}. {player.name}</TableCell>
+                                            <TableCell className={cn("font-medium", {"text-destructive": selectedPlayerIds.has(player.id)})}>{player.id}. {player.name}</TableCell>
                                             <TableCell>{formatTime(player.timePlayed)}</TableCell>
                                             <TableCell onClick={(e) => e.stopPropagation()}>
                                                 <StatButton value={player.g} onIncrement={() => handleStatChange(player.id, 'g', 1)} onDecrement={() => handleStatChange(player.id, 'g', -1)} />
@@ -386,3 +394,4 @@ export default function EstadisticasPartidoPage() {
     
 
     
+
