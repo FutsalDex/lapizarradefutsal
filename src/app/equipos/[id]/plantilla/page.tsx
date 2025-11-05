@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,14 +12,39 @@ import { ArrowLeft, Briefcase, Trash2, Users, PlusCircle, Save } from "lucide-re
 import Link from "next/link";
 import { useParams } from 'next/navigation';
 
-const players = [
+const initialPlayers = [
     { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
     { dorsal: '9', nombre: 'Marc Romera', posicion: 'Ala' },
     { dorsal: '12', nombre: 'Marc Muñoz', posicion: 'Ala' },
-]
+];
+
+type Player = {
+    dorsal: string;
+    nombre: string;
+    posicion: string;
+};
 
 export default function PlantillaPage() {
     const params = useParams();
+    const [players, setPlayers] = useState<Player[]>(initialPlayers);
+
+    const handleAddPlayer = () => {
+        if (players.length < 20) {
+            setPlayers([...players, { dorsal: '', nombre: '', posicion: 'Ala' }]);
+        }
+    };
+
+    const handleRemovePlayer = (index: number) => {
+        const newPlayers = [...players];
+        newPlayers.splice(index, 1);
+        setPlayers(newPlayers);
+    };
+
+    const handlePlayerChange = (index: number, field: keyof Player, value: string) => {
+        const newPlayers = [...players];
+        newPlayers[index][field] = value;
+        setPlayers(newPlayers);
+    };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -104,13 +130,25 @@ export default function PlantillaPage() {
                             {players.map((player, index) => (
                                 <TableRow key={index}>
                                     <TableCell>
-                                        <Input defaultValue={player.dorsal} className="w-16 text-center" />
+                                        <Input 
+                                            value={player.dorsal} 
+                                            onChange={(e) => handlePlayerChange(index, 'dorsal', e.target.value)}
+                                            className="w-16 text-center" 
+                                            placeholder="#"
+                                        />
                                     </TableCell>
                                     <TableCell>
-                                        <Input defaultValue={player.nombre} />
+                                        <Input 
+                                            value={player.nombre} 
+                                            onChange={(e) => handlePlayerChange(index, 'nombre', e.target.value)}
+                                            placeholder="Nombre del jugador"
+                                        />
                                     </TableCell>
                                     <TableCell>
-                                        <Select defaultValue={player.posicion}>
+                                        <Select 
+                                            value={player.posicion}
+                                            onValueChange={(value) => handlePlayerChange(index, 'posicion', value)}
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Seleccionar" />
                                             </SelectTrigger>
@@ -123,7 +161,7 @@ export default function PlantillaPage() {
                                         </Select>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon">
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(index)}>
                                             <Trash2 className="w-5 h-5 text-destructive" />
                                         </Button>
                                     </TableCell>
@@ -134,7 +172,7 @@ export default function PlantillaPage() {
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleAddPlayer}>
                     <PlusCircle className="mr-2" />
                     Añadir Jugador
                 </Button>
