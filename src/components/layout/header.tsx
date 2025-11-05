@@ -10,7 +10,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
-import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Calendar, Bell, User, LogOut } from "lucide-react";
+import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Gift, Users, User, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,11 +26,17 @@ const navLinks = [
   { href: "/sesiones/crear", label: "Crear Sesión", icon: <PenSquare className="w-5 h-5"/> },
   { href: "/favoritos", label: "Favoritos", icon: <Star className="w-5 h-5"/> },
   { href: "/panel", label: "Mi Panel", icon: <LayoutDashboard className="w-5 h-5"/> },
-  { href: "/admin", label: "Panel Admin", icon: <UserCog className="w-5 h-5"/> },
 ];
+
+const adminNavLinks = [
+    { href: "/admin", label: "Panel Admin", icon: <UserCog className="w-5 h-5"/> },
+]
 
 export function Header() {
   const pathname = usePathname();
+  const isAdmin = true; // Simular rol de administrador
+  const pendingInvitations = 2; // Simular invitaciones pendientes
+  const pendingUsers = 5; // Simular usuarios pendientes
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground">
@@ -58,6 +64,21 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+             {isAdmin && adminNavLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "transition-colors hover:text-white flex items-center gap-2",
+                  pathname.startsWith(link.href)
+                    ? "text-white"
+                    : "text-primary-foreground/80"
+                )}
+              >
+                {link.icon}
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
         
@@ -77,7 +98,7 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="grid gap-6 text-lg font-medium mt-8">
-                {navLinks.map((link) => (
+                {[...navLinks, ...(isAdmin ? adminNavLinks : [])].map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -96,15 +117,33 @@ export function Header() {
             </SheetContent>
           </Sheet>
         </div>
-        <div className="hidden md:flex flex-1 items-center justify-end space-x-4">
-            <Button variant="ghost" size="icon" className="hover:bg-primary/80">
-                <Calendar className="h-5 w-5" />
-                <span className="sr-only">Calendario</span>
-            </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-primary/80">
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Notificaciones</span>
-            </Button>
+        <div className="hidden md:flex flex-1 items-center justify-end space-x-2">
+            {isAdmin && (
+                <>
+                    <Button variant="ghost" size="icon" className="relative hover:bg-primary/80" asChild>
+                       <Link href="/admin/invitations">
+                         <Gift className="h-5 w-5" />
+                         {pendingInvitations > 0 && (
+                            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                                {pendingInvitations}
+                            </span>
+                         )}
+                         <span className="sr-only">Invitaciones pendientes</span>
+                       </Link>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="relative hover:bg-primary/80" asChild>
+                        <Link href="/admin/users">
+                            <Users className="h-5 w-5" />
+                            {pendingUsers > 0 && (
+                                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                                    {pendingUsers}
+                                </span>
+                            )}
+                            <span className="sr-only">Usuarios pendientes</span>
+                        </Link>
+                    </Button>
+                </>
+            )}
              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
