@@ -134,48 +134,46 @@ export default function PartidoDetallePage() {
         </TabsList>
         <TabsContent value="datos">
             <Card>
-                <CardContent className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div>
-                           <h3 className="font-bold text-center mb-4 text-lg">Estadísticas del Equipo</h3>
-                           <div className="flex justify-between font-bold border-b pb-2 mb-2">
-                                <h4 className="text-left">{localTeam}</h4>
-                                <h4 className="text-right">{visitorTeam}</h4>
-                            </div>
-                           <div className="space-y-2">
-                                <StatRow label="Tiros a Puerta" localValue={teamStats.local.tirosPuerta} visitorValue={teamStats.visitor.tirosPuerta} />
-                                <StatRow label="Tiros Fuera" localValue={teamStats.local.tirosFuera} visitorValue={teamStats.visitor.tirosFuera} />
-                                <StatRow label="Faltas" localValue={teamStats.local.faltas} visitorValue={teamStats.visitor.faltas} />
-                                <StatRow label="Recuperaciones" localValue={teamStats.local.recuperaciones} visitorValue={teamStats.visitor.recuperaciones} />
-                                <StatRow label="Pérdidas" localValue={teamStats.local.perdidas} visitorValue={teamStats.visitor.perdidas} />
-                            </div>
+                <CardContent className="p-6 space-y-8">
+                    <div className="space-y-4">
+                        <h3 className="font-bold text-center text-lg">Cronología de Goles</h3>
+                        <div className="flex justify-between font-bold border-b pb-2 mb-4">
+                            <h4 className="w-1/3">{localTeam}</h4>
+                            <div className="w-1/3 text-center"></div>
+                            <h4 className="w-1/3 text-right">{visitorTeam}</h4>
                         </div>
-                         <div>
-                            <h3 className="font-bold text-center mb-4 text-lg">Cronología de Goles</h3>
-                            <div className="flex justify-between font-bold border-b pb-2 mb-4">
-                                <h4 className="w-1/3">{localTeam}</h4>
-                                <div className="w-1/3 text-center"></div>
-                                <h4 className="w-1/3 text-right">{visitorTeam}</h4>
-                            </div>
-                            <div className="space-y-4">
-                                {goalChronology.map((goal, index) => (
-                                    <div key={index} className="flex items-center text-sm">
-                                        {goal.team === 'local' ? (
-                                            <>
-                                                <div className="w-1/3 font-medium">{goal.player}</div>
-                                                <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                                <div className="w-1/3"></div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="w-1/3"></div>
-                                                <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
-                                                <div className="w-1/3 text-right font-medium">{goal.player}</div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                        <div className="space-y-4">
+                            {goalChronology.map((goal, index) => (
+                                <div key={index} className="flex items-center text-sm">
+                                    {goal.team === 'local' ? (
+                                        <>
+                                            <div className="w-1/3 font-medium">{goal.player}</div>
+                                            <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
+                                            <div className="w-1/3"></div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-1/3"></div>
+                                            <div className="w-1/3 text-center text-muted-foreground">{goal.minute}'</div>
+                                            <div className="w-1/3 text-right font-medium">{goal.player}</div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                     <div className="space-y-4">
+                       <h3 className="font-bold text-center text-lg">Estadísticas del Equipo</h3>
+                       <div className="flex justify-between font-bold border-b pb-2 mb-2">
+                            <h4 className="text-left">{localTeam}</h4>
+                            <h4 className="text-right">{visitorTeam}</h4>
+                        </div>
+                       <div className="space-y-2">
+                            <StatRow label="Tiros a Puerta" localValue={teamStats.local.tirosPuerta} visitorValue={teamStats.visitor.tirosPuerta} />
+                            <StatRow label="Tiros Fuera" localValue={teamStats.local.tirosFuera} visitorValue={teamStats.visitor.tirosFuera} />
+                            <StatRow label="Faltas" localValue={teamStats.local.faltas} visitorValue={teamStats.visitor.faltas} />
+                            <StatRow label="Recuperaciones" localValue={teamStats.local.recuperaciones} visitorValue={teamStats.visitor.recuperaciones} />
+                            <StatRow label="Pérdidas" localValue={teamStats.local.perdidas} visitorValue={teamStats.visitor.perdidas} />
                         </div>
                     </div>
                 </CardContent>
@@ -250,3 +248,4 @@ export default function PartidoDetallePage() {
     
 
     
+
