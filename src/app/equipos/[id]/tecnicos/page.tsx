@@ -8,11 +8,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Briefcase, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
 
 const staff = [
     { nombre: 'Administrador', email: 'futsaldex@gmail.com', rol: 'Entrenador' },
     { nombre: 'Michel', email: 'mixel_75@hotmail.com', rol: 'Delegado' },
 ]
+
+const roles = [
+    "Entrenador",
+    "2º Entrenador",
+    "Delegado",
+    "Preparador Físico",
+    "Analista Táctico/Scouting",
+    "Fisioterapeuta",
+    "Médico",
+    "Psicólogo",
+    "Nutricionista",
+];
 
 export default function TecnicosPage() {
     const params = useParams();
@@ -36,10 +60,44 @@ export default function TecnicosPage() {
                         Volver
                     </Link>
                 </Button>
-                <Button>
-                    <UserPlus className="mr-2" />
-                    Añadir nuevo miembro
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button>
+                        <UserPlus className="mr-2" />
+                        Añadir nuevo miembro
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Añadir Miembro al Cuerpo Técnico</DialogTitle>
+                      <DialogDescription>
+                        El usuario debe estar registrado en la plataforma para poder ser añadido.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email del usuario</Label>
+                        <Input id="email" type="email" placeholder="email@ejemplo.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Rol en el equipo</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar rol" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roles.map(role => (
+                                <SelectItem key={role} value={role}>{role}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">Añadir</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
             </div>
       </div>
       
@@ -71,9 +129,9 @@ export default function TecnicosPage() {
                                             <SelectValue placeholder="Seleccionar rol" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Entrenador">Entrenador</SelectItem>
-                                            <SelectItem value="Delegado">Delegado</SelectItem>
-                                            <SelectItem value="Colaborador">Colaborador</SelectItem>
+                                           {roles.map(role => (
+                                                <SelectItem key={role} value={role}>{role}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </TableCell>
