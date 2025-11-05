@@ -32,7 +32,7 @@ export default function PlanesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <Card className="flex flex-col border-2 rounded-lg shadow-lg">
+        <Card className="flex flex-col border-2 rounded-lg shadow-lg border-primary">
           <CardHeader className="pb-4">
             <CardTitle className="font-headline text-2xl text-foreground">Plan Básico</CardTitle>
             <div className="flex items-baseline">
@@ -56,7 +56,7 @@ export default function PlanesPage() {
 
         <Card className="flex flex-col border-2 rounded-lg shadow-lg border-primary">
           <CardHeader className="pb-4">
-            <CardTitle className="font-headline text-2xl text-foreground">Pro</CardTitle>
+            <CardTitle className="font-headline text-2xl text-foreground">Plan Pro</CardTitle>
             <div className="flex items-baseline">
               <span className="text-4xl font-bold">39.95€</span>
               <span className="text-muted-foreground ml-1">/año</span>
