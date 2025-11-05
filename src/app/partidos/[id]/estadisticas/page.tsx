@@ -195,12 +195,16 @@ export default function EstadisticasPartidoPage() {
     };
 
     const period1LocalGoals = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
-    const period2LocalGoals = period === '2ª Parte' ? playerStats.reduce((acc, p) => acc + p.g, 0) : stats['2ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0);
-    const totalLocalScore = period1LocalGoals + period2LocalGoals;
+    const currentPeriodLocalGoals = playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalLocalScore = period === '1ª Parte' 
+        ? currentPeriodLocalGoals 
+        : period1LocalGoals + currentPeriodLocalGoals;
 
     const period1OpponentGoals = stats['1ª Parte'].opponentStats.goles;
-    const period2OpponentGoals = period === '2ª Parte' ? opponentStats.goles : stats['2ª Parte'].opponentStats.goles;
-    const totalOpponentScore = period1OpponentGoals + period2OpponentGoals;
+    const currentPeriodOpponentGoals = opponentStats.goles;
+    const totalOpponentScore = period === '1ª Parte'
+        ? currentPeriodOpponentGoals
+        : period1OpponentGoals + currentPeriodOpponentGoals;
 
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.faltas;
@@ -287,7 +291,7 @@ export default function EstadisticasPartidoPage() {
             setSelectedPlayerIds(newIds);
         } else {
             if (newIds.size >= 5) {
-                toast({
+                 toast({
                     variant: "destructive",
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
@@ -400,7 +404,7 @@ export default function EstadisticasPartidoPage() {
             </CardContent>
         </Card>
 
-        <Tabs defaultValue="team-a" value="team-a" onValueChange={saveStats.bind(null, true)}>
+        <Tabs defaultValue="team-a">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="team-a">Juvenil B</TabsTrigger>
                 <TabsTrigger value="team-b">FS Vencedores</TabsTrigger>
