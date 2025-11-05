@@ -79,7 +79,7 @@ const initialOpponentStats: OpponentStats = {
 const getInitialPlayerStats = (): PlayerStat[] => 
     initialPlayerStats.map(p => ({
         ...p,
-        timePlayed: 0,
+        timePlayed: p.timePlayed, // Keep initial timePlayed if needed, otherwise 0
         g: 0, a: 0, fouls: 0, t_puerta: 0, t_fuera: 0, recup: 0, perdidas: 0, paradas: 0, gc: 0, vs1: 0, ta: 0, tr: 0
     }));
 
@@ -142,28 +142,37 @@ export default function EstadisticasPartidoPage() {
 
     
     const saveStats = useCallback((auto = false) => {
-        toast({
-            title: auto ? "Autoguardado" : "Estadísticas guardadas",
-            description: auto ? "Las estadísticas se han guardado automáticamente." : "Las estadísticas del partido se han guardado correctamente.",
-        });
-    }, [toast]);
+        if (!auto) {
+            toast({
+                title: "Estadísticas guardadas",
+                description: "Las estadísticas del partido se han guardado correctamente.",
+            });
+        }
+        // Here you would typically send the data to a server
+        console.log("Saving stats...", {period, playerStats, opponentStats});
+    }, [toast, period, playerStats, opponentStats]);
     
     useEffect(() => {
-        const interval = setInterval(() => {
-          saveStats(true);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, [saveStats]);
+        const autoSaveInterval = setInterval(() => {
+          saveStats(true); // Call with auto=true to suppress toast
+          toast({
+            title: "Autoguardado",
+            description: "Las estadísticas se han guardado automáticamente.",
+          });
+        }, 5000); // 5000 ms = 5 seconds
+        return () => clearInterval(autoSaveInterval);
+    }, [saveStats, toast]);
 
+    // This effect runs when the 'period' changes.
+    // It saves the current period's stats and loads the new period's stats.
     useEffect(() => {
-        setIsActive(false);
-
         const newPeriodStats = stats[period];
         setPlayerStats(newPeriodStats.playerStats);
         setOpponentStats(newPeriodStats.opponentStats);
         setLocalTimeoutTaken(newPeriodStats.localTimeoutTaken);
         setOpponentTimeoutTaken(newPeriodStats.opponentTimeoutTaken);
         
+        setIsActive(false);
         setTime(25 * 60);
         setSelectedPlayerIds(new Set());
     }, [period, stats]);
@@ -171,6 +180,7 @@ export default function EstadisticasPartidoPage() {
     const handlePeriodChange = (newPeriod: Period) => {
         if (period === newPeriod) return;
 
+        // Save current period's stats before switching
         setStats(prev => ({
             ...prev,
             [period]: {
@@ -181,6 +191,7 @@ export default function EstadisticasPartidoPage() {
             }
         }));
         
+        // Switch to the new period. The useEffect above will handle loading the new stats.
         setPeriod(newPeriod);
     };
 
@@ -191,10 +202,14 @@ export default function EstadisticasPartidoPage() {
         });
     };
 
-    const totalLocalScore = stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0) + (period === '1ª Parte' ? 0 : playerStats.reduce((acc, p) => acc + p.g, 0));
-    const totalOpponentScore = stats['1ª Parte'].opponentStats.goles + (period === '1ª Parte' ? 0 : opponentStats.goles);
+    const currentPeriodLocalGoals = playerStats.reduce((acc, p) => acc + p.g, 0);
+    const totalLocalScore = (period === '1ª Parte' ? 0 : stats['1ª Parte'].playerStats.reduce((acc, p) => acc + p.g, 0)) + currentPeriodLocalGoals;
+
+    const currentPeriodOpponentGoals = opponentStats.goles;
+    const totalOpponentScore = (period === '1ª Parte' ? 0 : stats['1ª Parte'].opponentStats.goles) + currentPeriodOpponentGoals;
     
     const teamFouls = playerStats.reduce((acc, player) => acc + player.fouls, 0);
+    const opponentTeamFouls = opponentStats.faltas;
 
     const handleTimeout = (team: 'local' | 'opponent') => {
         if (team === 'local') setLocalTimeoutTaken(!localTimeoutTaken);
@@ -232,7 +247,7 @@ export default function EstadisticasPartidoPage() {
                     )
                 );
             }, 1000);
-        } else {
+        } else if (!isActive && time !== 0) {
             if(interval) clearInterval(interval);
         }
         return () => {
@@ -288,7 +303,6 @@ export default function EstadisticasPartidoPage() {
     };
     
     const finishGame = () => {
-        // Logic to finish game, for now just shows an alert
         alert("Partido Finalizado. (Lógica de guardado pendiente)");
         setIsActive(false);
     }
@@ -307,7 +321,7 @@ export default function EstadisticasPartidoPage() {
                         Volver
                     </Link>
                 </Button>
-                <Button onClick={() => saveStats(false)}><Save className="mr-2"/>Guardar</Button>
+                <Button onClick={() => saveStats()}><Save className="mr-2"/>Guardar</Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive"><Flag className="mr-2"/>Finalizar</Button>
@@ -363,7 +377,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">FS Vencedores</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < opponentStats.faltas ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2", i < opponentTeamFouls ? 'bg-destructive border-destructive' : 'border-destructive')}></div>
                             ))}
                         </div>
                         <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-green-500 hover:bg-green-600 text-white": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')}>TM</Button>
