@@ -13,7 +13,7 @@ export default function SesionesPage() {
           <p className="text-lg text-muted-foreground mt-2">Organiza y planifica tus entrenamientos.</p>
         </div>
         <Button asChild className="mt-4 md:mt-0 w-full md:w-auto bg-accent hover:bg-accent/90">
-          <Link href="#">
+          <Link href="/sesiones/crear">
             <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Sesión
           </Link>
         </Button>
