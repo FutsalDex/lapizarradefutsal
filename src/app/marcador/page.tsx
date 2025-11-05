@@ -94,8 +94,8 @@ export default function MarcadorRapidoPage() {
     const [visitorTeamName, setVisitorTeamName] = useState('Visitante');
     const [matchDuration, setMatchDuration] = useState(25);
 
-    const [tempLocalTeamName, setTempLocalTeamName] = useState(localTeamName);
-    const [tempVisitorTeamName, setTempVisitorTeamName] = useState(visitorTeamName);
+    const [tempLocalTeamName, setTempLocalTeamName] = useState('');
+    const [tempVisitorTeamName, setTempVisitorTeamName] = useState('');
     const [tempMatchDuration, setTempMatchDuration] = useState(matchDuration);
 
     const [time, setTime] = useState(matchDuration * 60);
@@ -133,7 +133,13 @@ export default function MarcadorRapidoPage() {
         setStats(prev => {
             const newStats = JSON.parse(JSON.stringify(prev));
             const currentVal = newStats[periodo][team][stat];
-            if (stat === 'faltas' && newStats[periodo][team][stat] >= 5 && delta > 0) return newStats;
+             if (stat === 'faltas' && currentVal >= 5 && delta > 0) {
+                toast({
+                    title: "Límite de faltas",
+                    description: `El equipo ${team === 'local' ? localTeamName : visitorTeamName} ha alcanzado el límite de 5 faltas.`,
+                });
+                return newStats;
+            }
             newStats[periodo][team][stat] = Math.max(0, currentVal + delta);
             return newStats;
         });
@@ -174,13 +180,16 @@ export default function MarcadorRapidoPage() {
     }
 
     const applySettings = () => {
-        setLocalTeamName(tempLocalTeamName);
-        setVisitorTeamName(tempVisitorTeamName);
+        if (tempLocalTeamName) setLocalTeamName(tempLocalTeamName);
+        if (tempVisitorTeamName) setVisitorTeamName(tempVisitorTeamName);
         if (matchDuration !== tempMatchDuration) {
           setMatchDuration(tempMatchDuration);
           setTime(tempMatchDuration * 60);
           setIsActive(false);
         }
+        setTempLocalTeamName('');
+        setTempVisitorTeamName('');
+        
         toast({
             title: "Configuración guardada",
             description: "Los cambios se han aplicado al marcador.",
@@ -235,7 +244,8 @@ export default function MarcadorRapidoPage() {
                                 ))}
                             </div>
                             <Button 
-                                variant={currentStats.localTimeout ? 'secondary' : 'outline'} 
+                                variant={currentStats.localTimeout ? "default" : "outline"}
+                                className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": currentStats.localTimeout})}
                                 size="sm" 
                                 onClick={() => handleTimeout('local')}
                                 disabled={currentStats.localTimeout}
@@ -261,7 +271,8 @@ export default function MarcadorRapidoPage() {
                                 ))}
                             </div>
                              <Button 
-                                variant={currentStats.visitanteTimeout ? 'secondary' : 'outline'} 
+                                variant={currentStats.visitanteTimeout ? "default" : "outline"} 
+                                className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": currentStats.visitanteTimeout})}
                                 size="sm" 
                                 onClick={() => handleTimeout('visitante')}
                                 disabled={currentStats.visitanteTimeout}
@@ -284,19 +295,22 @@ export default function MarcadorRapidoPage() {
                             <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Configuración del Marcador</DialogTitle>
+                                    <DialogDescription>
+                                        Los cambios se aplicarán al marcador actual. Los nombres en blanco no se actualizarán.
+                                    </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="local-team-name">Equipo Local</Label>
-                                        <Input id="local-team-name" defaultValue={tempLocalTeamName} onChange={(e) => setTempLocalTeamName(e.target.value)} />
+                                        <Input id="local-team-name" placeholder={localTeamName} value={tempLocalTeamName} onChange={(e) => setTempLocalTeamName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="visitor-team-name">Equipo Visitante</Label>
-                                        <Input id="visitor-team-name" defaultValue={tempVisitorTeamName} onChange={(e) => setTempVisitorTeamName(e.target.value)} />
+                                        <Input id="visitor-team-name" placeholder={visitorTeamName} value={tempVisitorTeamName} onChange={(e) => setTempVisitorTeamName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="match-duration">Tiempo (min)</Label>
-                                        <Input id="match-duration" type="number" defaultValue={tempMatchDuration} onChange={(e) => setTempMatchDuration(Number(e.target.value))} />
+                                        <Input id="match-duration" type="number" value={tempMatchDuration} onChange={(e) => setTempMatchDuration(Number(e.target.value))} />
                                     </div>
                                 </div>
                                 <DialogFooter>
@@ -413,5 +427,3 @@ export default function MarcadorRapidoPage() {
     </div>
   );
 }
-
-    
