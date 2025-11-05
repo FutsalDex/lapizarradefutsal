@@ -17,7 +17,7 @@ const adminItems = [
     title: 'Gestión de Invitaciones',
     description: 'Revisa y aprueba las invitaciones de usuarios para el programa de puntos.',
     buttonText: 'Ir a Gestión de Invitaciones',
-    href: '#',
+    href: '/admin/invitations',
   },
     {
     icon: <Shield className="w-8 h-8 text-primary" />,
