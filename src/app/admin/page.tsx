@@ -24,7 +24,7 @@ const adminItems = [
     title: 'Gestión de Equipos',
     description: 'Visualiza y gestiona todos los equipos creados en la plataforma.',
     buttonText: 'Ir a Gestión de Equipos',
-    href: '#',
+    href: '/admin/equipos',
   },
   {
     icon: <Upload className="w-8 h-8 text-primary" />,
