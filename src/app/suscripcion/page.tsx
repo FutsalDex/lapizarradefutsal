@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileText, Users, Star, Euro, Calendar, Gift, Award } from "lucide-react";
+import Link from "next/link";
 
 export default function SuscripcionPage() {
   return (
@@ -98,26 +99,33 @@ export default function SuscripcionPage() {
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Award className="w-6 h-6 text-primary" />
-                    <CardTitle className="font-headline text-2xl">Canjear Puntos</CardTitle>
+                    <CardTitle className="font-headline text-2xl">Renovación de Suscripción</CardTitle>
                 </div>
-                <CardDescription className="pt-2">Usa tus puntos acumulados para conseguir meses gratis de suscripción y seguir disfrutando de todas las ventajas.</CardDescription>
+                <CardDescription className="pt-2">Aquí puedes ver el estado de tu próxima renovación y el ahorro conseguido gracias a tus puntos.</CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4 flex flex-col justify-between">
-                    <div>
-                        <p className="font-bold">1 mes gratis - Plan Básico</p>
-                        <p className="text-primary font-bold text-lg">100 Puntos</p>
+            <CardContent className="space-y-4">
+                <div className="border rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex-grow">
+                        <p className="font-semibold">Precio renovación Plan Pro (anual)</p>
+                        <p className="text-sm text-muted-foreground">Descuento por puntos acumulados</p>
                     </div>
-                    <Button variant="outline" className="mt-4 w-full">Canjear</Button>
+                    <div className="text-right">
+                        <p className="line-through text-muted-foreground">39.95€</p>
+                        <p className="text-destructive font-semibold">-2.50€</p>
+                    </div>
                 </div>
-                <div className="border rounded-lg p-4 flex flex-col justify-between">
-                    <div>
-                        <p className="font-bold">1 mes gratis - Plan Pro</p>
-                        <p className="text-primary font-bold text-lg">200 Puntos</p>
-                    </div>
-                    <Button variant="outline" className="mt-4 w-full" disabled>Puntos insuficientes</Button>
+                <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-between">
+                    <p className="font-bold text-lg">Total a pagar</p>
+                    <p className="font-bold text-lg text-primary">37.45€</p>
                 </div>
             </CardContent>
+            <CardFooter>
+                 <Button asChild className="w-full">
+                    <Link href="/planes">
+                        Instrucciones de Pago
+                    </Link>
+                </Button>
+            </CardFooter>
         </Card>
 
       </div>
