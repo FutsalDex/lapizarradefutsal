@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
-import Link from 'next/link';
+import { PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -158,15 +157,6 @@ export default function CrearSesionPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <Button variant="outline" asChild>
-          <Link href="/sesiones">
-            <ArrowLeft className="mr-2" />
-            Volver a Sesiones
-          </Link>
-        </Button>
-      </div>
-
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="text-center">
             <h1 className="text-4xl font-bold font-headline">Crear Sesión de Entrenamiento</h1>

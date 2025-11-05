@@ -23,7 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="w-5 h-5"/> },
-  { href: "/sesiones", label: "Crear Sesión", icon: <PenSquare className="w-5 h-5"/> },
+  { href: "/sesiones/crear", label: "Crear Sesión", icon: <PenSquare className="w-5 h-5"/> },
   { href: "/favoritos", label: "Favoritos", icon: <Star className="w-5 h-5"/> },
   { href: "/panel", label: "Mi Panel", icon: <LayoutDashboard className="w-5 h-5"/> },
   { href: "/admin", label: "Panel Admin", icon: <UserCog className="w-5 h-5"/> },
