@@ -31,7 +31,7 @@ const panelItems = [
     title: 'Mis Eventos',
     description: 'Visualiza la cronología de todos tus partidos y sesiones de entrenamiento guardados.',
     buttonText: 'Ir a Mis Eventos',
-    href: '/eventos', // Placeholder link
+    href: '/eventos',
   },
   {
     icon: <BarChart3 className="w-8 h-8 text-primary" />,
