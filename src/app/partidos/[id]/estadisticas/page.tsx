@@ -159,13 +159,9 @@ export default function EstadisticasPartidoPage() {
     useEffect(() => {
         const autoSaveInterval = setInterval(() => {
           saveStats(true);
-          toast({
-            title: "Autoguardado",
-            description: "Las estadísticas se han guardado automáticamente.",
-          });
         }, 5000); 
         return () => clearInterval(autoSaveInterval);
-    }, [saveStats, toast]);
+    }, [saveStats]);
     
     // Effect to update current period stats when period or the main stats object changes
     useEffect(() => {
@@ -207,8 +203,11 @@ export default function EstadisticasPartidoPage() {
     const opponentTeamFouls = opponentStats.faltas;
 
     const handleTimeout = (team: 'local' | 'opponent') => {
-        if (team === 'local') setLocalTimeoutTaken(!localTimeoutTaken);
-        else setOpponentTimeoutTaken(!opponentTimeoutTaken);
+        if (team === 'local') {
+            setLocalTimeoutTaken(prev => !prev);
+        } else {
+            setOpponentTimeoutTaken(prev => !prev);
+        }
     };
 
 
@@ -289,7 +288,7 @@ export default function EstadisticasPartidoPage() {
                     title: "Límite alcanzado",
                     description: "Solo puedes seleccionar 5 jugadores a la vez.",
                 });
-                return; // Do not modify the set
+                return;
             }
             newIds.add(playerId);
         }
@@ -354,7 +353,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                         <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-green-500 hover:bg-green-600 text-white": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')}>TM</Button>
+                         <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')}>TM</Button>
                     </div>
 
                     {/* Score and Timer */}
@@ -381,7 +380,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-green-500 hover:bg-green-600 text-white": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')}>TM</Button>
+                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')}>TM</Button>
                     </div>
                 </div>
             </CardContent>
