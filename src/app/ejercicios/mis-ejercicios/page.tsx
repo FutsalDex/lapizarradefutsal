@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Upload, List, BookOpen, Save, PlusCircle, X } from "lucide-react";
+import { ArrowLeft, Upload, List, BookOpen, PlusCircle, X, Save } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,17 +16,24 @@ import { Switch } from "@/components/ui/switch";
 
 
 const SubirEjercicioForm = ({ onCancel }: { onCancel: () => void }) => {
-    const edades = ["Benjamín", "Alevín", "Infantil", "Cadete", "Juvenil", "Senior"];
+    const edades = [
+        { id: "benjamin", label: "Benjamín (8-9 años)"},
+        { id: "alevin", label: "Alevín (10-11 años)"},
+        { id: "infantil", label: "Infantil (12-13 años)"},
+        { id: "cadete", label: "Cadete (14-15 años)"},
+        { id: "juvenil", label: "Juvenil (16-18 años)"},
+        { id: "senior", label: "Senior (+18 años)"},
+    ];
     return (
         <Card className="max-w-4xl mx-auto mt-8">
             <CardHeader>
                 <div className="flex justify-between items-center">
-                    <CardTitle>Subir Nuevo Ejercicio</CardTitle>
+                    <CardTitle>Añadir Ejercicio Individual</CardTitle>
                     <Button variant="ghost" size="icon" onClick={onCancel}>
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
-                <CardDescription>Rellena todos los campos posibles para que la comunidad entienda perfectamente el ejercicio.</CardDescription>
+                <CardDescription>Completa el formulario para añadir un nuevo ejercicio a la biblioteca pública.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -87,11 +94,11 @@ const SubirEjercicioForm = ({ onCancel }: { onCancel: () => void }) => {
 
                 <div className="space-y-3">
                     <Label>Edades recomendadas</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {edades.map(edad => (
-                            <div key={edad} className="flex items-center space-x-2">
-                                <Checkbox id={edad.toLowerCase()} />
-                                <Label htmlFor={edad.toLowerCase()} className="font-normal">{edad}</Label>
+                            <div key={edad.id} className="flex items-center space-x-2">
+                                <Checkbox id={edad.id} />
+                                <Label htmlFor={edad.id} className="font-normal text-sm">{edad.label}</Label>
                             </div>
                         ))}
                     </div>
@@ -133,10 +140,10 @@ const SubirEjercicioForm = ({ onCancel }: { onCancel: () => void }) => {
                                 Visible en la biblioteca pública
                             </Label>
                             <p className="text-xs text-muted-foreground">
-                                Si está activado, el ejercicio pasará a revisión del administrador antes de ser público y sumar puntos.
+                                Si está desactivado, el ejercicio no será visible para los usuarios.
                             </p>
                         </div>
-                        <Switch id="visibility-switch" defaultChecked />
+                        <Switch id="visibility-switch" />
                     </div>
                 </div>
 
@@ -159,9 +166,9 @@ export default function MisEjerciciosPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <Button variant="outline" asChild>
-          <Link href="/panel">
+          <Link href="/admin/ejercicios">
             <ArrowLeft className="mr-2" />
-            Volver al Panel
+            Volver a Gestión de Ejercicios
           </Link>
         </Button>
       </div>
@@ -169,58 +176,52 @@ export default function MisEjerciciosPage() {
       <div className="text-center mb-8">
         <div className="flex justify-center mb-4">
             <div className="bg-muted p-3 rounded-full inline-flex">
-                <BookOpen className="w-8 h-8 text-primary" />
+                <Upload className="w-8 h-8 text-primary" />
             </div>
         </div>
-        <h1 className="text-4xl font-bold font-headline">Mis Ejercicios</h1>
+        <h1 className="text-4xl font-bold font-headline">Alta de Ejercicios</h1>
         <p className="text-lg text-muted-foreground mt-2">
-          Aporta ejercicios a la comunidad, gestiónalos y gana puntos para tu suscripción.
+          Añade nuevos ejercicios a la biblioteca pública, de uno en uno o por lotes.
         </p>
       </div>
 
-      <div className="flex justify-center gap-4 mb-8">
-        <Button variant={view === 'upload' ? 'secondary' : 'outline'} onClick={() => setView('upload')}>
-          <Upload className="mr-2" />
-          Subir Ejercicio
-        </Button>
-        <Button variant={view === 'list' ? 'secondary' : 'default'} onClick={() => setView('list')}>
-          <List className="mr-2" />
-          Mis Ejercicios Subidos
-        </Button>
-      </div>
-
-      {view === 'list' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Ejercicios que has subido</CardTitle>
-            <CardDescription>
-              Aquí puedes ver y gestionar todos los ejercicios que has aportado a la comunidad.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre del Ejercicio</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Fase</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                    Aún no has subido ningún ejercicio.
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+       {view === 'list' && (
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Card className="flex flex-col text-center items-center justify-center p-8">
+                <CardHeader>
+                    <div className="bg-muted rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+                        <PlusCircle className="w-8 h-8 text-primary" />
+                    </div>
+                    <CardTitle>Añadir Ejercicio Individual</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">Completa el formulario para añadir un nuevo ejercicio a la biblioteca pública.</p>
+                </CardContent>
+                <Button onClick={() => setView('upload')}>
+                    Acceder
+                </Button>
+            </Card>
+            <Card className="flex flex-col text-center items-center justify-center p-8">
+                <CardHeader>
+                     <div className="bg-muted rounded-lg w-14 h-14 flex items-center justify-center mb-4 mx-auto">
+                        <Upload className="w-8 h-8 text-primary" />
+                    </div>
+                    <CardTitle>Subida de Ejercicios en Lote</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <p className="text-muted-foreground">Sube un archivo CSV o Excel para añadir o actualizar múltiples ejercicios.</p>
+                </CardContent>
+                <Button>
+                    Subir Archivo
+                </Button>
+            </Card>
+         </div>
+       )}
+      
 
       {view === 'upload' && <SubirEjercicioForm onCancel={() => setView('list')} />}
     </div>
   );
 }
+
+    
