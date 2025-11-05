@@ -34,17 +34,16 @@ const getResultColor = (score: string, teamName: string, opponent: string): stri
     const [teamAScore, teamBScore] = score.split(' - ').map(Number);
     const opponentNameParts = opponent.split(' vs ');
     const teamA_name = opponentNameParts[0];
-    const teamB_name = opponentNameParts[1];
     
     const isDraw = teamAScore === teamBScore;
 
-    if (isDraw) return 'text-accent-foreground';
+    if (isDraw) return 'text-primary';
 
     if (teamA_name.trim() === teamName.trim()) { // We are team A (local)
-        if (teamAScore > teamBScore) return 'text-primary'; // Win
+        if (teamAScore > teamBScore) return 'text-green-600'; // Win
         return 'text-destructive'; // Loss
     } else { // We are team B (visitor)
-        if (teamBScore > teamAScore) return 'text-primary'; // Win
+        if (teamBScore > teamAScore) return 'text-green-600'; // Win
         return 'text-destructive'; // Loss
     }
 };
@@ -363,7 +362,7 @@ export default function PartidosPage() {
             <p className="text-center text-muted-foreground">No hay partidos de torneo para mostrar.</p>
         </TabsContent>
          <TabsContent value="Amistoso">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg-grid-cols-3 gap-6">
                 {matches.filter(m => m.competition === 'Amistoso').map((match) => (
                     <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
                         <CardContent className="p-6 text-center flex-grow">
@@ -499,3 +498,4 @@ export default function PartidosPage() {
     
 
     
+
