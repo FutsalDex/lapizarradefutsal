@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Calendar as CalendarIcon, Clock, Search } from 'lucide-react';
+import { PlusCircle, Calendar as CalendarIcon, Clock, Search, Eye, Save } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Image from 'next/image';
 import { exercises, Exercise } from '@/lib/data';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -33,6 +33,7 @@ export default function CrearSesionPage() {
     main: [],
     cooldown: [],
   });
+  const [selectedFormat, setSelectedFormat] = useState('basico');
 
   const addExercise = (phase: SessionPhase, exercise: Exercise) => {
     setSelectedExercises(prev => {
@@ -230,7 +231,69 @@ export default function CrearSesionPage() {
                 <CardDescription>Una vez que hayas añadido todos los ejercicios, puedes previsualizar la ficha de la sesión y guardarla.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button className="w-full" size="lg">Ver ficha y Guardar Sesión</Button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button className="w-full" size="lg">Ver ficha y Guardar Sesión</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>¿Qué tipo de sesión quieres guardar?</DialogTitle>
+                            <DialogDescription>
+                            Elige el formato para tu ficha de sesión. La versión Pro requiere una suscripción.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                            <div 
+                                className={cn(
+                                    "border-2 rounded-lg p-4 cursor-pointer",
+                                    selectedFormat === 'basico' ? 'border-primary' : 'border-border'
+                                )}
+                                onClick={() => setSelectedFormat('basico')}
+                            >
+                                <h3 className="font-semibold text-center mb-4">Básico</h3>
+                                <div className="bg-muted rounded-md p-4 aspect-[4/3] flex items-center justify-center">
+                                    <div className="w-full h-full bg-card border rounded-sm p-2 grid grid-cols-2 gap-2">
+                                        <div className="bg-muted rounded-sm"></div>
+                                        <div className="bg-muted rounded-sm"></div>
+                                        <div className="bg-muted rounded-sm"></div>
+                                        <div className="bg-muted rounded-sm"></div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div 
+                                className={cn(
+                                    "border-2 rounded-lg p-4 cursor-pointer",
+                                    selectedFormat === 'pro' ? 'border-primary' : 'border-border'
+                                )}
+                                onClick={() => setSelectedFormat('pro')}
+                            >
+                                <h3 className="font-semibold text-center mb-4">Pro</h3>
+                                <div className="bg-muted rounded-md p-4 aspect-[4/3] flex items-center justify-center">
+                                    <div className="w-full h-full bg-card border rounded-sm p-2 flex gap-2">
+                                        <div className="w-1/3 space-y-2">
+                                            <div className="bg-muted rounded-sm h-1/4"></div>
+                                            <div className="bg-muted rounded-sm h-1/4"></div>
+                                        </div>
+                                        <div className="w-2/3 space-y-2">
+                                           <div className="bg-muted rounded-sm h-1/4"></div>
+                                           <div className="bg-muted rounded-sm h-1/2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline">
+                                <Eye className="mr-2 h-4 w-4" />
+                                Previsualizar PDF
+                            </Button>
+                            <Button>
+                                <Save className="mr-2 h-4 w-4" />
+                                Guardar Sesión
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </CardContent>
         </Card>
 
@@ -238,3 +301,5 @@ export default function CrearSesionPage() {
     </div>
   );
 }
+
+    
