@@ -211,7 +211,7 @@ const Scoreboard = ({
         {/* Timer y Controles */}
         <div className="grid grid-cols-3 items-center gap-4 mt-6">
             <div className="flex justify-center">
-                 <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-22", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                 <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                     TM
                 </Button>
             </div>
@@ -235,7 +235,7 @@ const Scoreboard = ({
                 </div>
             </div>
              <div className="flex justify-center">
-                <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-22", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                <Button variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("h-12 w-24", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                     TM
                 </Button>
             </div>
@@ -793,7 +793,7 @@ export default function MatchStatsPage() {
         match={localMatchData} 
         time={time}
         isTimerActive={isTimerActive}
-        onTimerToggle={() => setIsTimerActive(!isTimerActive)}
+        onTimerToggle={() => setIsActive(!isTimerActive)}
         onTimeReset={() => setTime(matchDuration)}
         onTimeout={handleTimeout}
         period={period}
@@ -833,6 +833,7 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
 
 
 
