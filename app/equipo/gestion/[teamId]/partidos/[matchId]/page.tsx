@@ -186,50 +186,53 @@ const Scoreboard = ({
 
   return (
     <Card>
-      <CardContent className="p-4 md:p-6">
-        <div className="grid grid-cols-3 items-start text-center mb-4 gap-4">
-            <div className="space-y-2">
-                <div className="text-xl md:text-2xl font-bold truncate">{match.localTeam}</div>
-                 <FoulIndicator count={localFouls} />
+        <CardContent className="p-4 md:p-6 text-center space-y-4">
+            {/* Score Display */}
+            <div className="grid grid-cols-3 items-center gap-4">
+                <div>
+                    <div className="font-bold truncate">{match.localTeam}</div>
+                    <FoulIndicator count={localFouls} />
+                </div>
+                <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
+                    {match.localScore} - {match.visitorScore}
+                </div>
+                <div>
+                    <div className="font-bold truncate">{match.visitorTeam}</div>
+                    <FoulIndicator count={visitorFouls} />
+                </div>
             </div>
             
-            <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
-                {match.localScore} - {match.visitorScore}
+            {/* Timer and Timeouts */}
+            <div className="grid grid-cols-3 items-center gap-4">
+                <div className="flex justify-start">
+                    <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn(localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                        TM
+                    </Button>
+                </div>
+                <div className="text-4xl md:text-5xl font-mono font-bold tabular-nums">
+                    {formatTime(time)}
+                </div>
+                <div className="flex justify-end">
+                    <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn(visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                        TM
+                    </Button>
+                </div>
             </div>
 
-            <div className="space-y-2">
-                <div className="text-xl md:text-2xl font-bold truncate">{match.visitorTeam}</div>
-                <FoulIndicator count={visitorFouls} />
+            {/* Main Controls */}
+            <div className="flex justify-center items-center gap-2">
+                 <Button onClick={onTimerToggle} variant="default" size="icon" className={cn("w-12 h-12", isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
+                    {isTimerActive ? <Pause className="h-6 w-6"/> : <Play className="h-6 w-6"/>}
+                </Button>
+                <Button onClick={onTimeReset} variant="outline" size="icon" className="w-12 h-12">
+                    <RefreshCw className="h-6 w-6"/>
+                </Button>
+                <div className="flex rounded-md border p-1 bg-muted">
+                    <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-10 px-4">1ª Parte</Button>
+                    <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-10 px-4">2ª Parte</Button>
+                </div>
             </div>
-        </div>
-        
-        <div className="flex justify-center items-center gap-4 mb-4">
-             <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-16 mx-auto", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                TM
-             </Button>
-             <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
-                {formatTime(time)}
-            </div>
-            <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-16 mx-auto", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                TM
-            </Button>
-        </div>
-
-
-        <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4">
-            <Button onClick={onTimerToggle} variant="default" size="sm" className={cn("w-28", isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
-                {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                <span className="hidden sm:inline">{isTimerActive ? 'Pausar' : 'Iniciar'}</span>
-            </Button>
-            <Button onClick={onTimeReset} variant="outline" size="sm" className="w-28">
-                <RefreshCw className="mr-2 h-4 w-4"/> <span className="hidden sm:inline">Reiniciar</span>
-            </Button>
-             <div className="flex rounded-md border p-1">
-                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
-                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
-            </div>
-        </div>
-      </CardContent>
+        </CardContent>
     </Card>
   );
 };
@@ -389,9 +392,9 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                 const isActive = activePlayerIds.includes(player.id);
                                 return (
                                     <TableRow key={player.id} className={cn(isActive && "bg-primary/20")}>
-                                        <TableCell className="py-1 px-2">
+                                        <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                <span className="font-bold mr-2">{player.number}.</span>
+                                                <span className="font-bold mr-2 w-6">{player.number}.</span>
                                                 <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
@@ -821,5 +824,3 @@ export default function MatchStatsPage() {
     </div>
   );
 }
-
-    
