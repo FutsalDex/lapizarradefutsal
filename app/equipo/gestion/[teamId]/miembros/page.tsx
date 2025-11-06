@@ -280,9 +280,9 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Dorsal</TableHead>
+                    <TableHead className="w-[70px]">Dorsal</TableHead>
                     <TableHead>Nombre</TableHead>
-                    <TableHead className="w-[220px]">Posición</TableHead>
+                    <TableHead className="w-[200px]">Posición</TableHead>
                     <TableHead className="w-[100px] text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
