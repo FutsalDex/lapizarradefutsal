@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -72,8 +71,8 @@ interface Match {
   squad?: string[];
   playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
   opponentStats?: { [key in Period]?: Partial<OpponentStats> } | Partial<OpponentStats>; // Legacy support
-  fouls?: { local: number; visitor: number };
-  timeouts?: { local: number; visitor: number };
+  fouls?: { [key in Period]?: { local: number; visitor: number } };
+  timeouts?: { [key in Period]?: { local: number; visitor: number } };
   events?: MatchEvent[];
 }
 
@@ -93,13 +92,13 @@ const formatStatTime = (totalSeconds: number) => {
 function migrateLegacyMatchData(matchData: Match): Match {
     if (!matchData) return matchData;
 
-    const needsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0;
-
     let migratedData = _.cloneDeep(matchData);
     let wasMigrated = false;
 
-    // Migrate playerStats
-    if (needsMigration(migratedData.playerStats)) {
+    const needsPlayerStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
+    const needsOpponentStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
+    
+    if (needsPlayerStatsMigration(migratedData.playerStats)) {
         console.log("Migrating legacy playerStats...");
         const legacyPlayerStats = migratedData.playerStats;
         migratedData.playerStats = {
@@ -109,8 +108,7 @@ function migrateLegacyMatchData(matchData: Match): Match {
         wasMigrated = true;
     }
 
-    // Migrate opponentStats
-    if (needsMigration(migratedData.opponentStats)) {
+    if (needsOpponentStatsMigration(migratedData.opponentStats)) {
         console.log("Migrating legacy opponentStats...");
         const legacyOpponentStats = migratedData.opponentStats;
         migratedData.opponentStats = { 
@@ -120,17 +118,15 @@ function migrateLegacyMatchData(matchData: Match): Match {
         wasMigrated = true;
     }
     
-    // Ensure stats objects exist if they are null/undefined
-    if (!migratedData.playerStats) {
-        migratedData.playerStats = { '1H': {}, '2H': {} };
-    }
-    if (!migratedData.opponentStats) {
-        migratedData.opponentStats = { 
-            '1H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 },
-            '2H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 }
-        };
-    }
-    
+    if (!migratedData.playerStats) migratedData.playerStats = { '1H': {}, '2H': {} };
+    if (!migratedData.opponentStats) migratedData.opponentStats = { '1H': {}, '2H': {} };
+    if (!migratedData.timeouts) migratedData.timeouts = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
+    if (!migratedData.fouls) migratedData.fouls = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
+
+    // Ensure nested period objects exist
+    if (!migratedData.timeouts['1H']) migratedData.timeouts['1H'] = {local: 0, visitor: 0};
+    if (!migratedData.timeouts['2H']) migratedData.timeouts['2H'] = {local: 0, visitor: 0};
+
     if (wasMigrated) {
         console.log("Data migration complete:", migratedData);
     }
@@ -159,8 +155,6 @@ const Scoreboard = ({
   onTimeout,
   period,
   setPeriod,
-  localFouls,
-  visitorFouls,
 }: {
   match: Match;
   time: number;
@@ -170,8 +164,6 @@ const Scoreboard = ({
   onTimeout: (team: 'local' | 'visitor') => void;
   period: Period;
   setPeriod: (period: Period) => void;
-  localFouls: number;
-  visitorFouls: number;
 }) => {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -179,13 +171,16 @@ const Scoreboard = ({
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
-  const localTimeouts = match.timeouts?.local ?? 0;
-  const visitorTimeouts = match.timeouts?.visitor ?? 0;
+  const localTimeoutsUsed = _.get(match.timeouts, `${period}.local`, 0) > 0;
+  const visitorTimeoutsUsed = _.get(match.timeouts, `${period}.visitor`, 0) > 0;
+  const localFouls = _.get(match.fouls, `${period}.local`, 0);
+  const visitorFouls = _.get(match.fouls, `${period}.visitor`, 0);
 
   return (
     <Card>
       <CardContent className="p-4 md:p-6 text-center">
         <div className="flex flex-col items-center justify-center space-y-4">
+          {/* Top Row: Team Names and Fouls */}
           <div className="grid grid-cols-3 items-start w-full max-w-4xl">
             <div className="flex flex-col items-center space-y-2">
               <h2 className="text-xl font-bold truncate">{match.localTeam}</h2>
@@ -200,22 +195,32 @@ const Scoreboard = ({
             </div>
           </div>
 
+          {/* Middle Row: Timeouts and Timer */}
           <div className="flex justify-center items-center w-full max-w-4xl">
             <div className="flex-1 flex justify-center">
-              <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                  TM
-              </Button>
+                <Button 
+                    variant={localTimeoutsUsed ? "default" : "outline"}
+                    onClick={() => onTimeout('local')}
+                    className={cn("h-12 w-24 transition-colors")}
+                >
+                    TM
+                </Button>
             </div>
             <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
               {formatTime(time)}
             </div>
             <div className="flex-1 flex justify-center">
-              <Button variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("h-12 w-24", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                  TM
-              </Button>
+                <Button
+                    variant={visitorTimeoutsUsed ? "default" : "outline"}
+                    onClick={() => onTimeout('visitor')}
+                    className={cn("h-12 w-24 transition-colors")}
+                >
+                    TM
+                </Button>
             </div>
           </div>
 
+          {/* Bottom Row: Controls */}
           <div className="flex justify-center items-center gap-2">
             <Button onClick={onTimerToggle} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
               {isTimerActive ? <Pause className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
@@ -226,8 +231,8 @@ const Scoreboard = ({
                 <span className="ml-2">Reiniciar</span>
             </Button>
             <div className="flex rounded-md border p-1 bg-muted">
-                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3", period === '1H' && "bg-primary text-primary-foreground hover:bg-primary/90")}>1ª Parte</Button>
-                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3", period === '2H' && "bg-primary text-primary-foreground hover:bg-primary/90")}>2ª Parte</Button>
+                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3")}>1ª Parte</Button>
+                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3")}>2ª Parte</Button>
             </div>
           </div>
         </div>
@@ -283,10 +288,20 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                      playerName: player.name
                  };
                  batchUpdate.events = arrayUnion(newEvent) as any;
-             } else {
-                // This is complex. For now, we don't support removing events easily.
-                // A better implementation would be to give events unique IDs.
              }
+        }
+        
+        if (stat === 'fouls') {
+          const fouls = _.sumBy(Object.values(_.get(updatedStats, period, {})), 'fouls');
+          const isMyTeamLocal = match.localTeam === teamName;
+          const updatedFouls = _.cloneDeep(match.fouls || {});
+          
+          if(isMyTeamLocal) {
+            _.set(updatedFouls, `${period}.local`, fouls);
+          } else {
+            _.set(updatedFouls, `${period}.visitor`, fouls);
+          }
+          batchUpdate.fouls = updatedFouls;
         }
 
         onUpdate(batchUpdate);
@@ -394,8 +409,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                     <TableRow key={player.id} className={cn(isActive && "bg-accent")}>
                                         <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                <span className={cn("font-bold mr-2 w-6", isActive && "text-orange-600")}>{player.number}.</span>
-                                                <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
+                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-orange-600")}>{player.number}.</span>
+                                                 <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1 text-xs">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
@@ -506,6 +521,19 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
                  };
                  batchUpdate.events = arrayUnion(newEvent) as any;
              }
+        }
+        
+        if (stat === 'fouls') {
+          const fouls = _.get(updatedStats, `${period}.fouls`, 0);
+          const isOpponentLocal = match.localTeam === teamName;
+          const updatedFouls = _.cloneDeep(match.fouls || {});
+
+          if(isOpponentLocal) {
+            _.set(updatedFouls, `${period}.local`, fouls);
+          } else {
+            _.set(updatedFouls, `${period}.visitor`, fouls);
+          }
+          batchUpdate.fouls = updatedFouls;
         }
 
         onUpdate(batchUpdate);
@@ -696,7 +724,7 @@ export default function MatchStatsPage() {
         setTime(matchDuration);
         setPeriod(newPeriod);
         if (newPeriod === '2H') {
-            handleUpdate({ timeouts: { local: 0, visitor: 0 } });
+            handleUpdate({ timeouts: { ...localMatchData?.timeouts, '2H': { local: 0, visitor: 0 } } });
         }
     }
   };
@@ -715,35 +743,19 @@ export default function MatchStatsPage() {
   
   const handleTimeout = (team: 'local' | 'visitor') => {
     if(!localMatchData) return;
-    const currentVal = _.get(localMatchData, `timeouts.${period}.${team}`, 0) ?? 0;
+    const currentVal = _.get(localMatchData.timeouts, `${period}.${team}`, 0);
 
-    if (currentVal < 2) {
-        const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
-        _.set(updatedTimeouts, `${period}.${team}`, currentVal + 1);
-        handleUpdate({ timeouts: updatedTimeouts });
+    // Allow toggling off, but not exceeding 1.
+    if (currentVal > 0) { // If it's on, turn it off
+      const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
+      _.set(updatedTimeouts, `${period}.${team}`, 0);
+      handleUpdate({ timeouts: updatedTimeouts });
+    } else { // If it's off, turn it on
+      const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
+       _.set(updatedTimeouts, `${period}.${team}`, 1);
+       handleUpdate({ timeouts: updatedTimeouts });
     }
-};
-
-  const localFouls = useMemo(() => {
-    if (!localMatchData) return 0;
-    const teamName = team?.name;
-    const isMyTeamLocal = localMatchData.localTeam === teamName;
-    if (isMyTeamLocal) {
-      return _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0));
-    }
-    return _.get(localMatchData?.opponentStats, `${period}.fouls`, 0);
-  }, [squadPlayers, localMatchData, period, team]);
-
-  const visitorFouls = useMemo(() => {
-    if (!localMatchData) return 0;
-    const teamName = team?.name;
-    const isMyTeamLocal = localMatchData.localTeam === teamName;
-    if (!isMyTeamLocal) {
-      return _.sumBy(squadPlayers, p => _.get(localMatchData?.playerStats, `${period}.${p.id}.fouls`, 0));
-    }
-    return _.get(localMatchData?.opponentStats, `${period}.fouls`, 0);
-  }, [squadPlayers, localMatchData, period, team]);
-
+  };
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
 
@@ -793,8 +805,6 @@ export default function MatchStatsPage() {
         onTimeout={handleTimeout}
         period={period}
         setPeriod={handlePeriodChange}
-        localFouls={localFouls}
-        visitorFouls={visitorFouls}
       />
 
       <Tabs defaultValue="myTeam" className="w-full">
@@ -828,4 +838,3 @@ export default function MatchStatsPage() {
     </div>
   );
 }
-
