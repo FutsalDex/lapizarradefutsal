@@ -119,6 +119,7 @@ interface Match {
   squad?: string[];
   competition?: string;
   matchday?: number;
+  teamId: string;
 }
 
 const addMatchSchema = (teamName: string) => z.object({
@@ -573,71 +574,63 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="text-center flex-grow">
-        <CardTitle className="text-xl font-semibold">{matchTitle}</CardTitle>
-        <CardDescription>
-          {formattedDate()}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow flex flex-col items-center justify-center py-4">
-        <p className={`text-6xl font-bold ${getResultClasses()}`}>
-          {scoreDisplay}
-        </p>
-        <Badge variant="secondary" className="mt-4">
-          {match.matchType}
-        </Badge>
-      </CardContent>
-      <CardFooter className="bg-muted/50 p-2 grid grid-cols-4 gap-1">
-        
-        <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
-            <Button variant="ghost" size="sm" className={cn("text-xs w-full", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
-                <Users className="mr-1 h-4 w-4" /> 
-                {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
+       <CardHeader className="text-center flex-grow pt-6 pb-2">
+            <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
+            <CardDescription className="text-xs">{formattedDate()}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow flex flex-col items-center justify-center py-2">
+            <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
+            <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
+        </CardContent>
+        <CardFooter className="bg-muted/50 p-1 grid grid-cols-4 gap-1">
+            <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
+                <Button variant="ghost" size="sm" className={cn("text-xs w-full", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
+                    <Users className="mr-1 h-4 w-4" /> 
+                    {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
+                </Button>
+            </ConvocatoriaDialog>
+            <Button asChild variant="ghost" size="sm" className="text-xs">
+                <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
+                    <BarChart className="h-4 w-4" />
+                </Link>
             </Button>
-        </ConvocatoriaDialog>
-       
-        <Button asChild variant="ghost" size="sm" className="text-xs">
-          <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
-            <BarChart className="h-4 w-4" />
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="text-xs" disabled={!isFinished}>
-          <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
-            <Eye className="h-4 w-4" />
-          </Link>
-        </Button>
-         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
-                <Edit className="h-4 w-4" />
+            <Button asChild variant="ghost" size="sm" className="text-xs" disabled={!isFinished}>
+                <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
+                    <Eye className="h-4 w-4" />
+                </Link>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-             <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                Editar Partido
-            </DropdownMenuItem>
-             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4"/>
-                        Eliminar
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem onClick={onEdit}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Partido
                     </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardFooter>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4"/>
+                                Eliminar
+                            </DropdownMenuItem>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </CardFooter>
     </Card>
   );
 }
@@ -663,13 +656,13 @@ export default function MatchesPage() {
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
   const matchesQuery = useMemoFirebase(() => {
-    if (!firestore || !teamId) return null;
+    if (!firestore || !team?.id) return null;
     return query(
         collection(firestore, `matches`), 
-        where('teamId', '==', teamId), 
-        orderBy('date', 'desc')
+        where('teamId', '==', team.id), 
+        orderBy('date', 'asc')
     );
-  }, [firestore, teamId, key]);
+  }, [firestore, team?.id, key]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
