@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -188,48 +187,45 @@ const Scoreboard = ({
     <Card>
         <CardContent className="p-4 md:p-6 text-center space-y-4">
             {/* Score Display */}
-            <div className="grid grid-cols-3 items-center gap-4">
-                <div>
-                    <div className="font-bold truncate">{match.localTeam}</div>
+            <div className="grid grid-cols-3 items-start gap-4">
+                <div className="space-y-2">
+                    <div className="font-bold text-lg truncate">{match.localTeam}</div>
                     <FoulIndicator count={localFouls} />
+                     <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 1} className={cn("w-16 mx-auto", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                        TM
+                    </Button>
                 </div>
-                <div className="text-5xl md:text-7xl font-bold tabular-nums text-primary">
+                <div className="text-6xl md:text-8xl font-bold tabular-nums text-primary">
                     {match.localScore} - {match.visitorScore}
                 </div>
-                <div>
-                    <div className="font-bold truncate">{match.visitorTeam}</div>
+                <div className="space-y-2">
+                    <div className="font-bold text-lg truncate">{match.visitorTeam}</div>
                     <FoulIndicator count={visitorFouls} />
+                     <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 1} className={cn("w-16 mx-auto", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                        TM
+                    </Button>
                 </div>
             </div>
             
-            {/* Timer and Timeouts */}
-            <div className="grid grid-cols-3 items-center gap-4">
-                <div className="flex justify-start">
-                    <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn(localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                        TM
-                    </Button>
-                </div>
-                <div className="text-4xl md:text-5xl font-mono font-bold tabular-nums">
+             {/* Timer */}
+            <div className="flex justify-center items-center">
+                 <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                     {formatTime(time)}
-                </div>
-                <div className="flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn(visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                        TM
-                    </Button>
                 </div>
             </div>
 
             {/* Main Controls */}
             <div className="flex justify-center items-center gap-2">
-                 <Button onClick={onTimerToggle} variant="default" size="icon" className={cn("w-12 h-12", isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
-                    {isTimerActive ? <Pause className="h-6 w-6"/> : <Play className="h-6 w-6"/>}
+                 <Button onClick={onTimerToggle} className={cn(isTimerActive && "bg-destructive hover:bg-destructive/90")}>
+                    {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
+                    {isTimerActive ? 'Pausar' : 'Iniciar'}
                 </Button>
-                <Button onClick={onTimeReset} variant="outline" size="icon" className="w-12 h-12">
-                    <RefreshCw className="h-6 w-6"/>
+                <Button onClick={onTimeReset} variant="outline">
+                    <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
                 </Button>
                 <div className="flex rounded-md border p-1 bg-muted">
-                    <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-10 px-4">1ª Parte</Button>
-                    <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-10 px-4">2ª Parte</Button>
+                    <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
+                    <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
                 </div>
             </div>
         </CardContent>
