@@ -226,8 +226,8 @@ const Scoreboard = ({
                 <span className="ml-2">Reiniciar</span>
             </Button>
             <div className="flex rounded-md border p-1 bg-muted">
-              <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
-              <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
+                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3", period === '1H' && "bg-primary text-primary-foreground hover:bg-primary/90")}>1ª Parte</Button>
+                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3", period === '2H' && "bg-primary text-primary-foreground hover:bg-primary/90")}>2ª Parte</Button>
             </div>
           </div>
         </div>
@@ -391,10 +391,10 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                              {players.length > 0 ? players.map(player => {
                                 const isActive = activePlayerIds.includes(player.id);
                                 return (
-                                    <TableRow key={player.id} className={cn(isActive && "bg-primary/20")}>
+                                    <TableRow key={player.id} className={cn(isActive && "bg-accent")}>
                                         <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                <span className="font-bold mr-2 w-6">{player.number}.</span>
+                                                <span className={cn("font-bold mr-2 w-6", isActive && "text-orange-600")}>{player.number}.</span>
                                                 <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
@@ -695,6 +695,9 @@ export default function MatchStatsPage() {
         setIsTimerActive(false);
         setTime(matchDuration);
         setPeriod(newPeriod);
+        if (newPeriod === '2H') {
+            handleUpdate({ timeouts: { local: 0, visitor: 0 } });
+        }
     }
   };
 
@@ -712,13 +715,14 @@ export default function MatchStatsPage() {
   
   const handleTimeout = (team: 'local' | 'visitor') => {
     if(!localMatchData) return;
-    const currentVal = localMatchData.timeouts?.[team] ?? 0;
+    const currentVal = _.get(localMatchData, `timeouts.${period}.${team}`, 0) ?? 0;
+
     if (currentVal < 2) {
         const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
-        _.set(updatedTimeouts, team, currentVal + 1);
+        _.set(updatedTimeouts, `${period}.${team}`, currentVal + 1);
         handleUpdate({ timeouts: updatedTimeouts });
     }
-  };
+};
 
   const localFouls = useMemo(() => {
     if (!localMatchData) return 0;
@@ -824,10 +828,4 @@ export default function MatchStatsPage() {
     </div>
   );
 }
-
-
-
-
-
-
 
