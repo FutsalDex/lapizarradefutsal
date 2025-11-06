@@ -347,29 +347,29 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
 
 
     const StatButton = ({ stat, playerId }: { stat: keyof PlayerStats, playerId: string }) => (
-        <div className="flex items-center gap-1 justify-center">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, false)}><Minus className="h-4 w-4"/></Button>
-            <span className="w-4 text-center tabular-nums">{((_.get(match.playerStats, `${period}.${playerId}`) as any)?.[stat] || 0)}</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleStatChange(playerId, stat, true)}><Plus className="h-4 w-4"/></Button>
+        <div className="flex items-center gap-0.5 justify-center">
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStatChange(playerId, stat, false)}><Minus className="h-3 w-3"/></Button>
+            <span className="w-4 text-center tabular-nums text-sm">{((_.get(match.playerStats, `${period}.${playerId}`) as any)?.[stat] || 0)}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleStatChange(playerId, stat, true)}><Plus className="h-3 w-3"/></Button>
         </div>
     );
     
     const tableHeaders = (
         <TableRow>
-            <TableHead className="w-[150px] px-2">Jugador</TableHead>
-            <TableHead className="text-center px-1">Min</TableHead>
-            <TableHead className="text-center px-1">G</TableHead>
-            <TableHead className="text-center px-1">A</TableHead>
-            <TableHead className="text-center px-1">Faltas</TableHead>
-            <TableHead className="text-center px-1">T. Puerta</TableHead>
-            <TableHead className="text-center px-1">T. Fuera</TableHead>
-            <TableHead className="text-center px-1">Recup.</TableHead>
-            <TableHead className="text-center px-1">Perdidas</TableHead>
-            <TableHead className="text-center px-1">Paradas</TableHead>
-            <TableHead className="text-center px-1">GC</TableHead>
-            <TableHead className="text-center px-1">1vs1</TableHead>
-            <TableHead className="text-center px-1">TA</TableHead>
-            <TableHead className="text-center px-1">TR</TableHead>
+            <TableHead className="w-[150px] px-2 text-sm">Jugador</TableHead>
+            <TableHead className="text-center px-1 text-xs">Min</TableHead>
+            <TableHead className="text-center px-1 text-xs">G</TableHead>
+            <TableHead className="text-center px-1 text-xs">A</TableHead>
+            <TableHead className="text-center px-1 text-xs">Faltas</TableHead>
+            <TableHead className="text-center px-1 text-xs">T.P.</TableHead>
+            <TableHead className="text-center px-1 text-xs">T.F.</TableHead>
+            <TableHead className="text-center px-1 text-xs">Rec.</TableHead>
+            <TableHead className="text-center px-1 text-xs">Perd.</TableHead>
+            <TableHead className="text-center px-1 text-xs">Par.</TableHead>
+            <TableHead className="text-center px-1 text-xs">GC</TableHead>
+            <TableHead className="text-center px-1 text-xs">1vs1</TableHead>
+            <TableHead className="text-center px-1 text-xs">TA</TableHead>
+            <TableHead className="text-center px-1 text-xs">TR</TableHead>
         </TableRow>
     );
 
@@ -395,7 +395,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                                 <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
-                                        <TableCell className="text-center tabular-nums py-1 px-1">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
+                                        <TableCell className="text-center tabular-nums py-1 px-1 text-xs">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="goals" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="assists" playerId={player.id} /></TableCell>
                                         <TableCell className="py-1 px-1"><StatButton stat="fouls" playerId={player.id} /></TableCell>
@@ -451,11 +451,11 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                           <div><b>TA:</b> T. Amarilla</div>
                           <div><b>TR:</b> T. Roja</div>
                           <div><b>Faltas:</b> Faltas</div>
-                          <div><b>T. Puerta:</b> Tiros a Puerta</div>
-                          <div><b>T. Fuera:</b> Tiros Fuera</div>
-                          <div><b>Recup:</b> Recuperaciones</div>
-                          <div><b>Perdidas:</b> Perdidas</div>
-                          <div><b>Paradas:</b> Paradas</div>
+                          <div><b>T.P.:</b> Tiros a Puerta</div>
+                          <div><b>T.F.:</b> Tiros Fuera</div>
+                          <div><b>Rec.:</b> Recuperaciones</div>
+                          <div><b>Perd.:</b> Perdidas</div>
+                          <div><b>Par.:</b> Paradas</div>
                           <div><b>GC:</b> Goles en Contra</div>
                           <div><b>1vs1:</b> Duelos 1vs1 ganados</div>
                       </div>
