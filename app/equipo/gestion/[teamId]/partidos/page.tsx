@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { addDoc, collection, query, where, orderBy, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, query, where, orderBy, doc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
@@ -30,6 +30,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -81,6 +92,7 @@ interface Team {
   name: string;
   ownerId: string;
   competition?: string;
+  memberIds?: string[];
 }
 
 interface Player {
@@ -394,7 +406,7 @@ function MatchFormDialog({
 // DIÁLOGO CONVOCATORIA
 // ====================
 
-const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: Match, children: React.ReactNode }>(({ teamId, match, children }, ref) => {
+const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: Match, children: React.ReactNode, onSquadSaved: () => void }>(({ teamId, match, children, onSquadSaved }, ref) => {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
@@ -409,17 +421,15 @@ const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: M
     return [...players].sort((a, b) => {
         const numA = parseInt(a.number, 10);
         const numB = parseInt(b.number, 10);
-
         if (isNaN(numA)) return 1;
         if (isNaN(numB)) return -1;
-
         return numA - numB;
     });
   }, [players]);
 
   useEffect(() => {
     setSelectedPlayers(match.squad || []);
-  }, [match.squad, isOpen]); // Also reset on open
+  }, [match.squad, isOpen]); 
 
   const handlePlayerToggle = (playerId: string) => {
     setSelectedPlayers(prev => 
@@ -442,6 +452,7 @@ const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: M
       await updateDoc(matchRef, { squad: selectedPlayers });
       toast({ title: "Convocatoria guardada", description: `Se han guardado ${selectedPlayers.length} jugadores.` });
       setIsOpen(false);
+      onSquadSaved();
     } catch (error) {
       console.error("Error saving squad:", error);
       toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la convocatoria." });
@@ -513,8 +524,10 @@ ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team, isOwner: boolean, onEdit: () => void; }) {
+function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: () => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
   const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
+  const { toast } = useToast();
+  const firestore = useFirestore();
 
   const getResultClasses = () => {
     if (!isFinished) return 'text-muted-foreground';
@@ -526,6 +539,17 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
     if (userTeamScore === opponentScore) return 'text-muted-foreground';
     return userTeamScore > opponentScore ? 'text-primary' : 'text-destructive';
   };
+  
+  const handleDelete = async () => {
+    try {
+        await deleteDoc(doc(firestore, "matches", id));
+        toast({ title: "Partido eliminado" });
+        onMatchDeleted();
+    } catch (error) {
+        console.error("Error deleting match:", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el partido." });
+    }
+  }
 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
   const scoreDisplay = isFinished ? `${localScore} - ${visitorScore}` : 'vs';
@@ -558,18 +582,14 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
         </Badge>
       </CardContent>
       <CardFooter className="bg-muted/50 p-2 grid grid-cols-5 gap-1">
-        {isOwner ? (
-            <ConvocatoriaDialog teamId={team.id} match={match}>
-                <Button variant="ghost" size="sm" className={cn("text-xs col-span-2", convocadosCount > 0 && "font-bold text-primary")}>
-                    <Users className="mr-1 h-4 w-4" /> 
-                    {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
-                </Button>
-            </ConvocatoriaDialog>
-        ) : (
-             <Button variant="ghost" size="sm" className="text-xs col-span-2" disabled>
-                <Users className="mr-1 h-4 w-4" /> {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
-             </Button>
-        )}
+        
+        <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
+            <Button variant="ghost" size="sm" className={cn("text-xs col-span-2", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
+                <Users className="mr-1 h-4 w-4" /> 
+                {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
+            </Button>
+        </ConvocatoriaDialog>
+       
         <Button asChild variant="ghost" size="sm" className="text-xs">
           <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
             <BarChart className="h-4 w-4" />
@@ -580,9 +600,37 @@ function MatchCard({ match, team, isOwner, onEdit }: { match: Match; team: Team,
             <Eye className="h-4 w-4" />
           </Link>
         </Button>
-        <Button variant="ghost" size="sm" className="text-xs" onClick={onEdit} disabled={!isOwner}>
-          <Edit className="h-4 w-4" />
-        </Button>
+         <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
+                <Edit className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+             <DropdownMenuItem onClick={onEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Partido
+            </DropdownMenuItem>
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4"/>
+                        Eliminar
+                    </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                        <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardFooter>
     </Card>
   );
@@ -613,7 +661,7 @@ export default function MatchesPage() {
     return query(
         collection(firestore, `matches`), 
         where('teamId', '==', teamId), 
-        orderBy('date', 'asc')
+        orderBy('date', 'desc')
     );
   }, [firestore, teamId, key]);
 
@@ -626,6 +674,9 @@ export default function MatchesPage() {
   }, [matches, filter]);
 
   const isOwner = user && team && user.uid === team.ownerId;
+  const isMember = user && team && team.memberIds?.includes(user.uid);
+  const canView = isOwner || isMember;
+  
   const isLoading = isLoadingTeam || isLoadingMatches;
   
   const handleOpenForm = (match?: Match) => {
@@ -633,8 +684,8 @@ export default function MatchesPage() {
     setFormOpen(true);
   };
   
-  const handleFormFinished = () => {
-    setKey(k => k + 1); // Force refetch of matches
+  const handleRefresh = () => {
+    setKey(k => k + 1);
   };
 
 
@@ -660,6 +711,15 @@ export default function MatchesPage() {
         <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
       </div>
     );
+  }
+
+  if (!canView) {
+      return (
+        <div className="container mx-auto px-4 py-8 text-center">
+            <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+            <p className="text-muted-foreground mb-4">No tienes permiso para ver los partidos de este equipo.</p>
+        </div>
+      )
   }
 
   return (
@@ -692,7 +752,7 @@ export default function MatchesPage() {
         )}
       </div>
 
-       {team && <MatchFormDialog team={team} isOpen={isFormOpen} setIsOpen={setFormOpen} matchToEdit={matchToEdit} onFinished={handleFormFinished} />}
+       {team && <MatchFormDialog team={team} isOpen={isFormOpen} setIsOpen={setFormOpen} matchToEdit={matchToEdit} onFinished={handleRefresh} />}
 
       <Tabs value={filter} onValueChange={setFilter} className="mb-6">
         <TabsList>
@@ -707,7 +767,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={() => handleOpenForm(match)}/>
+            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={() => handleOpenForm(match)} onMatchDeleted={handleRefresh} onSquadSaved={handleRefresh}/>
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">
@@ -718,3 +778,5 @@ export default function MatchesPage() {
     </div>
   );
 }
+
+```
