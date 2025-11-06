@@ -144,7 +144,7 @@ function migrateLegacyMatchData(matchData: Match): Match {
 const FoulIndicator = ({ count }: { count: number }) => (
     <div className="flex justify-center gap-1.5 mt-2">
         {[...Array(5)].map((_, i) => (
-            <div key={i} className={cn("h-3 w-3 rounded-full border border-destructive", i < count ? "bg-destructive" : "bg-transparent")}/>
+            <div key={i} className={cn("h-2 w-2 rounded-full border border-destructive", i < count ? "bg-destructive" : "bg-transparent")}/>
         ))}
     </div>
 );
@@ -182,50 +182,48 @@ const Scoreboard = ({
   const localTimeouts = match.timeouts?.local ?? 0;
   const visitorTimeouts = match.timeouts?.visitor ?? 0;
 
-
   return (
     <Card>
         <CardContent className="p-4 md:p-6 text-center space-y-4">
             {/* Score Display */}
-            <div className="grid grid-cols-3 items-start gap-4">
-                <div className="space-y-2">
-                    <div className="font-bold text-lg truncate">{match.localTeam}</div>
+             <div className="flex flex-col items-center justify-center space-y-2">
+                <div className="text-center">
+                    <div className="font-bold text-lg">{match.localTeam}</div>
                     <FoulIndicator count={localFouls} />
-                     <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 1} className={cn("w-16 mx-auto", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                    <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-16 mx-auto mt-2", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                         TM
                     </Button>
                 </div>
-                <div className="text-6xl md:text-8xl font-bold tabular-nums text-primary">
+                <div className="text-4xl md:text-5xl font-bold tabular-nums text-primary py-2">
                     {match.localScore} - {match.visitorScore}
                 </div>
-                <div className="space-y-2">
-                    <div className="font-bold text-lg truncate">{match.visitorTeam}</div>
-                    <FoulIndicator count={visitorFouls} />
-                     <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 1} className={cn("w-16 mx-auto", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                <div className="text-center">
+                    <div className="font-bold text-lg">{match.visitorTeam}</div>
+                     <FoulIndicator count={visitorFouls} />
+                     <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-16 mx-auto mt-2", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                         TM
                     </Button>
                 </div>
             </div>
             
-             {/* Timer */}
-            <div className="flex justify-center items-center">
-                 <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
+            {/* Timer & Controls */}
+            <div className="space-y-4">
+                 <div className="text-5xl md:text-6xl font-mono font-bold tabular-nums">
                     {formatTime(time)}
                 </div>
-            </div>
 
-            {/* Main Controls */}
-            <div className="flex justify-center items-center gap-2">
-                 <Button onClick={onTimerToggle} className={cn(isTimerActive && "bg-destructive hover:bg-destructive/90")}>
-                    {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                    {isTimerActive ? 'Pausar' : 'Iniciar'}
-                </Button>
-                <Button onClick={onTimeReset} variant="outline">
-                    <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
-                </Button>
-                <div className="flex rounded-md border p-1 bg-muted">
-                    <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
-                    <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
+                <div className="flex justify-center items-center gap-2">
+                    <Button onClick={onTimerToggle} className={cn(isTimerActive && "bg-destructive hover:bg-destructive/90")}>
+                        {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
+                        {isTimerActive ? 'Pausar' : 'Iniciar'}
+                    </Button>
+                    <Button onClick={onTimeReset} variant="outline">
+                        <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
+                    </Button>
+                    <div className="flex rounded-md border p-1 bg-muted">
+                        <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
+                        <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
+                    </div>
                 </div>
             </div>
         </CardContent>
@@ -355,20 +353,20 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
     
     const tableHeaders = (
         <TableRow>
-            <TableHead className="w-[150px] px-2 text-sm">Jugador</TableHead>
-            <TableHead className="text-center px-1 text-xs">Min</TableHead>
-            <TableHead className="text-center px-1 text-xs">G</TableHead>
-            <TableHead className="text-center px-1 text-xs">A</TableHead>
-            <TableHead className="text-center px-1 text-xs">Faltas</TableHead>
-            <TableHead className="text-center px-1 text-xs">T.P.</TableHead>
-            <TableHead className="text-center px-1 text-xs">T.F.</TableHead>
-            <TableHead className="text-center px-1 text-xs">Rec.</TableHead>
-            <TableHead className="text-center px-1 text-xs">Perd.</TableHead>
-            <TableHead className="text-center px-1 text-xs">Par.</TableHead>
-            <TableHead className="text-center px-1 text-xs">GC</TableHead>
-            <TableHead className="text-center px-1 text-xs">1vs1</TableHead>
-            <TableHead className="text-center px-1 text-xs">TA</TableHead>
-            <TableHead className="text-center px-1 text-xs">TR</TableHead>
+            <TableHead className="py-1 px-2 text-xs w-[150px]">Jugador</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">Min</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">G</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">A</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">Faltas</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">T.P.</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">T.F.</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">Rec.</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">Perd.</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">Par.</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">GC</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">1vs1</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">TA</TableHead>
+            <TableHead className="text-center py-1 px-1 text-xs">TR</TableHead>
         </TableRow>
     );
 
