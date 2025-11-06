@@ -145,7 +145,7 @@ function migrateLegacyMatchData(matchData: Match): Match {
 const FoulIndicator = ({ count }: { count: number }) => (
     <div className="flex justify-center gap-1.5 mt-2">
         {[...Array(5)].map((_, i) => (
-            <div key={i} className={cn("h-3 w-3 rounded-full border border-red-500", i < count ? "bg-red-500" : "bg-transparent")}/>
+            <div key={i} className={cn("h-3 w-3 rounded-full border border-destructive", i < count ? "bg-destructive" : "bg-transparent")}/>
         ))}
     </div>
 );
@@ -386,7 +386,6 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                         </TableHeader>
                         <TableBody>
                              {players.length > 0 ? players.map(player => {
-                                const stats = _.get(match.playerStats, `${period}.${player.id}`, {});
                                 const isActive = activePlayerIds.includes(player.id);
                                 return (
                                     <TableRow key={player.id} className={cn(isActive && "bg-primary/20")}>
@@ -556,7 +555,6 @@ export default function MatchStatsPage() {
   const matchId = typeof params.matchId === 'string' ? params.matchId : '';
   
   const firestore = useFirestore();
-  const { user } = useUser();
   const { toast } = useToast();
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
@@ -569,7 +567,7 @@ export default function MatchStatsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
-  const { data: remoteMatchData, isLoading: isLoadingMatch, error } = useDoc<Match>(matchRef);
+  const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
   
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
@@ -581,7 +579,6 @@ export default function MatchStatsPage() {
     if (remoteMatchData) {
       setLocalMatchData(prevLocal => {
         const migratedData = migrateLegacyMatchData(remoteMatchData);
-        // Only update local state if remote data is different to avoid re-renders
         if (!_.isEqual(prevLocal, migratedData)) {
             return migratedData;
         }
@@ -609,7 +606,7 @@ export default function MatchStatsPage() {
       } finally {
         setIsSaving(false);
       }
-    }, 5000), // 5000ms debounce time
+    }, 5000), 
     [matchRef, toast]
   );
 
@@ -655,7 +652,7 @@ export default function MatchStatsPage() {
 
   const handleManualSave = async () => {
       if (!matchRef || !localMatchData) return;
-      debouncedSave.cancel(); // Cancel any pending auto-save
+      debouncedSave.cancel(); 
       setIsSaving(true);
       try {
           await updateDoc(matchRef, {
@@ -824,3 +821,5 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
+    
