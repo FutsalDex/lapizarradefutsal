@@ -80,21 +80,19 @@ export default function ExerciseDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-1">
-            <Card>
-                <CardContent className="p-2">
-                    <div className="relative aspect-[4/3] w-full bg-muted rounded-md">
-                        {exercise.image ? (
-                           <Image
-                                src={exercise.image}
-                                alt={`Imagen de ${exercise.name}`}
-                                fill
-                                className="object-contain p-2 rounded-md"
-                            />
-                        ) : (
-                           <FutsalCourt className="w-full h-full p-1" />
-                        )}
-                    </div>
-                </CardContent>
+            <Card className="overflow-hidden">
+                 <div className="relative aspect-[4/3] w-full bg-muted">
+                    {exercise.image ? (
+                       <Image
+                            src={exercise.image}
+                            alt={`Imagen de ${exercise.name}`}
+                            fill
+                            className="object-contain p-2"
+                        />
+                    ) : (
+                       <FutsalCourt className="w-full h-full p-1" />
+                    )}
+                </div>
             </Card>
         </div>
 
