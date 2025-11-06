@@ -544,7 +544,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     const opponentScore = isUserTeamLocal ? visitorScore : localScore;
 
     if (userTeamScore === opponentScore) return 'text-muted-foreground';
-    return userTeamScore > opponentScore ? 'text-primary' : 'text-destructive';
+    return userTeamScore > opponentScore ? 'text-green-500' : 'text-destructive';
   };
   
   const handleDelete = async () => {
@@ -582,54 +582,57 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
             <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
             <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
         </CardContent>
-        <CardFooter className="bg-muted/50 p-1 grid grid-cols-4 gap-1">
+        <CardFooter className="bg-muted/50 p-2 flex justify-between items-center">
             <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
-                <Button variant="ghost" size="sm" className={cn("text-xs w-full", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
+                <Button variant="ghost" size="sm" className={cn("text-xs", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
                     <Users className="mr-1 h-4 w-4" /> 
                     {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
                 </Button>
             </ConvocatoriaDialog>
-            <Button asChild variant="ghost" size="sm" className="text-xs">
-                <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
-                    <BarChart className="h-4 w-4" />
-                </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="text-xs" disabled={!isFinished}>
-                <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
-                    <Eye className="h-4 w-4" />
-                </Link>
-            </Button>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-xs" disabled={!isOwner}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem onClick={onEdit}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar Partido
-                    </DropdownMenuItem>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4"/>
-                                Eliminar
-                            </DropdownMenuItem>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </DropdownMenuContent>
-            </DropdownMenu>
+
+            <div className="flex items-center gap-1">
+                <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                    <Link href={`/equipo/gestion/${team.id}/partidos/${id}`}>
+                        <BarChart className="h-4 w-4" />
+                    </Link>
+                </Button>
+                <Button asChild variant="ghost" size="icon" className="h-8 w-8" disabled={!isFinished}>
+                    <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
+                        <Eye className="h-4 w-4" />
+                    </Link>
+                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!isOwner}>
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={onEdit}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar Partido
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4"/>
+                                    Eliminar
+                                </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                    <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </CardFooter>
     </Card>
   );
