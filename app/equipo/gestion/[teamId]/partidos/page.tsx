@@ -204,14 +204,17 @@ function MatchFormDialog({
     setIsSubmitting(true);
     try {
       
-      const matchData = {
+      const matchData: any = {
         date: values.date,
         matchType: values.matchType,
         localTeam: values.localTeam,
         visitorTeam: values.visitorTeam,
         competition: values.competition,
-        matchday: values.matchday ? Number(values.matchday) : undefined,
       };
+
+      if (values.matchday) {
+        matchData.matchday = Number(values.matchday);
+      }
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
