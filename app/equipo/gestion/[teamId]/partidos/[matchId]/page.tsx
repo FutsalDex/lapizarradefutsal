@@ -185,9 +185,9 @@ const Scoreboard = ({
   return (
     <Card>
       <CardContent className="p-4 md:p-6 text-center">
-        <div className="grid grid-cols-3 items-center text-center gap-4">
+        <div className="grid grid-cols-3 items-start text-center gap-4">
           {/* Columna Izquierda: Equipo Local */}
-          <div className="flex flex-col items-center justify-between h-full space-y-4">
+          <div className="flex flex-col items-center justify-start h-full space-y-4">
             <div className="text-center">
               <h2 className="text-xl font-bold truncate">{match.localTeam}</h2>
               <FoulIndicator count={localFouls} />
@@ -200,7 +200,7 @@ const Scoreboard = ({
           </div>
           
           {/* Columna Derecha: Equipo Visitante */}
-          <div className="flex flex-col items-center justify-between h-full space-y-4">
+          <div className="flex flex-col items-center justify-start h-full space-y-4">
             <div className="text-center">
               <h2 className="text-xl font-bold truncate">{match.visitorTeam}</h2>
               <FoulIndicator count={visitorFouls} />
@@ -211,7 +211,7 @@ const Scoreboard = ({
         {/* Timer y Controles */}
         <div className="grid grid-cols-3 items-center gap-4 mt-6">
             <div className="flex justify-center">
-                 <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                     TM
                 </Button>
             </div>
@@ -793,7 +793,7 @@ export default function MatchStatsPage() {
         match={localMatchData} 
         time={time}
         isTimerActive={isTimerActive}
-        onTimerToggle={() => setIsActive(!isTimerActive)}
+        onTimerToggle={() => setIsTimerActive(!isTimerActive)}
         onTimeReset={() => setTime(matchDuration)}
         onTimeout={handleTimeout}
         period={period}
@@ -833,6 +833,7 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
 
 
 
