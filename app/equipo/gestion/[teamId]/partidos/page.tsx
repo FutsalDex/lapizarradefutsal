@@ -544,7 +544,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     const opponentScore = isUserTeamLocal ? visitorScore : localScore;
 
     if (userTeamScore === opponentScore) return 'text-muted-foreground';
-    return userTeamScore > opponentScore ? 'text-primary' : 'text-destructive';
+    return userTeamScore > opponentScore ? 'text-green-600' : 'text-destructive';
   };
   
   const handleDelete = async () => {
@@ -579,11 +579,11 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
             <CardDescription className="text-xs">{formattedDate()}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col items-center justify-center py-2">
-            <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
+            <p className={cn("text-4xl font-bold", getResultClasses())}>{scoreDisplay}</p>
             <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
         </CardContent>
         <CardFooter className="bg-muted/50 p-2 flex justify-between items-center">
-            <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
+             <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
                 <Button variant="ghost" size="sm" className={cn("text-xs", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
                     <Users className="mr-1 h-4 w-4" /> 
                     {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
@@ -602,13 +602,13 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                     </Link>
                 </Button>
                 {isOwner && (
-                  <DropdownMenu>
+                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
+                              <Settings className="h-4 w-4" />
                           </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent>
+                      <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={onEdit}>
                               <Edit className="mr-2 h-4 w-4" />
                               Editar Partido
