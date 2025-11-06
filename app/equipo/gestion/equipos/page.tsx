@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -156,74 +156,29 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
 }
 
 
-function OwnedTeamList({ refreshKey, onOwnedTeamsLoaded }: { refreshKey: number, onOwnedTeamsLoaded: (count: number) => void }) {
-  const { user, isUserLoading: isAuthLoading } = useUser();
-  const firestore = useFirestore();
-
-  const ownedTeamsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
-  }, [firestore, user, refreshKey]);
-
-  const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
-  const isLoading = isAuthLoading || isLoadingOwned;
-
-  useMemo(() => {
-    if (ownedTeams) {
-        onOwnedTeamsLoaded(ownedTeams.length);
-    }
-  }, [ownedTeams, onOwnedTeamsLoaded]);
-
+function TeamList({ title, description, icon, teams, isLoading, emptyText, isOwnerList = false, onTeamDeleted }: {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  teams: Team[] | null;
+  isLoading: boolean;
+  emptyText: string;
+  isOwnerList?: boolean;
+  onTeamDeleted?: () => void;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base"><Users/>Mis Equipos</CardTitle>
-        <CardDescription className='text-xs'>Lista de equipos que administras como propietario.</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-base">{icon}{title}</CardTitle>
+        <CardDescription className='text-xs'>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? <Skeleton className="h-20 w-full" /> : 
           <div className="space-y-4">
-            {ownedTeams && ownedTeams.length > 0 ? (
-              ownedTeams.map(team => <TeamListItem key={team.id} team={team} isOwner />)
+            {teams && teams.length > 0 ? (
+              teams.map(team => <TeamListItem key={team.id} team={team} isOwner={isOwnerList} onTeamDeleted={onTeamDeleted} />)
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No has creado ningún equipo.</p>
-            )}
-          </div>
-        }
-      </CardContent>
-    </Card>
-  )
-}
-
-function SharedTeamList({ refreshKey }: { refreshKey: number }) {
-  const { user, isUserLoading: isAuthLoading } = useUser();
-  const firestore = useFirestore();
-
-  const sharedTeamsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'teams'),
-      where('memberIds', 'array-contains', user.uid),
-      where('ownerId', '!=', user.uid)
-    );
-  }, [firestore, user, refreshKey]);
-
-  const { data: sharedTeams, isLoading: isLoadingShared } = useCollection<Team>(sharedTeamsQuery);
-  const isLoading = isAuthLoading || isLoadingShared;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base"><UserCog/>Equipos Compartidos</CardTitle>
-        <CardDescription className='text-xs'>Equipos a los que has sido invitado como miembro del cuerpo técnico.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? <Skeleton className="h-20 w-full" /> : 
-          <div className="space-y-4">
-            {sharedTeams && sharedTeams.length > 0 ? (
-              sharedTeams.map(team => <TeamListItem key={team.id} team={team} />)
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">No eres miembro de ningún equipo.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{emptyText}</p>
             )}
           </div>
         }
@@ -232,8 +187,7 @@ function SharedTeamList({ refreshKey }: { refreshKey: number }) {
   );
 }
 
-
-function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean }) {
+function TeamListItem({ team, isOwner = false, onTeamDeleted }: { team: Team, isOwner?: boolean, onTeamDeleted?: () => void }) {
     const { toast } = useToast();
     const firestore = useFirestore();
 
@@ -241,7 +195,7 @@ function TeamListItem({ team, isOwner = false }: { team: Team, isOwner?: boolean
         try {
             await deleteDoc(doc(firestore, "teams", team.id));
             toast({ title: "Equipo eliminado", description: `El equipo "${team.name}" ha sido eliminado.` });
-            // This won't auto-refresh, parent component needs a refreshKey strategy
+            if (onTeamDeleted) onTeamDeleted();
         } catch (error) {
             console.error("Error deleting team:", error);
             toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el equipo." });
@@ -324,7 +278,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 export default function GestionEquiposPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [ownedTeamsCount, setOwnedTeamsCount] = useState(0);
-  const { user } = useUser();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
@@ -332,12 +286,35 @@ export default function GestionEquiposPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
     
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const ownedTeamsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
+  }, [firestore, user, refreshKey]);
+
+  const sharedTeamsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(
+      collection(firestore, 'teams'),
+      where('memberIds', 'array-contains', user.uid),
+      where('ownerId', '!=', user.uid)
+    );
+  }, [firestore, user, refreshKey]);
+
+  const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
+  const { data: sharedTeams, isLoading: isLoadingShared } = useCollection<Team>(sharedTeamsQuery);
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
   
+  useEffect(() => {
+    if (ownedTeams) {
+        setOwnedTeamsCount(ownedTeams.length);
+    }
+  }, [ownedTeams]);
+
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
     if (plan === 'Invitado') {
@@ -352,6 +329,7 @@ export default function GestionEquiposPage() {
     return { isCreationDisabled: false, disabledReason: ''};
   }, [userProfile, ownedTeamsCount]);
 
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingShared || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -375,8 +353,24 @@ export default function GestionEquiposPage() {
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             <div className="md:col-span-2 space-y-8">
-                <OwnedTeamList refreshKey={refreshKey} onOwnedTeamsLoaded={setOwnedTeamsCount}/>
-                <SharedTeamList refreshKey={refreshKey} />
+                <TeamList 
+                    title="Mis Equipos"
+                    description="Lista de equipos que administras como propietario."
+                    icon={<Users/>}
+                    teams={ownedTeams}
+                    isLoading={isLoading}
+                    emptyText="No has creado ningún equipo."
+                    isOwnerList={true}
+                    onTeamDeleted={handleRefresh}
+                />
+                <TeamList 
+                    title="Equipos Compartidos"
+                    description="Equipos a los que has sido invitado como miembro del cuerpo técnico."
+                    icon={<UserCog/>}
+                    teams={sharedTeams}
+                    isLoading={isLoading}
+                    emptyText="No eres miembro de ningún equipo."
+                />
             </div>
              <div className="md:col-span-1">
                 <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
