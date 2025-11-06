@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect, forwardRef } from 'react';
 import { useParams } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { addDoc, collection, query, where, orderBy, doc, serverTimestamp, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -573,24 +573,24 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="text-center">
-        <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
+      <CardHeader className="text-center flex-grow">
+        <CardTitle className="text-xl font-semibold">{matchTitle}</CardTitle>
         <CardDescription>
           {formattedDate()}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow flex flex-col items-center justify-center">
-        <p className={`text-5xl font-bold ${getResultClasses()}`}>
+      <CardContent className="flex-grow flex flex-col items-center justify-center py-4">
+        <p className={`text-6xl font-bold ${getResultClasses()}`}>
           {scoreDisplay}
         </p>
         <Badge variant="secondary" className="mt-4">
           {match.matchType}
         </Badge>
       </CardContent>
-      <CardFooter className="bg-muted/50 p-2 grid grid-cols-5 gap-1">
+      <CardFooter className="bg-muted/50 p-2 grid grid-cols-4 gap-1">
         
         <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
-            <Button variant="ghost" size="sm" className={cn("text-xs col-span-2", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
+            <Button variant="ghost" size="sm" className={cn("text-xs w-full", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
                 <Users className="mr-1 h-4 w-4" /> 
                 {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
             </Button>

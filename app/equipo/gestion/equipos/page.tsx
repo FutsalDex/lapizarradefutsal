@@ -5,16 +5,16 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp, or, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, PlusCircle, Settings, UserCog, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Shield, Users, PlusCircle, Settings, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -65,7 +65,7 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
 
     setIsSubmitting(true);
     try {
-      const teamRef = await addDoc(collection(firestore, 'teams'), {
+      await addDoc(collection(firestore, 'teams'), {
         ...values,
         ownerId: user.uid,
         ownerName: user.displayName || user.email,
@@ -78,7 +78,7 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
         description: 'Equipo creado correctamente.',
       });
       form.reset();
-      onTeamCreated(); // Callback to refresh the list
+      onTeamCreated();
     } catch (error) {
       console.error('Error creating team:', error);
       toast({
@@ -155,30 +155,24 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
   );
 }
 
-
-function TeamList({ title, description, icon, teams, isLoading, emptyText, isOwnerList = false, onTeamDeleted }: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
+function TeamList({ teams, isLoading, onTeamDeleted }: {
   teams: Team[] | null;
   isLoading: boolean;
-  emptyText: string;
-  isOwnerList?: boolean;
   onTeamDeleted?: () => void;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">{icon}{title}</CardTitle>
-        <CardDescription className='text-xs'>{description}</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-base"><Users/>Mis Equipos</CardTitle>
+        <CardDescription className='text-xs'>Lista de equipos que administras.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? <Skeleton className="h-20 w-full" /> : 
           <div className="space-y-4">
             {teams && teams.length > 0 ? (
-              teams.map(team => <TeamListItem key={team.id} team={team} isOwner={isOwnerList} onTeamDeleted={onTeamDeleted} />)
+              teams.map(team => <TeamListItem key={team.id} team={team} isOwner onTeamDeleted={onTeamDeleted} />)
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">{emptyText}</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No has creado ningún equipo.</p>
             )}
           </div>
         }
@@ -294,12 +288,12 @@ export default function GestionEquiposPage() {
 
   const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
   
-  const ownedTeamsCount = ownedTeams?.length ?? 0;
-
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
   
+  const ownedTeamsCount = ownedTeams?.length ?? 0;
+
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
     if (plan === 'Invitado') {
@@ -337,15 +331,10 @@ export default function GestionEquiposPage() {
         </div>
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            <div className="md:col-span-2 space-y-8">
+            <div className="md:col-span-2">
                 <TeamList 
-                    title="Mis Equipos"
-                    description="Lista de equipos que administras como propietario."
-                    icon={<Users/>}
                     teams={ownedTeams}
                     isLoading={isLoading}
-                    emptyText="No has creado ningún equipo."
-                    isOwnerList={true}
                     onTeamDeleted={handleRefresh}
                 />
             </div>
@@ -357,4 +346,3 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
-
