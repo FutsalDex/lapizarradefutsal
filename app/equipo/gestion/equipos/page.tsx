@@ -249,7 +249,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isUserLoading) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-48 w-full" /></div>
+                <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /></div>
                 <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
             </div>
         );
@@ -277,7 +277,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function GestionEquiposPage() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [ownedTeamsCount, setOwnedTeamsCount] = useState(0);
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
@@ -293,28 +292,14 @@ export default function GestionEquiposPage() {
     return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
   }, [firestore, user, refreshKey]);
 
-  const sharedTeamsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'teams'),
-      where('memberIds', 'array-contains', user.uid),
-      where('ownerId', '!=', user.uid)
-    );
-  }, [firestore, user, refreshKey]);
-
   const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
-  const { data: sharedTeams, isLoading: isLoadingShared } = useCollection<Team>(sharedTeamsQuery);
+  
+  const ownedTeamsCount = ownedTeams?.length ?? 0;
 
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
   
-  useEffect(() => {
-    if (ownedTeams) {
-        setOwnedTeamsCount(ownedTeams.length);
-    }
-  }, [ownedTeams]);
-
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
     if (plan === 'Invitado') {
@@ -329,7 +314,7 @@ export default function GestionEquiposPage() {
     return { isCreationDisabled: false, disabledReason: ''};
   }, [userProfile, ownedTeamsCount]);
 
-  const isLoading = isAuthLoading || isLoadingOwned || isLoadingShared || isLoadingProfile;
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -363,14 +348,6 @@ export default function GestionEquiposPage() {
                     isOwnerList={true}
                     onTeamDeleted={handleRefresh}
                 />
-                <TeamList 
-                    title="Equipos Compartidos"
-                    description="Equipos a los que has sido invitado como miembro del cuerpo técnico."
-                    icon={<UserCog/>}
-                    teams={sharedTeams}
-                    isLoading={isLoading}
-                    emptyText="No eres miembro de ningún equipo."
-                />
             </div>
              <div className="md:col-span-1">
                 <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
@@ -380,3 +357,4 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
+
