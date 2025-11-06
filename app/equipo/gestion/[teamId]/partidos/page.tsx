@@ -86,6 +86,7 @@ import {
   BarChart,
   CalendarIcon,
   Save,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -544,7 +545,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     const opponentScore = isUserTeamLocal ? visitorScore : localScore;
 
     if (userTeamScore === opponentScore) return 'text-muted-foreground';
-    return userTeamScore > opponentScore ? 'text-green-600' : 'text-destructive';
+    return userTeamScore > opponentScore ? 'text-primary' : 'text-destructive';
   };
   
   const handleDelete = async () => {
@@ -579,11 +580,11 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
             <CardDescription className="text-xs">{formattedDate()}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col items-center justify-center py-2">
-            <p className={cn("text-4xl font-bold", getResultClasses())}>{scoreDisplay}</p>
+            <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
             <Badge variant="secondary" className="mt-2">{match.matchType}</Badge>
         </CardContent>
         <CardFooter className="bg-muted/50 p-2 flex justify-between items-center">
-             <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
+            <ConvocatoriaDialog teamId={team.id} match={match} onSquadSaved={onSquadSaved}>
                 <Button variant="ghost" size="sm" className={cn("text-xs", convocadosCount > 0 && "font-bold text-primary")} disabled={!isOwner}>
                     <Users className="mr-1 h-4 w-4" /> 
                     {convocadosCount > 0 ? `${convocadosCount} Jug.` : 'Convocar'}
