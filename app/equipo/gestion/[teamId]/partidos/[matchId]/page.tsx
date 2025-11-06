@@ -113,7 +113,7 @@ function migrateLegacyMatchData(matchData: Match): Match {
     if (needsMigration(migratedData.opponentStats)) {
         console.log("Migrating legacy opponentStats...");
         const legacyOpponentStats = migratedData.opponentStats;
-        migratedData.opponentStats = {
+        migratedData.opponentStats = { 
             '1H': legacyOpponentStats as Partial<OpponentStats>,
             '2H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 }
         };
@@ -211,7 +211,7 @@ const Scoreboard = ({
         {/* Timer y Controles */}
         <div className="grid grid-cols-3 items-center gap-4 mt-6">
             <div className="flex justify-center">
-                 <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-20", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                 <Button size="sm" variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("w-22", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                     TM
                 </Button>
             </div>
@@ -235,7 +235,7 @@ const Scoreboard = ({
                 </div>
             </div>
              <div className="flex justify-center">
-                <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-20", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                <Button size="sm" variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("w-22", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
                     TM
                 </Button>
             </div>
@@ -833,5 +833,6 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
 
 
