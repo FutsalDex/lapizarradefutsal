@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useCallback } from 'react';
@@ -246,15 +247,7 @@ export default function MatchDetailsPage() {
   }
   
   if (!match || !team) {
-    return (
-        <div className="container mx-auto px-4 py-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Partido no encontrado</h2>
-            <p className="text-muted-foreground mb-4">No pudimos encontrar los detalles del partido que estás buscando.</p>
-            <Button onClick={() => router.push(`/equipo/gestion/${teamId}/partidos`)}>
-            <ArrowLeft className="mr-2 h-4 w-4" /> Volver a Partidos
-            </Button>
-      </div>
-    );
+    return null;
   }
 
   const isMyTeamLocal = match.localTeam === team.name;

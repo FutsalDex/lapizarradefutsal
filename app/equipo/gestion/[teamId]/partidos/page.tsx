@@ -210,11 +210,8 @@ function MatchFormDialog({
         localTeam: values.localTeam,
         visitorTeam: values.visitorTeam,
         competition: values.competition,
+        matchday: values.matchday ? Number(values.matchday) : undefined,
       };
-
-      if (values.matchday) {
-        matchData.matchday = Number(values.matchday);
-      }
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
@@ -713,12 +710,8 @@ export default function MatchesPage() {
     );
   }
 
-  if (!team) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
-      </div>
-    );
+  if (!team && !isLoading) {
+    return null;
   }
 
   if (!canView) {
@@ -729,6 +722,8 @@ export default function MatchesPage() {
         </div>
       )
   }
+
+  if (!team) return null;
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -186,8 +186,6 @@ const Scoreboard = ({
     <Card>
       <CardContent className="p-4 md:p-6 text-center">
         <div className="flex flex-col items-center justify-center space-y-4">
-
-          {/* Teams and Score */}
           <div className="grid grid-cols-3 items-start w-full max-w-4xl">
             <div className="flex flex-col items-center space-y-2">
               <h2 className="text-xl font-bold truncate">{match.localTeam}</h2>
@@ -202,24 +200,22 @@ const Scoreboard = ({
             </div>
           </div>
 
-          {/* Timer and Timeouts */}
-          <div className="grid grid-cols-3 items-center w-full max-w-4xl">
-             <div className="flex justify-center">
-                <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                    TM
-                </Button>
-             </div>
-             <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
-                {formatTime(time)}
-             </div>
-             <div className="flex justify-center">
-                 <Button variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("h-12 w-24", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                    TM
-                </Button>
-             </div>
+          <div className="flex justify-center items-center w-full max-w-4xl">
+            <div className="flex-1 flex justify-center">
+              <Button variant="outline" onClick={() => onTimeout('local')} disabled={localTimeouts >= 2} className={cn("h-12 w-24", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                  TM
+              </Button>
+            </div>
+            <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
+              {formatTime(time)}
+            </div>
+            <div className="flex-1 flex justify-center">
+              <Button variant="outline" onClick={() => onTimeout('visitor')} disabled={visitorTimeouts >= 2} className={cn("h-12 w-24", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
+                  TM
+              </Button>
+            </div>
           </div>
 
-          {/* Controls */}
           <div className="flex justify-center items-center gap-2">
             <Button onClick={onTimerToggle} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
               {isTimerActive ? <Pause className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
@@ -234,7 +230,6 @@ const Scoreboard = ({
               <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
             </div>
           </div>
-
         </div>
       </CardContent>
     </Card>
@@ -753,7 +748,7 @@ export default function MatchStatsPage() {
   }
   
   if (!localMatchData || !team) {
-    return <div className="container mx-auto px-4 py-8 text-center">No se encontraron datos del partido o del equipo.</div>;
+    return null;
   }
   
   const myTeamName = team.name;
@@ -829,6 +824,7 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
 
 
 

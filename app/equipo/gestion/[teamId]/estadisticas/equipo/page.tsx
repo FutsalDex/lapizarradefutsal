@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -215,9 +216,11 @@ export default function TeamOverallStatsPage() {
         );
     }
 
-    if (!team) {
-        return <div className="container mx-auto text-center py-10">Equipo no encontrado.</div>;
+    if (!team && !isLoading) {
+        return null;
     }
+
+    if (!team) return null;
     
     const { performance } = teamStats;
     const totalShots = (performance.shotsOnTarget || 0) + (performance.shotsOffTarget || 0);

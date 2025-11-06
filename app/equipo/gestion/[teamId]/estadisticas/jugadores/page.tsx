@@ -330,9 +330,11 @@ export default function PlayerStatsPage() {
         );
     }
     
-     if (!team) {
-        return <div className="container mx-auto text-center py-10">Equipo no encontrado.</div>;
+     if (!team && !isLoading) {
+        return null;
     }
+
+    if (!team) return null;
     
     return (
         <div className="container mx-auto px-4 py-8 space-y-8">

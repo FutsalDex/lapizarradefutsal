@@ -94,22 +94,12 @@ export default function TeamDashboardPage() {
     );
   }
 
-  if (!team) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
-        <Button asChild variant="outline">
-          <Link href="/equipo/gestion">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a mis equipos
-          </Link>
-        </Button>
-      </div>
-    );
+  if (!team && !isLoadingTeam) {
+    return null;
   }
 
-  const isOwner = user?.uid === team.ownerId;
-  const isMember = team.memberIds?.includes(user?.uid ?? '');
+  const isOwner = user?.uid === team?.ownerId;
+  const isMember = team?.memberIds?.includes(user?.uid ?? '');
   const canView = isOwner || isMember;
 
   if (!canView) {
@@ -126,6 +116,8 @@ export default function TeamDashboardPage() {
       </div>
     );
   }
+
+  if (!team) return null;
 
   return (
     <div className="container mx-auto px-4 py-8">
