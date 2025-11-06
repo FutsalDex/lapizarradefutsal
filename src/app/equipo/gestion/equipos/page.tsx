@@ -277,6 +277,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function GestionEquiposPage() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [ownedTeamsCount, setOwnedTeamsCount] = useState(0);
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
@@ -308,20 +309,25 @@ export default function GestionEquiposPage() {
     setRefreshKey(prev => prev + 1);
   };
   
+  useEffect(() => {
+    if (ownedTeams) {
+        setOwnedTeamsCount(ownedTeams.length);
+    }
+  }, [ownedTeams]);
+
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
-    const ownedCount = ownedTeams?.length ?? 0;
     if (plan === 'Invitado') {
         return { isCreationDisabled: true, disabledReason: 'Necesitas un plan de suscripción para crear equipos.'};
     }
-    if (plan === 'Básico' && ownedCount >= 1) {
+    if (plan === 'Básico' && ownedTeamsCount >= 1) {
         return { isCreationDisabled: true, disabledReason: 'El Plan Básico permite solo 1 equipo.'};
     }
-    if (plan === 'Pro' && ownedCount >= 3) {
+    if (plan === 'Pro' && ownedTeamsCount >= 3) {
         return { isCreationDisabled: true, disabledReason: 'El Plan Pro permite hasta 3 equipos.'};
     }
     return { isCreationDisabled: false, disabledReason: ''};
-  }, [userProfile, ownedTeams]);
+  }, [userProfile, ownedTeamsCount]);
 
   const isLoading = isAuthLoading || isLoadingOwned || isLoadingShared || isLoadingProfile;
 
