@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck, Save } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck, Save, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
 
@@ -188,7 +188,7 @@ const Scoreboard = ({
         <CardContent className="p-4 md:p-6">
              <div className="grid grid-cols-3 items-center gap-4 text-center">
                 {/* Columna Izquierda: Equipo Local */}
-                <div className="flex flex-col justify-between h-full">
+                <div className="flex flex-col justify-between h-full space-y-4">
                     <div className="text-center">
                         <h2 className="text-xl font-bold truncate">{match.localTeam}</h2>
                         <FoulIndicator count={localFouls} />
@@ -222,7 +222,7 @@ const Scoreboard = ({
                 </div>
                 
                 {/* Columna Derecha: Equipo Visitante */}
-                <div className="flex flex-col justify-between h-full">
+                <div className="flex flex-col justify-between h-full space-y-4">
                    <div className="text-center">
                         <h2 className="text-xl font-bold truncate">{match.visitorTeam}</h2>
                         <FoulIndicator count={visitorFouls} />
