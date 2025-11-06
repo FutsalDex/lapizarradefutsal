@@ -180,7 +180,6 @@ const Scoreboard = ({
     <Card>
       <CardContent className="p-4 md:p-6 text-center">
         <div className="flex flex-col items-center justify-center space-y-4">
-          {/* Top Row: Team Names and Fouls */}
           <div className="grid grid-cols-3 items-start w-full max-w-4xl">
             <div className="flex flex-col items-center space-y-2">
               <h2 className="text-xl font-bold truncate">{match.localTeam}</h2>
@@ -194,8 +193,6 @@ const Scoreboard = ({
               <FoulIndicator count={visitorFouls} />
             </div>
           </div>
-
-          {/* Middle Row: Timeouts and Timer */}
           <div className="flex justify-center items-center w-full max-w-4xl">
             <div className="flex-1 flex justify-center">
                 <Button 
@@ -219,8 +216,6 @@ const Scoreboard = ({
                 </Button>
             </div>
           </div>
-
-          {/* Bottom Row: Controls */}
           <div className="flex justify-center items-center gap-2">
             <Button onClick={onTimerToggle} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
               {isTimerActive ? <Pause className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
@@ -231,8 +226,8 @@ const Scoreboard = ({
                 <span className="ml-2">Reiniciar</span>
             </Button>
             <div className="flex rounded-md border p-1 bg-muted">
-                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3")}>1ª Parte</Button>
-                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'default' : 'ghost'} size="sm" className={cn("h-8 px-3")}>2ª Parte</Button>
+                <Button onClick={() => setPeriod('1H')} variant={period === '1H' ? 'primary' : 'ghost'} size="sm" className={cn("h-8 px-3")}>1ª Parte</Button>
+                <Button onClick={() => setPeriod('2H')} variant={period === '2H' ? 'primary' : 'ghost'} size="sm" className={cn("h-8 px-3")}>2ª Parte</Button>
             </div>
           </div>
         </div>
@@ -409,8 +404,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                     <TableRow key={player.id} className={cn(isActive && "bg-accent")}>
                                         <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-orange-600")}>{player.number}.</span>
-                                                 <span className={cn('truncate', isActive && 'font-bold text-orange-600')}>{player.name}</span>
+                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-accent-foreground")}>{player.number}.</span>
+                                                 <span className={cn('truncate', isActive && 'font-bold text-accent-foreground')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1 text-xs">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
