@@ -184,7 +184,7 @@ const Scoreboard = ({
 
   return (
     <Card>
-      <CardContent className="p-4 md:p-6">
+      <CardContent className="p-4 md:p-6 text-center">
         <div className="grid grid-cols-3 items-center text-center gap-4">
           {/* Columna Izquierda: Equipo Local */}
           <div className="flex flex-col items-center justify-between h-full space-y-4">
@@ -835,3 +835,4 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
