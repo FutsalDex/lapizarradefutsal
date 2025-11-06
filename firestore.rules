@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,21 +13,35 @@ service cloud.firestore {
       return isAuth() ? request.auth.token.email : null;
     }
 
+    // 🧑‍💼 Propietario del equipo
     function isTeamOwner(teamId) {
       return isAuth() &&
         get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
     }
 
+    // 👥 Miembro del cuerpo técnico (revisado)
     function isTeamMember(teamId) {
-      return isAuth() &&
-        get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds != null &&
-        get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds.hasAny([request.auth.uid]);
+      return isAuth() && (
+        // 1️⃣ Si el usuario está en el array memberIds del documento del equipo
+        (
+          get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds != null &&
+          get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds.hasAny([request.auth.uid])
+        )
+        ||
+        // 2️⃣ O si existe un documento en /teamMembers con el mismo teamId y su email
+        (
+          exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/teamMembers/$(request.auth.uid)).data.teamId == teamId
+        )
+      );
     }
 
+    // ✅ Puede acceder si es propietario o miembro
     function canAccessTeam(teamId) {
       return isTeamOwner(teamId) || isTeamMember(teamId);
     }
-    
+
+    // 👑 Admin global
     function isAdmin() {
       return isAuth() && authEmail() == 'futsaldex@gmail.com';
     }
@@ -49,38 +62,42 @@ service cloud.firestore {
       // Subcolecciones
       match /players/{playerId} {
         allow get, list: if canAccessTeam(teamId);
-        allow create, update: if isTeamOwner(teamId) || isTeamMember(teamId);
+        allow create, update: if canAccessTeam(teamId);
         allow delete: if isTeamOwner(teamId);
       }
+
       match /attendance/{attendanceId} {
         allow read, write: if canAccessTeam(teamId);
       }
     }
-    
+
+
     // =============================
     // 🧑‍🤝‍🧑 TEAM MEMBERS (Cuerpo Técnico)
     // =============================
     match /teamMembers/{memberId} {
       allow read: if isAuth() && canAccessTeam(resource.data.teamId);
-      allow list: if isAuth(); // Client must filter by teamId
+      allow list: if isAuth(); // El cliente debe filtrar por teamId
       allow create: if isAuth() && isTeamOwner(request.resource.data.teamId);
       allow update: if isAuth() && isTeamOwner(resource.data.teamId);
       allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
     }
+
 
     // =============================
     // ⚽ MATCHES (PARTIDOS)
     // =============================
     match /matches/{matchId} {
       allow get: if isAuth() && canAccessTeam(resource.data.teamId);
-      allow list: if isAuth(); // El cliente debe filtrar por teamId
+      allow list: if isAuth(); // Cliente debe filtrar por teamId
       allow create: if isAuth()
         && canAccessTeam(request.resource.data.teamId)
         && request.resource.data.userId == request.auth.uid;
       allow update: if isAuth() && canAccessTeam(resource.data.teamId);
       allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
     }
-    
+
+
     // =============================
     // 👤 USERS
     // =============================
@@ -96,6 +113,7 @@ service cloud.firestore {
       allow read, write: if isAuth() && request.auth.uid == userId;
     }
 
+
     // =============================
     // 🏋️ EXERCISES (lectura pública)
     // =============================
@@ -103,15 +121,16 @@ service cloud.firestore {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
-    
+
+
     // =============================
     // 📖 USER EXERCISES (personales)
     // =============================
     match /userExercises/{exerciseId} {
-      // Corrected: Check against resource data for create, existing resource for others
       allow read, update, delete: if isAuth() && resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
+
 
     // =============================
     // 💌 INVITATIONS
@@ -119,8 +138,7 @@ service cloud.firestore {
     match /invitations/{invitationId} {
       allow read, list: if isAdmin();
       allow create: if isAuth() && request.resource.data.inviterId == request.auth.uid;
-      allow update: if isAdmin(); // Only admin can approve/reject
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
   }
 }

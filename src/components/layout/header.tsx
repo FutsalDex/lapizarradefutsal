@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { collection, query, where } from "firebase/firestore";
 import { useMemoFirebase } from "@/firebase/use-memo-firebase";
 import { Badge } from "../ui/badge";
+import { Logo } from './logo';
 
 
 const navLinks = [
@@ -99,7 +100,7 @@ export function Header() {
 
   const renderUserAuthDesktop = () => {
     if (isUserLoading || !isMounted) {
-      return <div className="h-10 w-28 animate-pulse rounded-md bg-primary-foreground/10" />;
+      return <div className="h-10 w-10 animate-pulse rounded-full bg-primary-foreground/20" />;
     }
     if (user) {
       return (
@@ -108,7 +109,7 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-9 w-9 border-2 border-primary-foreground/50">
                   <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'Avatar'} />
                   <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
@@ -151,12 +152,18 @@ export function Header() {
       );
     }
     return (
-      <Button asChild variant="outline" className="bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20 text-primary-foreground">
-        <Link href="/acceso">
-          <User className="mr-2 h-4 w-4" />
-          Acceder
-        </Link>
-      </Button>
+       <div className="flex items-center gap-2">
+        <Button asChild variant="ghost" className="hover:bg-primary-foreground/10 text-primary-foreground">
+            <Link href="/acceso">
+            Acceder
+            </Link>
+        </Button>
+        <Button asChild className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
+            <Link href="/planes">
+            Suscríbete
+            </Link>
+        </Button>
+      </div>
     );
   };
   
@@ -165,6 +172,7 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-sm">
             <div className="container flex h-16 items-center">
                 <Link href="/" className="mr-6 flex items-center space-x-2">
+                    <Logo />
                     <span className="font-bold text-lg sm:inline-block font-headline">
                     LaPizarra
                     </span>
@@ -180,11 +188,12 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <div className="mr-8 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
+            <Logo />
             <span className="font-bold text-lg sm:inline-block font-headline">
               LaPizarra
             </span>
           </Link>
-          <nav className="flex items-center space-x-1 text-xs font-light">
+          <nav className="flex items-center space-x-1 text-sm font-light">
             {allNavLinks.map((link) => (
               <Link
                 key={link.href}
@@ -205,6 +214,7 @@ export function Header() {
         
         <div className="flex flex-1 items-center justify-between md:hidden">
            <Link href="/" className="flex items-center space-x-2">
+            <Logo />
             <span className="font-bold font-headline text-lg">
               LaPizarra
             </span>
