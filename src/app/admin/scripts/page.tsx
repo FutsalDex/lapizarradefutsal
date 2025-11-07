@@ -92,7 +92,7 @@ function UpdatePlayerTimesScript() {
 
       const lines = playerData.trim().split(/[\n,]/).filter(Boolean);
       const updates = new Map<string, number>();
-
+      
       const timeRegex = /(.+?):(\d{1,2}):(\d{2})/;
 
       lines.forEach(line => {
@@ -148,7 +148,7 @@ function UpdatePlayerTimesScript() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
-          Introduce el ID de un partido para ver su plantilla. Luego, pega la lista de jugadores con sus tiempos en formato `Número:mm:ss`.
+          Introduce el ID de un partido para ver su plantilla. Luego, pega la lista de jugadores con sus tiempos en formato `Dorsal:MM:SS`.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -195,7 +195,7 @@ function UpdatePlayerTimesScript() {
             id="playerData"
             value={playerData}
             onChange={(e) => setPlayerData(e.target.value)}
-            placeholder="1:25:00, 2:22:41, ..."
+            placeholder="1:25:00, 2:22:41, 5:19:56, ..."
             rows={12}
           />
         </div>
