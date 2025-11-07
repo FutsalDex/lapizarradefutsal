@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -22,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { PlusCircle, Calendar as CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield } from 'lucide-react';
+import { Plus, PlusCircle, Calendar as CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
@@ -271,9 +272,11 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
                                             <FutsalCourt className="absolute inset-0 w-full h-full object-cover p-2" />
                                         )}
                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                             <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
-                                                <PlusCircle className="h-5 w-5" />
-                                            </Button>
+                                             <DialogClose asChild>
+                                                <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
+                                                    <PlusCircle className="h-5 w-5" />
+                                                </Button>
+                                             </DialogClose>
                                         </div>
                                      </div>
                                 </CardContent>
@@ -318,28 +321,22 @@ function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: ()
     )
 }
 
-function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative w-full min-h-[88px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 text-muted-foreground transition-colors",
-        disabled
-          ? "cursor-not-allowed bg-muted/50"
-          : "hover:border-primary hover:text-primary"
-      )}
+const AddExerciseCard = ({ title, ...props }: React.HTMLAttributes<HTMLDivElement> & { title: string }) => (
+    <div
+      {...props}
+      className="relative flex h-full min-h-[88px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
     >
-      <span className="text-sm font-medium">Añadir Tarea</span>
-      <span className="text-2xl font-light mt-1">+</span>
-    </button>
+      <div className="text-center">
+        <p className="mb-2 font-semibold">{title}</p>
+        <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
+          <Plus className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
   );
-}
 
 
-function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, limit: number }) {
-
+function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, onAddSlot, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, onAddSlot: () => void, limit: number }) {
     const selectedExercises = useMemo(() => {
         return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
@@ -351,19 +348,15 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
             <CardHeader>
                 <CardTitle className="text-xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-base font-normal">({selectedExercises.length}/{limit})</span></CardTitle>
             </CardHeader>
-             <CardContent className="flex-grow grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <CardContent className="flex-grow grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {selectedExercises.map((ex, index) => (
                     <ExerciseCard key={`${ex.id}-${index}`} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                 ))}
-                {!atLimit &&
-                    <ExercisePickerDialog
-                        allExercises={allExercises}
-                        onSelect={onExerciseToggle}
-                        phase={phase}
-                    >
-                        <AddExerciseCard onClick={() => {}} />
+                {!atLimit && (
+                    <ExercisePickerDialog allExercises={allExercises} onSelect={onExerciseToggle} phase={phase}>
+                       <AddExerciseCard title="Añadir Tarea" />
                     </ExercisePickerDialog>
-                }
+                )}
             </CardContent>
         </Card>
     );
@@ -444,6 +437,10 @@ export default function CreateSessionPage() {
             : currentIds.filter(id => id !== exerciseId);
         form.setValue(phase, newIds, { shouldValidate: true });
     };
+    
+    const addExerciseSlot = (phase: Phase) => {
+        // This function seems unused in the new design, but we can keep it for now
+    }
 
     const handleSave = async () => {
         if (!user) {
@@ -550,6 +547,7 @@ export default function CreateSessionPage() {
                             allExercises={allExercises}
                             selectedIds={watchedValues.initialExercises}
                             onExerciseToggle={handleExerciseToggle}
+                            onAddSlot={() => {}}
                             limit={2}
                         />
                         <PhaseSection
@@ -558,6 +556,7 @@ export default function CreateSessionPage() {
                             allExercises={allExercises}
                             selectedIds={watchedValues.mainExercises}
                             onExerciseToggle={handleExerciseToggle}
+                            onAddSlot={() => {}}
                             limit={4}
                         />
                          <PhaseSection
@@ -566,6 +565,7 @@ export default function CreateSessionPage() {
                             allExercises={allExercises}
                             selectedIds={watchedValues.finalExercises}
                             onExerciseToggle={handleExerciseToggle}
+                            onAddSlot={() => {}}
                             limit={2}
                         />
                     </div>
