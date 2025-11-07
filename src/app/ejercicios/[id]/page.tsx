@@ -121,7 +121,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center text-lg'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground">{exercise.description}</p>
+                        <div className="text-sm text-muted-foreground">{exercise.description}</div>
                     </CardContent>
                 </Card>
 
@@ -130,7 +130,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center text-lg'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground">{exercise.objectives}</p>
+                        <div className="text-sm text-muted-foreground">{exercise.objectives}</div>
                     </CardContent>
                 </Card>
 
@@ -149,7 +149,7 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center text-lg'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <p className="text-sm text-muted-foreground">{exercise.consejos}</p>
+                             <div className="text-sm text-muted-foreground">{exercise.consejos}</div>
                         </CardContent>
                     </Card>
                 </div>
@@ -160,7 +160,7 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center text-lg'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">{exercise.variations}</p>
+                            <div className="text-sm text-muted-foreground">{exercise.variations}</div>
                         </CardContent>
                     </Card>
                 )}
@@ -170,3 +170,4 @@ export default function ExerciseDetailPage() {
     </div>
   );
 }
+

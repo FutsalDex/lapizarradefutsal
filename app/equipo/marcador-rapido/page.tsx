@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -156,7 +157,7 @@ export default function QuickScoreboardPage() {
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-        if (isTimerActive && time > 0) {
+        if (isActive && time > 0) {
             interval = setInterval(() => {
                 setTime(prevTime => prevTime - 1);
             }, 1000);
@@ -167,7 +168,7 @@ export default function QuickScoreboardPage() {
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isTimerActive, time, period, toast]);
+    }, [isActive, time, period, toast]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -287,22 +288,22 @@ export default function QuickScoreboardPage() {
                     
                     {/* Timer */}
                     <div className="flex justify-center items-center gap-4 mb-4">
-                         <Button size="sm" variant="outline" onClick={() => handleTimeout('local')} disabled={localTimeouts >= maxTimeouts} className={cn("w-16 mx-auto", localTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                            TM
+                         <Button size="sm" variant={localTimeouts < maxTimeouts ? 'outline' : 'default'} onClick={() => handleTimeout('local')} disabled={localTimeouts >= maxTimeouts} className={cn("w-16 mx-auto")}>
+                            <span>TM</span>
                          </Button>
                          <div className="text-6xl md:text-8xl font-mono font-bold tabular-nums bg-gray-900 text-white rounded-lg px-4 py-2">
                             {formatTime(time)}
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => handleTimeout('visitor')} disabled={visitorTimeouts >= maxTimeouts} className={cn("w-16 mx-auto", visitorTimeouts > 0 && "bg-primary hover:bg-primary/90 text-primary-foreground")}>
-                            TM
+                        <Button size="sm" variant={visitorTimeouts < maxTimeouts ? 'outline' : 'default'} onClick={() => handleTimeout('visitor')} disabled={visitorTimeouts >= maxTimeouts} className={cn("w-16 mx-auto")}>
+                            <span>TM</span>
                         </Button>
                     </div>
 
                     {/* Main Controls */}
                     <div className="flex justify-center items-center gap-4">
-                        <Button onClick={() => setIsTimerActive(!isTimerActive)} variant="default" size="sm" className={cn(isTimerActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
-                            {isTimerActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
-                            {isTimerActive ? 'Pausar' : 'Iniciar'}
+                        <Button onClick={() => setIsTimerActive(!isActive)} variant="default" size="sm" className={cn(isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
+                            {isActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
+                            {isActive ? 'Pausar' : 'Iniciar'}
                         </Button>
                         <Button onClick={resetPeriod} variant="outline" size="sm">
                             <RefreshCw className="mr-2 h-4 w-4"/> Reiniciar
@@ -313,7 +314,7 @@ export default function QuickScoreboardPage() {
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-md">
                                 <DialogHeader>
-                                    <DialogTitle>Configuración del Marcador</DialogTitle>
+                                    <DialogTitle>Ajustes del Marcador</DialogTitle>
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="space-y-2">

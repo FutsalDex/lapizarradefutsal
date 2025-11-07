@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -199,6 +200,7 @@ const Scoreboard = ({
                     variant={localTimeoutsUsed ? "default" : "outline"}
                     onClick={() => onTimeout('local')}
                     className={cn("h-12 w-24 transition-colors")}
+                    disabled={localTimeoutsUsed}
                 >
                     TM
                 </Button>
@@ -211,6 +213,7 @@ const Scoreboard = ({
                     variant={visitorTimeoutsUsed ? "default" : "outline"}
                     onClick={() => onTimeout('visitor')}
                     className={cn("h-12 w-24 transition-colors")}
+                    disabled={visitorTimeoutsUsed}
                 >
                     TM
                 </Button>
@@ -404,8 +407,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                     <TableRow key={player.id} className={cn(isActive && "bg-accent")}>
                                         <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-destructive")}>{player.number}.</span>
-                                                 <span className={cn('truncate', isActive && 'font-bold text-destructive')}>{player.name}</span>
+                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-accent-foreground")}>{player.number}.</span>
+                                                 <span className={cn('truncate', isActive && 'font-bold text-accent-foreground')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1 text-xs">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
@@ -734,7 +737,7 @@ export default function MatchStatsPage() {
   }, [teamPlayers, localMatchData?.squad]);
   
   const handleTimeout = (team: 'local' | 'visitor') => {
-    if(!localMatchData) return;
+    if(!localMatchData || localMatchData.isFinished) return;
     
     // Using a function with the state setter to ensure we have the latest state
     setLocalMatchData(currentMatchData => {
