@@ -56,10 +56,16 @@ function UpdatePlayerTimesScript() {
       const lines = playerData.trim().split('\n');
       const updates = new Map<string, number>();
       lines.forEach(line => {
+        // Split by ':'
         const parts = line.split(':');
-        if (parts.length === 2) {
-          const name = parts[0].trim();
-          const time = parts[1].trim();
+        if (parts.length >= 2) {
+          // The last two parts are minutes and seconds
+          const secondsStr = parts.pop()?.trim();
+          const minutesStr = parts.pop()?.trim();
+          // The rest is the name
+          const name = parts.join(':').trim();
+          const time = `${minutesStr}:${secondsStr}`;
+          
           const playerId = playersMap.get(name);
           if (playerId) {
             updates.set(playerId, parseTimeToSeconds(time));
@@ -108,7 +114,7 @@ function UpdatePlayerTimesScript() {
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
           Pega el ID del partido y la lista de jugadores con sus tiempos para actualizarlos en la base de datos.
-          El formato debe ser: `Nombre del Jugador: mm:ss`, una línea por jugador.
+          El formato debe ser: `Nombre del Jugador:mm:ss`, una línea por jugador.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -127,7 +133,9 @@ function UpdatePlayerTimesScript() {
             id="playerData"
             value={playerData}
             onChange={(e) => setPlayerData(e.target.value)}
-            placeholder="Manel: 25:00\nMarc Montoro: 22:41\n..."
+            placeholder="Manel:25:00
+Marc Montoro:22:41
+..."
             rows={12}
           />
         </div>
