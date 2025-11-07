@@ -563,11 +563,15 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
   
   const formattedDate = () => {
     if (!date) return 'Fecha no disponible';
-    const dateObj = date.toDate ? date.toDate() : new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return 'Fecha inválida';
+    try {
+        const dateObj = date.toDate ? date.toDate() : new Date(date);
+        if (isNaN(dateObj.getTime())) {
+          return 'Fecha inválida';
+        }
+        return format(dateObj, 'dd/MM/yyyy', { locale: es });
+    } catch(e) {
+        return 'Fecha inválida';
     }
-    return format(dateObj, 'dd/MM/yyyy', { locale: es });
   };
 
   const convocadosCount = squad?.length || 0;
@@ -597,41 +601,43 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                     </Link>
                 </Button>
                 <Button asChild variant="ghost" size="icon" className="h-8 w-8" disabled={!isFinished}>
-                    <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
+                     <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
                         <Eye className="h-4 w-4" />
                     </Link>
                 </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" disabled={!isOwner}>
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem onClick={onEdit}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Editar Partido
-                        </DropdownMenuItem>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
-                                    <Trash2 className="mr-2 h-4 w-4"/>
-                                    Eliminar
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                    <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {isOwner && (
+                     <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Edit className="h-4 w-4" />
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={onEdit}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Editar Partido</span>
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                  <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:text-destructive">
+                                      <Trash2 className="mr-2 h-4 w-4"/>
+                                      <span>Eliminar</span>
+                                  </div>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>Esta acción no se puede deshacer. Se eliminará el partido y sus estadísticas.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                                  </AlertDialogFooter>
+                              </AlertDialogContent>
+                          </AlertDialog>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
             </div>
         </CardFooter>
     </Card>

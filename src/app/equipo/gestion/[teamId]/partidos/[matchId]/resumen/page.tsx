@@ -49,7 +49,7 @@ interface Match {
   date: any; // Firestore timestamp
   squad?: string[];
   events?: MatchEvent[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
 }
 
 interface Player {
@@ -68,6 +68,24 @@ const formatStatTime = (totalSeconds: number) => {
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
+
+function migrateLegacyMatchData(matchData: Match): Match {
+    if (!matchData || !matchData.playerStats) return matchData;
+
+    const playerStats = matchData.playerStats;
+    // Check if it's the old format (not having 1H or 2H keys)
+    if (!('1H' in playerStats) && !('2H' in playerStats) && Object.keys(playerStats).length > 0) {
+        const migratedData = _.cloneDeep(matchData);
+        migratedData.playerStats = {
+            '1H': playerStats as { [playerId: string]: Partial<PlayerStats> },
+            '2H': {}
+        };
+        return migratedData;
+    }
+
+    return matchData;
+}
+
 
 // ====================
 // SUB-COMPONENTS
@@ -108,21 +126,20 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
 
     const aggregatedStats = useMemo(() => {
         if (!squadPlayers.length || !match.playerStats) return [];
+        
+        const statsMap: Map<string, PlayerStats & { name: string; number: string }> = new Map();
 
-        const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
-
-        // Initialize map with all players in the squad
+        // Initialize map with all players in the squad to ensure all are listed
         squadPlayers.forEach(player => {
             statsMap.set(player.id, {
                 name: player.name,
                 number: player.number,
-                minutesPlayed: 0,
-                goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
+                minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
                 saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-                recoveries: 0, turnovers: 0
+                recoveries: 0, turnovers: 0,
             });
         });
-
+        
         // Aggregate stats from both halves
         (['1H', '2H'] as Period[]).forEach(period => {
             const periodStats = match.playerStats?.[period];
@@ -133,24 +150,16 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
                     const existingStats = statsMap.get(playerId)!;
                     const playerPeriodStats = periodStats[playerId] as Partial<PlayerStats>;
                     
-                    existingStats.minutesPlayed! += playerPeriodStats.minutesPlayed || 0;
-                    existingStats.goals! += playerPeriodStats.goals || 0;
-                    existingStats.assists! += playerPeriodStats.assists || 0;
-                    existingStats.yellowCards! += playerPeriodStats.yellowCards || 0;
-                    existingStats.redCards! += playerPeriodStats.redCards || 0;
-                    existingStats.fouls! += playerPeriodStats.fouls || 0;
-                    existingStats.saves! += playerPeriodStats.saves || 0;
-                    existingStats.goalsConceded! += playerPeriodStats.goalsConceded || 0;
-                    existingStats.unoVsUno! += playerPeriodStats.unoVsUno || 0;
-                    existingStats.shotsOnTarget! += playerPeriodStats.shotsOnTarget || 0;
-                    existingStats.shotsOffTarget! += playerPeriodStats.shotsOffTarget || 0;
-                    existingStats.recoveries! += playerPeriodStats.recoveries || 0;
-                    existingStats.turnovers! += playerPeriodStats.turnovers || 0;
+                    Object.keys(playerPeriodStats).forEach(key => {
+                        const statKey = key as keyof PlayerStats;
+                        (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerPeriodStats[statKey] || 0);
+                    });
                 }
             }
         });
-
+        
         return Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+
     }, [match.playerStats, squadPlayers]);
 
 
@@ -250,10 +259,16 @@ export default function MatchDetailsPage() {
   const firestore = useFirestore();
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
-  const { data: match, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
+  const { data: rawMatch, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
   
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
+  
+  const match = useMemo(() => {
+    if (!rawMatch) return null;
+    return migrateLegacyMatchData(rawMatch);
+  }, [rawMatch]);
+
 
   const goalEvents = useMemo(() => {
       if (!match?.events) return [];
@@ -272,7 +287,18 @@ export default function MatchDetailsPage() {
 
   const isMyTeamLocal = match.localTeam === team.name;
 
-  const formattedDate = match.date?.toDate ? format(match.date.toDate(), 'dd/MM/yyyy', { locale: es }) : 'Fecha inválida';
+  const formattedDate = useMemo(() => {
+    if (!match.date) return 'Fecha no disponible';
+    try {
+        const dateObj = match.date.toDate ? match.date.toDate() : new Date(match.date);
+        if (isNaN(dateObj.getTime())) {
+          return 'Fecha inválida';
+        }
+        return format(dateObj, 'dd/MM/yyyy', { locale: es });
+    } catch(e) {
+        return 'Fecha inválida';
+    }
+  }, [match.date]);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
