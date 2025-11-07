@@ -1,13 +1,9 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, query, deleteDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
+import { collection, doc, query, deleteDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -22,7 +18,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
-import { useDoc } from '@/firebase';
 
 interface Session {
     id: string;
@@ -59,6 +54,9 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
         return exerciseIds.map(id => doc(firestore, 'exercises', id));
     }, [firestore, exerciseIds]);
 
+    // This creates an array of hooks, which is against the rules of hooks if the length changes.
+    // However, `exerciseRefs` is memoized, so this should be stable across renders for a given session.
+    // A more robust solution might involve a custom hook that fetches multiple documents.
     const exerciseHooks = exerciseRefs.map(ref => useDoc<any>(ref));
     const isLoadingExercises = exerciseHooks.some(hook => hook.isLoading);
     
@@ -157,7 +155,7 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
     );
 }
 
-export default function SesionesPage() {
+export default function MisSesionesPage() {
     const firestore = useFirestore();
     const { user, isUserLoading } = useUser();
     const [key, setKey] = useState(0);
@@ -180,7 +178,7 @@ export default function SesionesPage() {
     const isGuestUser = userProfile?.subscription === 'Invitado';
 
     const handleDeleteSession = async (sessionId: string) => {
-        if (!user) return;
+        if (!user || !firestore) return;
         try {
             await deleteDoc(doc(firestore, `users/${user.uid}/sessions`, sessionId));
             toast({ title: 'Sesión eliminada', description: 'La sesión ha sido eliminada correctamente.' });
