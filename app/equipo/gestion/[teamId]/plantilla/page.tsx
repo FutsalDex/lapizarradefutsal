@@ -218,9 +218,9 @@ function StaffForm({ team, staff, isLoadingStaff, onStaffUpdated }: { team: Team
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nombre</TableHead>
+                      <TableHead className="w-[180px]">Nombre</TableHead>
                       <TableHead className="w-[200px]">Rol</TableHead>
-                      <TableHead className="w-[220px]">Email</TableHead>
+                      <TableHead className="w-[280px]">Email</TableHead>
                       <TableHead className="w-[100px] text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -412,7 +412,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                         <TableCell>
                            <FormField control={form.control} name={`players.${index}.name`} render={({ field }) => ( <Input {...field} placeholder="Nombre del jugador"/> )} />
                         </TableCell>
-                        <TableCell>
+                         <TableCell>
                           <FormField
                             control={form.control}
                             name={`players.${index}.position`}
