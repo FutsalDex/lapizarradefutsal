@@ -140,8 +140,8 @@ export default function ExerciseDetailPage() {
                             <CardTitle className='flex items-center text-lg'><Info className="mr-2 h-5 w-5 text-primary"/>Detalles del Ejercicio</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 pt-2">
-                            <div className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise.numberOfPlayers}</span></div>
-                             <div className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise.duration} min</span></div>
+                            <div className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <div><strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise.numberOfPlayers}</span></div></div>
+                             <div className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <div><strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise.duration} min</span></div></div>
                         </CardContent>
                     </Card>
                     <Card>
