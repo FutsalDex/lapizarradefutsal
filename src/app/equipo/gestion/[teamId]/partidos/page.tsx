@@ -86,6 +86,7 @@ import {
   BarChart,
   CalendarIcon,
   Save,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -203,17 +204,26 @@ function MatchFormDialog({
     setIsSubmitting(true);
     try {
       
-      const matchData = {
+      const matchData: Omit<Match, 'id' | 'teamId' | 'isFinished' | 'squad'> & { createdAt?: any, userId?: string } = {
         date: values.date,
         matchType: values.matchType,
         localTeam: values.localTeam,
         visitorTeam: values.visitorTeam,
         competition: values.competition,
-        matchday: values.matchday ? Number(values.matchday) : undefined,
+        localScore: 0,
+        visitorScore: 0
       };
+
+      if (values.matchday && !isNaN(Number(values.matchday)) && String(values.matchday).trim() !== '') {
+        matchData.matchday = Number(values.matchday);
+      }
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
+        // Remove matchday if it's empty, to avoid storing undefined
+        if (!matchData.matchday) {
+            delete matchData.matchday;
+        }
         await updateDoc(matchRef, matchData);
          toast({
             title: 'Partido actualizado',
@@ -223,8 +233,6 @@ function MatchFormDialog({
         const matchesCollection = collection(firestore, `matches`);
         await addDoc(matchesCollection, {
             ...matchData,
-            localScore: 0,
-            visitorScore: 0,
             isFinished: false,
             teamId: team.id,
             userId: user.uid,
@@ -561,7 +569,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
   const scoreDisplay = isFinished ? `${localScore} - ${visitorScore}` : 'vs';
   
-  const formattedDate = () => {
+  const formattedDate = useMemo(() => {
     if (!date) return 'Fecha no disponible';
     try {
         const dateObj = date.toDate ? date.toDate() : new Date(date);
@@ -572,7 +580,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     } catch(e) {
         return 'Fecha inválida';
     }
-  };
+  }, [date]);
 
   const convocadosCount = squad?.length || 0;
 
@@ -580,7 +588,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     <Card className="flex flex-col">
        <CardHeader className="text-center flex-grow pt-6 pb-2">
             <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
-            <CardDescription className="text-xs">{formattedDate()}</CardDescription>
+            <CardDescription className="text-xs">{formattedDate}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col items-center justify-center py-2">
             <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
