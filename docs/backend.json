@@ -84,8 +84,7 @@
         "createdAt": {"type": "string", "format": "date-time"},
         "name": {"type": "string"},
         "ownerId": {"type": "string"},
-        "ownerName": {"type": "string"},
-        "memberIds": {"type": "array", "items": {"type": "string"}}
+        "ownerName": {"type": "string"}
       },
       "required": ["name", "ownerId"]
     },
@@ -94,25 +93,21 @@
       "type": "object",
       "description": "Represents a player in a team.",
       "properties": {
-        "active": { "type": "boolean" },
-        "assists": { "type": "number" },
-        "fouls": { "type": "number" },
-        "goalsConceded": { "type": "number" },
-        "goals": { "type": "number" },
-        "minutesPlayed": { "type": "number" },
         "name": { "type": "string" },
         "number": { "type": "string" },
-        "saves": { "type": "number" },
-        "turnovers": { "type": "number" },
-        "pj": { "type": "number" },
-        "position": { "type": "string" },
-        "recoveries": { "type": "number" },
-        "shotsOnTarget": { "type": "number" },
-        "shotsOffTarget": { "type": "number" },
-        "yellowCards": { "type": "number" },
-        "redCards": { "type": "number" }
+        "position": { "type": "string", "enum": ["Portero", "Cierre", "Ala", "Pívot", "Ala-Pívot"]}
       },
       "required": ["name", "number", "position"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "type": "object",
+      "description": "Represents a staff member of a team.",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "required": ["name", "role"]
     },
     "MatchEvent": {
         "title": "Match Event",
@@ -231,30 +226,6 @@
       },
       "required": ["localTeam", "visitorTeam", "date", "matchType", "isFinished", "teamId", "userId"]
     },
-    "TeamMember": {
-        "title": "Team Member",
-        "type": "object",
-        "description": "Represents a staff member of a team.",
-        "properties": {
-            "createdAt": {"type": "string", "format": "date-time"},
-            "email": {"type": "string", "format": "email"},
-            "name": {"type": "string"},
-            "role": {"type": "string", "enum": [
-                "Entrenador",
-                "2º Entrenador",
-                "Delegado",
-                "Preparador Físico",
-                "Analista Táctico/Scouting",
-                "Fisioterapeuta",
-                "Médico",
-                "Psicólogo",
-                "Nutricionista"
-            ]},
-            "teamId": {"type": "string"},
-            "userId": {"type": "string"}
-        },
-        "required": ["teamId", "email", "role", "userId"]
-    },
     "AttendanceRecord": {
       "title": "Attendance Record",
       "type": "object",
@@ -344,9 +315,9 @@
         "schema": { "$ref": "#/entities/Player" },
         "description": "Stores the players for a specific team."
     },
-     "/teamMembers/{memberId}": {
-      "schema": { "$ref": "#/entities/TeamMember" },
-      "description": "Stores staff members for all teams."
+    "/teams/{teamId}/staff/{staffId}": {
+        "schema": { "$ref": "#/entities/Staff" },
+        "description": "Stores the staff members for a specific team."
     },
     "/matches/{matchId}": {
       "schema": { "$ref": "#/entities/Match" },

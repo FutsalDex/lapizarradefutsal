@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,29 +19,7 @@ service cloud.firestore {
       return isAuth() &&
         get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
     }
-
-    // 👥 Miembro del cuerpo técnico (revisado)
-    function isTeamMember(teamId) {
-      return isAuth() && (
-        // 1️⃣ Si el usuario está en el array memberIds del documento del equipo
-        (
-          get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds != null &&
-          get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds.hasAny([request.auth.uid])
-        )
-        ||
-        // 2️⃣ O si existe un documento en /teamMembers con el mismo teamId y su email
-        (
-          exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/teamMembers/$(request.auth.uid)).data.teamId == teamId
-        )
-      );
-    }
-
-    // ✅ Puede acceder si es propietario o miembro
-    function canAccessTeam(teamId) {
-      return isTeamOwner(teamId) || isTeamMember(teamId);
-    }
-
+    
     // 👑 Admin global
     function isAdmin() {
       return isAuth() && authEmail() == 'futsaldex@gmail.com';
@@ -51,36 +30,21 @@ service cloud.firestore {
     // 🧩 TEAMS
     // =============================
     match /teams/{teamId} {
-      allow get: if canAccessTeam(teamId);
+      allow read, create, update, delete: if isTeamOwner(teamId);
       allow list: if isAuth();
-      allow create: if isAuth()
-        && request.resource.data.ownerId == request.auth.uid
-        && (request.resource.data.memberIds is list)
-        && request.resource.data.memberIds.hasAny([request.auth.uid]);
-      allow update, delete: if isTeamOwner(teamId);
 
       // Subcolecciones
       match /players/{playerId} {
-        allow get, list: if canAccessTeam(teamId);
-        allow create, update: if canAccessTeam(teamId);
-        allow delete: if isTeamOwner(teamId);
+        allow read, write: if isTeamOwner(teamId);
+      }
+      
+      match /staff/{staffId} {
+        allow read, write: if isTeamOwner(teamId);
       }
 
       match /attendance/{attendanceId} {
-        allow read, write: if canAccessTeam(teamId);
+        allow read, write: if isTeamOwner(teamId);
       }
-    }
-
-
-    // =============================
-    // 🧑‍🤝‍🧑 TEAM MEMBERS (Cuerpo Técnico)
-    // =============================
-    match /teamMembers/{memberId} {
-      allow read: if isAuth() && canAccessTeam(resource.data.teamId);
-      allow list: if isAuth(); // El cliente debe filtrar por teamId
-      allow create: if isAuth() && isTeamOwner(request.resource.data.teamId);
-      allow update: if isAuth() && isTeamOwner(resource.data.teamId);
-      allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
     }
 
 
@@ -88,13 +52,11 @@ service cloud.firestore {
     // ⚽ MATCHES (PARTIDOS)
     // =============================
     match /matches/{matchId} {
-      allow get: if isAuth() && canAccessTeam(resource.data.teamId);
-      allow list: if isAuth(); // Cliente debe filtrar por teamId
+      allow read, update, delete: if isAuth() && isTeamOwner(resource.data.teamId);
+      allow list: if isAuth();
       allow create: if isAuth()
-        && canAccessTeam(request.resource.data.teamId)
+        && isTeamOwner(request.resource.data.teamId)
         && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuth() && canAccessTeam(resource.data.teamId);
-      allow delete: if isAuth() && isTeamOwner(resource.data.teamId);
     }
 
 

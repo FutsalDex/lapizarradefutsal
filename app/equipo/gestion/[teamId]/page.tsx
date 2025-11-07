@@ -31,16 +31,9 @@ interface Team {
 const menuItems = [
   {
     title: 'Mi Plantilla',
-    description: 'Gestiona los jugadores del equipo.',
+    description: 'Gestiona los jugadores y el staff del equipo.',
     icon: <Users className="w-8 h-8 text-primary" />,
-    href: '/miembros',
-    disabled: false,
-  },
-  {
-    title: 'Cuerpo Técnico',
-    description: 'Invita y gestiona a tus colaboradores.',
-    icon: <Briefcase className="w-8 h-8 text-primary" />,
-    href: '/cuerpo-tecnico',
+    href: '/plantilla',
     disabled: false,
   },
   {
@@ -94,13 +87,11 @@ export default function TeamDashboardPage() {
     );
   }
 
-  if (!team && !isLoadingTeam) {
-    return null;
-  }
-
   const isOwner = user?.uid === team?.ownerId;
   const isMember = team?.memberIds?.includes(user?.uid ?? '');
   const canView = isOwner || isMember;
+
+  if (!team) return null;
 
   if (!canView) {
      return (
@@ -116,8 +107,6 @@ export default function TeamDashboardPage() {
       </div>
     );
   }
-
-  if (!team) return null;
 
   return (
     <div className="container mx-auto px-4 py-8">
