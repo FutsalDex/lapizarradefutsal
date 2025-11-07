@@ -10,8 +10,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, PlaySquare } from 'lucide-react';
+import { ArrowLeft, PlaySquare, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+
+interface Player {
+    id: string;
+    name: string;
+    number: string;
+}
 
 function UpdatePlayerTimesScript() {
   const firestore = useFirestore();
@@ -19,12 +27,46 @@ function UpdatePlayerTimesScript() {
   const [matchId, setMatchId] = useState('');
   const [playerData, setPlayerData] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
+  const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
 
   const parseTimeToSeconds = (minutes: string, seconds: string): number => {
     const mins = parseInt(minutes, 10);
     const secs = parseInt(seconds, 10);
     if (isNaN(mins) || isNaN(secs)) return 0;
     return mins * 60 + secs;
+  };
+
+  const handleFetchPlayers = async () => {
+      if (!matchId) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Por favor, introduce un ID de partido.' });
+          return;
+      }
+      setIsLoadingPlayers(true);
+      setTeamPlayers([]);
+      try {
+          const matchRef = doc(firestore, 'matches', matchId);
+          const matchSnap = await getDoc(matchRef);
+          if (!matchSnap.exists()) {
+              throw new Error('No se encontró el partido con el ID proporcionado.');
+          }
+          const teamId = matchSnap.data()?.teamId;
+          if (!teamId) {
+              throw new Error('El partido no tiene un teamId asociado.');
+          }
+
+          const playersSnapshot = await getDocs(collection(firestore, `teams/${teamId}/players`));
+          const players = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+          setTeamPlayers(players);
+          if(players.length === 0) {
+            toast({ title: 'Aviso', description: 'No se encontraron jugadores para este equipo.' });
+          }
+      } catch (error: any) {
+          console.error('Error fetching players:', error);
+          toast({ variant: 'destructive', title: 'Error al cargar jugadores', description: error.message });
+      } finally {
+          setIsLoadingPlayers(false);
+      }
   };
 
   const handleUpdate = async () => {
@@ -35,7 +77,6 @@ function UpdatePlayerTimesScript() {
 
     setIsSubmitting(true);
     try {
-      // 1. Obtener el teamId desde el documento del partido
       const matchRef = doc(firestore, 'matches', matchId);
       const matchSnap = await getDoc(matchRef);
       if (!matchSnap.exists()) {
@@ -46,51 +87,46 @@ function UpdatePlayerTimesScript() {
         throw new Error('El partido no tiene un teamId asociado.');
       }
       
-      // 2. Obtener todos los jugadores del equipo y mapearlos por número
       const playersSnapshot = await getDocs(collection(firestore, `teams/${teamId}/players`));
       const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().number.toString(), doc.id]));
 
-      // 3. Parsear los datos introducidos
       const lines = playerData.trim().split(/[\n,]/).filter(Boolean);
       const updates = new Map<string, number>();
 
-      const timeRegex = /(\d+):(\d{1,2}):(\d{2})/;
+      const timeRegex = /(.+?):(\d{1,2}):(\d{2})/;
 
       lines.forEach(line => {
         const match = line.trim().match(timeRegex);
         if (match) {
-          const [, playerNumber, minutes, seconds] = match;
-          const playerId = playersMap.get(playerNumber);
+          const [, playerIdentifier, minutes, seconds] = match;
+          const playerId = playersMap.get(playerIdentifier.trim());
           
           if (playerId) {
             updates.set(playerId, parseTimeToSeconds(minutes, seconds));
           } else {
-             console.warn(`Jugador con dorsal no encontrado en la plantilla: "${playerNumber}"`);
+             console.warn(`Jugador con dorsal no encontrado en la plantilla: "${playerIdentifier.trim()}"`);
           }
         } else {
             console.warn(`Formato de línea incorrecto: "${line.trim()}"`);
         }
       });
 
-
       if (updates.size === 0) {
         throw new Error('No se encontraron jugadores coincidentes para actualizar.');
       }
       
-      // 4. Crear el batch de actualización
       const batch = writeBatch(firestore);
       const playerStats1H: { [key: string]: any } = {};
       const playerStats2H: { [key: string]: any } = {};
 
       updates.forEach((seconds, playerId) => {
-        // Asignamos todo a la primera parte como solución temporal/general
         playerStats1H[playerId] = { minutesPlayed: seconds };
         playerStats2H[playerId] = { minutesPlayed: 0 };
       });
       
       batch.update(matchRef, { 
         'playerStats.1H': playerStats1H,
-        'playerStats.2H': playerStats2H, // Aseguramos que la 2H exista
+        'playerStats.2H': playerStats2H,
       });
       
       await batch.commit();
@@ -98,6 +134,7 @@ function UpdatePlayerTimesScript() {
       toast({ title: 'Éxito', description: 'Tiempos de juego actualizados correctamente.' });
       setMatchId('');
       setPlayerData('');
+      setTeamPlayers([]);
     } catch (error: any) {
       console.error('Error updating player times:', error);
       toast({ variant: 'destructive', title: 'Error', description: `No se pudieron actualizar los tiempos: ${error.message}` });
@@ -111,20 +148,47 @@ function UpdatePlayerTimesScript() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
-          Pega el ID del partido y la lista de jugadores con sus tiempos para actualizarlos en la base de datos.
-          El formato debe ser: `Número:mm:ss`, uno por línea o separados por comas.
+          Introduce el ID de un partido para ver su plantilla. Luego, pega la lista de jugadores con sus tiempos en formato `Número:mm:ss`.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div>
           <Label htmlFor="matchId">ID del Partido</Label>
-          <Input 
-            id="matchId"
-            value={matchId}
-            onChange={(e) => setMatchId(e.target.value)}
-            placeholder="Ej: 7YuZhJ6yniEaAX4EmppW"
-          />
+          <div className="flex gap-2">
+            <Input 
+                id="matchId"
+                value={matchId}
+                onChange={(e) => setMatchId(e.target.value)}
+                placeholder="Ej: 7YuZhJ6yniEaAX4EmppW"
+            />
+            <Button onClick={handleFetchPlayers} disabled={isLoadingPlayers || !matchId} variant="outline">
+                {isLoadingPlayers ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Users className="mr-2 h-4 w-4" />}
+                Cargar Jugadores
+            </Button>
+          </div>
         </div>
+        
+        {teamPlayers.length > 0 && (
+            <div className="rounded-md border max-h-60 overflow-y-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[80px]">Dorsal</TableHead>
+                            <TableHead>Nombre</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {teamPlayers.map(player => (
+                            <TableRow key={player.id}>
+                                <TableCell className="font-mono text-center">{player.number}</TableCell>
+                                <TableCell>{player.name}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        )}
+
         <div>
           <Label htmlFor="playerData">Datos de Jugadores y Tiempos</Label>
           <Textarea
@@ -178,3 +242,4 @@ export default function AdminScriptsPage() {
     </div>
   );
 }
+
