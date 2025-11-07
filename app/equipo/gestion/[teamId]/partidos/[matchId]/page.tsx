@@ -84,7 +84,7 @@ interface Match {
 const formatStatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
 /**
@@ -745,13 +745,11 @@ export default function MatchStatsPage() {
   const handleTimeout = (team: 'local' | 'visitor') => {
     if(!localMatchData || localMatchData.isFinished) return;
     
-    // Using a function with the state setter to ensure we have the latest state
     setLocalMatchData(currentMatchData => {
         if (!currentMatchData) return null;
 
         const currentVal = _.get(currentMatchData.timeouts, `${period}.${team}`, 0);
         
-        // Only one timeout per half
         if (currentVal > 0) {
           return currentMatchData; // Do nothing if timeout already used
         }
@@ -760,7 +758,7 @@ export default function MatchStatsPage() {
         _.set(updatedTimeouts, `${period}.${team}`, 1);
         
         const updatedData = { ...currentMatchData, timeouts: updatedTimeouts };
-        handleUpdate(updatedData); // Propagate the update
+        handleUpdate(updatedData);
         return updatedData;
     });
   };

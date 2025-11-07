@@ -50,11 +50,13 @@ interface Match {
   squad?: string[];
   events?: MatchEvent[];
   playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
-  // Legacy fields
+  
+  // Legacy fields for backwards compatibility
   localPlayers?: any[];
   visitorPlayers?: any[];
   userTeam?: 'local' | 'visitor';
 }
+
 
 interface Player {
     id: string;
@@ -62,11 +64,12 @@ interface Player {
     number: string;
 }
 
+
 // ====================
 // HELPER FUNCTIONS
 // ====================
 const formatStatTime = (totalSeconds: number) => {
-    if (!totalSeconds || totalSeconds < 0) return '00:00';
+    if (isNaN(totalSeconds) || totalSeconds < 0) return '00:00';
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -105,7 +108,6 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
             }
         });
     } else {
-        // Handle legacy structure
         const isMyTeamLocal = match.localTeam === teamName;
         const legacyPlayerList = isMyTeamLocal ? match.localPlayers : match.visitorPlayers;
         if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
@@ -273,7 +275,7 @@ export default function MatchDetailsPage() {
   
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
-
+  
   const goalEvents = useMemo(() => {
       if (!match?.events) return [];
       return match.events.filter(e => e.type === 'goal');
