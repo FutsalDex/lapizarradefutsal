@@ -204,20 +204,26 @@ function MatchFormDialog({
     setIsSubmitting(true);
     try {
       
-      const matchData: any = {
+      const matchData: Omit<Match, 'id' | 'teamId' | 'isFinished' | 'squad'> & { createdAt?: any, userId?: string } = {
         date: values.date,
         matchType: values.matchType,
         localTeam: values.localTeam,
         visitorTeam: values.visitorTeam,
         competition: values.competition,
+        localScore: 0,
+        visitorScore: 0
       };
 
-      if (values.matchday && !isNaN(Number(values.matchday))) {
+      if (values.matchday && !isNaN(Number(values.matchday)) && String(values.matchday).trim() !== '') {
         matchData.matchday = Number(values.matchday);
       }
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
+        // Remove matchday if it's empty, to avoid storing undefined
+        if (!matchData.matchday) {
+            delete matchData.matchday;
+        }
         await updateDoc(matchRef, matchData);
          toast({
             title: 'Partido actualizado',
@@ -227,8 +233,6 @@ function MatchFormDialog({
         const matchesCollection = collection(firestore, `matches`);
         await addDoc(matchesCollection, {
             ...matchData,
-            localScore: 0,
-            visitorScore: 0,
             isFinished: false,
             teamId: team.id,
             userId: user.uid,
@@ -711,10 +715,6 @@ export default function MatchesPage() {
         </div>
       </div>
     );
-  }
-
-  if (!team && !isLoading) {
-    return null
   }
 
   if (!canView) {
