@@ -107,30 +107,36 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
     }, [allPlayers, match.squad]);
 
     const aggregatedStats = useMemo(() => {
-        const stats: { [playerId: string]: PlayerStats & { name: string, number: string } } = {};
+    if (!squadPlayers.length || !match.playerStats) return [];
+    
+    const stats: { [playerId: string]: PlayerStats & { name: string, number: string } } = {};
 
-        squadPlayers.forEach(player => {
-            const stats1H = _.get(match.playerStats, `1H.${player.id}`, {});
-            const stats2H = _.get(match.playerStats, `2H.${player.id}`, {});
-            
-            stats[player.id] = {
-                name: player.name,
-                number: player.number,
-                minutesPlayed: (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0),
-                goals: (stats1H.goals || 0) + (stats2H.goals || 0),
-                assists: (stats1H.assists || 0) + (stats2H.assists || 0),
-                yellowCards: (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0),
-                redCards: (stats1H.redCards || 0) + (stats2H.redCards || 0),
-                fouls: (stats1H.fouls || 0) + (stats2H.fouls || 0),
-                saves: (stats1H.saves || 0) + (stats2H.saves || 0),
-                goalsConceded: (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0),
-                unoVsUno: (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0),
-            };
-        });
+    squadPlayers.forEach(player => {
+        const stats1H = _.get(match.playerStats, `1H.${player.id}`, {}) as Partial<PlayerStats>;
+        const stats2H = _.get(match.playerStats, `2H.${player.id}`, {}) as Partial<PlayerStats>;
+        
+        stats[player.id] = {
+            name: player.name,
+            number: player.number,
+            minutesPlayed: (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0),
+            goals: (stats1H.goals || 0) + (stats2H.goals || 0),
+            assists: (stats1H.assists || 0) + (stats2H.assists || 0),
+            yellowCards: (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0),
+            redCards: (stats1H.redCards || 0) + (stats2H.redCards || 0),
+            fouls: (stats1H.fouls || 0) + (stats2H.fouls || 0),
+            saves: (stats1H.saves || 0) + (stats2H.saves || 0),
+            goalsConceded: (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0),
+            unoVsUno: (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0),
+            shotsOnTarget: (stats1H.shotsOnTarget || 0) + (stats2H.shotsOnTarget || 0),
+            shotsOffTarget: (stats1H.shotsOffTarget || 0) + (stats2H.shotsOffTarget || 0),
+            recoveries: (stats1H.recoveries || 0) + (stats2H.recoveries || 0),
+            turnovers: (stats1H.turnovers || 0) + (stats2H.turnovers || 0),
+        };
+    });
 
-        return Object.values(stats).sort((a,b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+    return Object.values(stats).sort((a,b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
-    }, [match.playerStats, squadPlayers]);
+}, [match.playerStats, squadPlayers]);
 
     const totals = useMemo(() => {
         return aggregatedStats.reduce((acc, player) => {
