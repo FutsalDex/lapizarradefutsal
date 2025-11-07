@@ -75,10 +75,6 @@ interface Match {
   fouls?: { [key in Period]?: { local: number; visitor: number } };
   timeouts?: { [key in Period]?: { local: number; visitor: number } };
   events?: MatchEvent[];
-  // Legacy fields for migration
-  userTeam?: 'local' | 'visitor';
-  visitorPlayers?: any[];
-  localPlayers?: any[];
 }
 
 
@@ -92,53 +88,13 @@ const formatStatTime = (totalSeconds: number) => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-/**
- * Migrates a match object from a legacy data structure to the new period-based structure.
- */
-function migrateLegacyMatchData(matchData: Match): Match {
+function ensureNestedStructures(matchData: Match): Match {
     if (!matchData) return matchData;
 
-    const isLegacy = (matchData.visitorPlayers || matchData.localPlayers) && !matchData.playerStats;
     const migratedData = _.cloneDeep(matchData);
 
-    if (isLegacy) {
-      const userTeamPlayers = (migratedData.userTeam === 'visitor' ? migratedData.visitorPlayers : migratedData.localPlayers) || [];
-      const playerStats1H: { [playerId: string]: Partial<PlayerStats> } = {};
-
-      userTeamPlayers.forEach((player: any) => {
-        playerStats1H[player.id] = {
-          goals: player.goals || 0,
-          assists: player.assists || 0,
-          yellowCards: player.amarillas || 0,
-          redCards: player.rojas || 0,
-          fouls: player.faltas || 0,
-          shotsOnTarget: player.tirosPuerta || 0,
-          shotsOffTarget: player.tirosFuera || 0,
-          recoveries: player.recuperaciones || 0,
-          turnovers: player.perdidas || 0,
-          saves: player.paradas || 0,
-          goalsConceded: player.gRec || 0,
-          minutesPlayed: player.timeOnCourt || 0,
-          unoVsUno: player.vs1 || 0,
-        };
-      });
-      
-      migratedData.playerStats = {
-        '1H': playerStats1H,
-        '2H': {}
-      };
-      
-      // Clean up old fields
-      delete (migratedData as any).visitorPlayers;
-      delete (migratedData as any).localPlayers;
-      delete (migratedData as any).teamStats1;
-      delete (migratedData as any).teamStats2;
-      delete (migratedData as any).opponentStats1;
-      delete (migratedData as any).opponentStats2;
-    }
-  
-    // Ensure all nested structures exist to prevent runtime errors on modern objects too
-    if (!migratedData.playerStats) migratedData.playerStats = {};
+    // Ensure all nested structures exist to prevent runtime errors
+    if (!migratedData.playerStats) migratedData.playerStats = { '1H': {}, '2H': {} };
     if (!migratedData.playerStats['1H']) migratedData.playerStats['1H'] = {};
     if (!migratedData.playerStats['2H']) migratedData.playerStats['2H'] = {};
     
@@ -153,7 +109,7 @@ function migrateLegacyMatchData(matchData: Match): Match {
     if (!migratedData.fouls) migratedData.fouls = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
     if (!migratedData.fouls['1H']) migratedData.fouls['1H'] = {local: 0, visitor: 0};
     if (!migratedData.fouls['2H']) migratedData.fouls['2H'] = {local: 0, visitor: 0};
-    
+
     return migratedData;
 }
 
@@ -629,7 +585,7 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (remoteMatchData) {
         setLocalMatchData(prevLocal => {
-            const migratedData = migrateLegacyMatchData(remoteMatchData);
+            const migratedData = ensureNestedStructures(remoteMatchData);
             if (!_.isEqual(prevLocal, migratedData)) {
                 return migratedData;
             }
