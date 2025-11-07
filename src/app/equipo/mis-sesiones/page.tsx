@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -32,20 +31,11 @@ import { Exercise, mapExercise } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { useDoc } from '@/firebase';
 
-const sessionSchema = z.object({
-  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
-  date: z.date({ required_error: 'La fecha es requerida.' }),
-  objectives: z.string().optional(),
-  exercises: z.array(z.string()).min(1, 'Debes seleccionar al menos un ejercicio.'),
-});
-
-type SessionFormValues = z.infer<typeof sessionSchema>;
-
 interface Session {
     id: string;
     name: string;
     date: any;
-    exercises: string[];
+    exercises: { initial: string[], main: string[], final: string[] } | string[];
     objectives?: string;
     sessionType?: 'basic' | 'pro';
 }
@@ -58,14 +48,24 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
     const firestore = useFirestore();
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     
-    const exerciseRefs = useMemoFirebase(() => {
-        if (!firestore || !session.exercises) return [];
-        return session.exercises.map(id => doc(firestore, 'exercises', id));
-    }, [firestore, session.exercises]);
+    const exerciseIds = useMemo(() => {
+        if (!session.exercises) return [];
+        if (Array.isArray(session.exercises)) return session.exercises;
+        if (typeof session.exercises === 'object') {
+            return [
+                ...(session.exercises.initial || []),
+                ...(session.exercises.main || []),
+                ...(session.exercises.final || [])
+            ];
+        }
+        return [];
+    }, [session.exercises]);
 
-    // This is not optimal as it triggers many individual reads.
-    // For a real app, consider a single query with 'in' operator if exercise IDs are known and limited.
-    // Or, denormalize exercise names into the session document.
+    const exerciseRefs = useMemoFirebase(() => {
+        if (!firestore || exerciseIds.length === 0) return [];
+        return exerciseIds.map(id => doc(firestore, 'exercises', id));
+    }, [firestore, exerciseIds]);
+
     const exerciseHooks = exerciseRefs.map(ref => useDoc<any>(ref));
     const isLoadingExercises = exerciseHooks.some(hook => hook.isLoading);
     
@@ -74,8 +74,7 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
     }, [exerciseHooks]);
 
     const getExerciseCount = (session: Session) => {
-        if (!session.exercises) return 0;
-        return Array.isArray(session.exercises) ? session.exercises.length : 0;
+      return exerciseIds.length;
     }
 
     return (
@@ -127,7 +126,7 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
                                     <p>Cargando ejercicios...</p>
                                 ) : (
                                     <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                                        {exerciseDetails.map(ex => <li key={ex.id}>{ex.name}</li>)}
+                                        {exerciseDetails.map((ex) => <li key={ex.id}>{ex.name}</li>)}
                                     </ul>
                                 )}
                             </div>
@@ -287,5 +286,3 @@ export default function SesionesPage() {
     </div>
   );
 }
-
-```

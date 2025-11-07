@@ -98,7 +98,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     return (
         <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-4 rounded-lg shadow-lg overflow-hidden border flex flex-col">
              <div className="p-2 bg-gray-100 border-b grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-800">
-                {sessionData.name && <div className="font-semibold">Nº Sesión: <span className="font-normal">{sessionData.name}</span></div>}
+                {sessionData.name && <div className="font-semibold">Número de sesión: <span className="font-normal">{sessionData.name}</span></div>}
                 {sessionData.date && <div className="font-semibold">Fecha: <span className="font-normal">{format(sessionData.date, 'PPP', { locale: es })}</span></div>}
                 {sessionData.time && <div className="font-semibold">Hora: <span className="font-normal">{sessionData.time}</span></div>}
                 {sessionData.facility && <div className="font-semibold">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
@@ -172,12 +172,10 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
         <>
             {exercisePages.map((pageExercises, pageIndex) => (
                  <div key={pageIndex} className="bg-white text-black w-full md:w-[21cm] h-auto md:h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col mb-4 print-page">
-                    <div className="p-4 bg-gray-800 text-white grid grid-cols-2 sm:grid-cols-5 gap-2 items-center text-center text-[10px] sm:text-base">
-                        <div className="flex items-center gap-2"><Shield className="h-5 w-5 hidden sm:block" /> <span>Microciclo</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="2"/></div>
-                        <div className="flex items-center gap-2"><span>Sesión</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="10"/></div>
-                        <div className="flex items-center gap-2"><span>Fecha</span><Input className="text-center bg-gray-700 text-white" defaultValue={format(sessionData.date, "dd/MM/yyyy")}/></div>
-                        <div className="col-span-1 flex items-center gap-2"><span>Objetivos</span><Input className="w-16 sm:w-20 text-center bg-gray-700 text-white" defaultValue="N/A"/></div>
-                        <div className="flex items-center gap-2"><span>Jugadores</span><Input className="w-12 sm:w-16 text-center bg-gray-700 text-white" defaultValue="12"/></div>
+                    <div className="p-2 bg-gray-800 text-white grid grid-cols-3 gap-4 items-center text-center text-sm">
+                        <div className="flex items-center justify-center gap-2"><Shield className="h-5 w-5 hidden sm:block" /> <span>Microciclo</span></div>
+                        <div className="flex items-center justify-center gap-2"><span>Sesión:</span><span>{sessionData.name}</span></div>
+                        <div className="flex items-center justify-center gap-2"><span>Fecha:</span><span>{format(sessionData.date, "dd/MM/yyyy")}</span></div>
                     </div>
                      <ScrollArea className="flex-grow">
                         {pageExercises.map(ex => <ExercisePreview key={ex.id} exercise={ex} />)}
@@ -529,7 +527,7 @@ export default function CreateSessionPage() {
                         </CardContent>
                     </Card>
 
-                     <div className="space-y-4">
+                     <div className="grid md:grid-cols-3 gap-6">
                         <PhaseSection
                             title="Fase Inicial (Calentamiento)"
                             phase="initialExercises"
