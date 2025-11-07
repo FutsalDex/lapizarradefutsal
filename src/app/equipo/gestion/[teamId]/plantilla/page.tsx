@@ -390,7 +390,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                            <FormField control={form.control} name={`players.${index}.position`} render={({ field }) => ( <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Selecciona..." /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="Portero">Portero</SelectItem> <SelectItem value="Cierre">Cierre</SelectItem> <SelectItem value="Ala">Ala</SelectItem> <SelectItem value="Pívot">Pívot</SelectItem> <SelectItem value="Ala-Pívot">Ala-Pívot</SelectItem> </SelectContent> </Select> )}/>
                         </TableCell>
                         <TableCell className="text-right">
-                          <AlertDialog>
+                            <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                 </AlertDialogTrigger>
@@ -513,5 +513,6 @@ export default function RosterPage() {
     </div>
   );
 }
+
 
     
