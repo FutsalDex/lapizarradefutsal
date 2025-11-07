@@ -97,13 +97,11 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
 
     return (
         <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-4 rounded-lg shadow-lg overflow-hidden border flex flex-col">
-            <div className="p-2 bg-gray-100 border-b">
-                 <div className="flex justify-center items-center gap-4 text-xs text-gray-600 mt-1">
-                    {sessionData.name && <span>{sessionData.name}</span>}
-                    {sessionData.date && <span>- {format(sessionData.date, 'PPP', { locale: es })}</span>}
-                    {sessionData.time && <span>- {sessionData.time}</span>}
-                    {sessionData.facility && <span>- {sessionData.facility}</span>}
-                </div>
+             <div className="p-2 bg-gray-100 border-b grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-800">
+                {sessionData.name && <div className="font-semibold">Nº Sesión: <span className="font-normal">{sessionData.name}</span></div>}
+                {sessionData.date && <div className="font-semibold">Fecha: <span className="font-normal">{format(sessionData.date, 'PPP', { locale: es })}</span></div>}
+                {sessionData.time && <div className="font-semibold">Hora: <span className="font-normal">{sessionData.time}</span></div>}
+                {sessionData.facility && <div className="font-semibold">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
             </div>
             <ScrollArea className="flex-grow">
                  <div className="p-4 space-y-4">
@@ -419,12 +417,10 @@ export default function CreateSessionPage() {
         if (phase === 'initialExercises') {
              limit = 2;
              phaseName = 'Fase Inicial';
-        }
-        if (phase === 'mainExercises') {
+        } else if (phase === 'mainExercises') {
              limit = 4;
              phaseName = 'Fase Principal';
-        }
-        if (phase === 'finalExercises') {
+        } else if (phase === 'finalExercises') {
              limit = 2;
              phaseName = 'Fase Final';
         }
