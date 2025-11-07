@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -31,7 +32,6 @@ import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDoc } from '@/firebase';
-
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -295,26 +295,16 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
 
 function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: () => void }) {
     return (
-        <Card className="group relative overflow-hidden flex items-center p-2">
-            <div className="relative aspect-square w-16 h-16 mr-4 flex-shrink-0 bg-muted rounded-md">
-                {exercise.image ? (
-                    <Image
-                        src={exercise.image}
-                        alt={exercise.name}
-                        fill
-                        className="object-contain p-1"
-                    />
-                ) : (
-                    <FutsalCourt className="w-full h-full p-1" />
-                )}
-            </div>
-            <div className="flex-grow overflow-hidden">
-                <p className="font-semibold text-sm leading-tight truncate">{exercise.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{exercise.category}</p>
-            </div>
-             <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
-                <Trash2 className="h-3 w-3" />
-             </Button>
+        <Card className="group relative overflow-hidden flex flex-col justify-center items-center text-center p-2 min-h-[140px]">
+            <p className="font-semibold text-sm leading-tight">{exercise.name}</p>
+            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
+                <Trash2 className="h-4 w-4" />
+            </Button>
+             <div className="absolute bottom-2">
+                 <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                    <PlusCircle className="h-5 w-5" />
+                </div>
+             </div>
         </Card>
     )
 }
@@ -326,35 +316,35 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full min-h-[88px] flex items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
+        "w-full min-h-[140px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
         disabled 
           ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
           : "hover:border-primary hover:text-primary"
       )}
     >
-      <div className="text-center">
-        <PlusCircle className="h-8 w-8 mb-1 mx-auto" />
-        <span className="text-sm font-medium">Añadir Tarea</span>
-      </div>
+        <p className="font-semibold text-sm">Añadir Tarea</p>
+        <div className="mt-2 h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-600">
+            <PlusCircle className="h-5 w-5" />
+        </div>
     </button>
   );
 }
 
 
-function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any, limit: number }) {
+function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, limit: number }) {
 
     const selectedExercises = useMemo(() => {
         return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
 
-    const atLimit = selectedIds.length >= limit;
+    const atLimit = selectedExercises.length >= limit;
 
     return (
         <Card className="flex flex-col">
             <CardHeader>
-                <CardTitle className="text-xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-base font-normal">({selectedIds.length}/{limit})</span></CardTitle>
+                <CardTitle className="text-xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-base font-normal">({selectedExercises.length}/{limit})</span></CardTitle>
             </CardHeader>
-             <CardContent className="flex-grow space-y-2">
+             <CardContent className="flex-grow grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {selectedExercises.map((ex, index) => (
                     <ExerciseCard key={`${ex.id}-${index}`} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                 ))}
@@ -546,14 +536,13 @@ export default function CreateSessionPage() {
                         </CardContent>
                     </Card>
 
-                     <div className="grid md:grid-cols-3 gap-6">
+                     <div className="space-y-4">
                         <PhaseSection
                             title="Fase Inicial (Calentamiento)"
                             phase="initialExercises"
                             allExercises={allExercises}
                             selectedIds={watchedValues.initialExercises}
                             onExerciseToggle={handleExerciseToggle}
-                            control={form.control}
                             limit={2}
                         />
                         <PhaseSection
@@ -562,7 +551,6 @@ export default function CreateSessionPage() {
                             allExercises={allExercises}
                             selectedIds={watchedValues.mainExercises}
                             onExerciseToggle={handleExerciseToggle}
-                            control={form.control}
                             limit={4}
                         />
                          <PhaseSection
@@ -571,7 +559,6 @@ export default function CreateSessionPage() {
                             allExercises={allExercises}
                             selectedIds={watchedValues.finalExercises}
                             onExerciseToggle={handleExerciseToggle}
-                            control={form.control}
                             limit={2}
                         />
                     </div>
