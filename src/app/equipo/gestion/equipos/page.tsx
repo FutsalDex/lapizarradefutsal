@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { collection, query, where, addDoc, serverTimestamp, or, writeBatch, doc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
 import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, PlusCircle, Settings, UserCog, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Shield, Users, PlusCircle, Settings, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -65,7 +65,7 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
 
     setIsSubmitting(true);
     try {
-      const teamRef = await addDoc(collection(firestore, 'teams'), {
+      await addDoc(collection(firestore, 'teams'), {
         ...values,
         ownerId: user.uid,
         ownerName: user.displayName || user.email,
@@ -78,7 +78,7 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
         description: 'Equipo creado correctamente.',
       });
       form.reset();
-      onTeamCreated(); // Callback to refresh the list
+      onTeamCreated();
     } catch (error) {
       console.error('Error creating team:', error);
       toast({
@@ -155,30 +155,24 @@ function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCre
   );
 }
 
-
-function TeamList({ title, description, icon, teams, isLoading, emptyText, isOwnerList = false, onTeamDeleted }: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
+function TeamList({ teams, isLoading, onTeamDeleted }: {
   teams: Team[] | null;
   isLoading: boolean;
-  emptyText: string;
-  isOwnerList?: boolean;
   onTeamDeleted?: () => void;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">{icon}{title}</CardTitle>
-        <CardDescription className='text-xs'>{description}</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-base"><Users/>Mis Equipos</CardTitle>
+        <CardDescription className='text-xs'>Lista de equipos que administras.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? <Skeleton className="h-20 w-full" /> : 
           <div className="space-y-4">
             {teams && teams.length > 0 ? (
-              teams.map(team => <TeamListItem key={team.id} team={team} isOwner={isOwnerList} onTeamDeleted={onTeamDeleted} />)
+              teams.map(team => <TeamListItem key={team.id} team={team} isOwner onTeamDeleted={onTeamDeleted} />)
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">{emptyText}</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No has creado ningún equipo.</p>
             )}
           </div>
         }
@@ -249,8 +243,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isUserLoading) {
         return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /><Skeleton className="h-48 w-full" /></div>
                 <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
+                <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /></div>
             </div>
         );
     }
@@ -277,7 +271,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 export default function GestionEquiposPage() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [ownedTeamsCount, setOwnedTeamsCount] = useState(0);
   const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
 
@@ -293,27 +286,13 @@ export default function GestionEquiposPage() {
     return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
   }, [firestore, user, refreshKey]);
 
-  const sharedTeamsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'teams'),
-      where('memberIds', 'array-contains', user.uid),
-      where('ownerId', '!=', user.uid)
-    );
-  }, [firestore, user, refreshKey]);
-
   const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
-  const { data: sharedTeams, isLoading: isLoadingShared } = useCollection<Team>(sharedTeamsQuery);
-
+  
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
   
-  useEffect(() => {
-    if (ownedTeams) {
-        setOwnedTeamsCount(ownedTeams.length);
-    }
-  }, [ownedTeams]);
+  const ownedTeamsCount = ownedTeams?.length ?? 0;
 
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
@@ -329,7 +308,7 @@ export default function GestionEquiposPage() {
     return { isCreationDisabled: false, disabledReason: ''};
   }, [userProfile, ownedTeamsCount]);
 
-  const isLoading = isAuthLoading || isLoadingOwned || isLoadingShared || isLoadingProfile;
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -352,31 +331,19 @@ export default function GestionEquiposPage() {
         </div>
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            <div className="md:col-span-2 space-y-8">
+            <div className="md:col-span-1">
+                <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
+            </div>
+            <div className="md:col-span-2">
                 <TeamList 
-                    title="Mis Equipos"
-                    description="Lista de equipos que administras como propietario."
-                    icon={<Users/>}
                     teams={ownedTeams}
                     isLoading={isLoading}
-                    emptyText="No has creado ningún equipo."
-                    isOwnerList={true}
                     onTeamDeleted={handleRefresh}
                 />
-                <TeamList 
-                    title="Equipos Compartidos"
-                    description="Equipos a los que has sido invitado como miembro del cuerpo técnico."
-                    icon={<UserCog/>}
-                    teams={sharedTeams}
-                    isLoading={isLoading}
-                    emptyText="No eres miembro de ningún equipo."
-                />
             </div>
-             <div className="md:col-span-1">
-                <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
-             </div>
         </div>
       </AuthGuard>
     </div>
   );
 }
+
