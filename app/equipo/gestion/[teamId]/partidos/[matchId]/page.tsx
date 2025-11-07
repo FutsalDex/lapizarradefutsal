@@ -82,6 +82,7 @@ interface Match {
 // HELPER FUNCTIONS
 // ====================
 const formatStatTime = (totalSeconds: number) => {
+    if (isNaN(totalSeconds)) totalSeconds = 0;
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -268,8 +269,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         const isMyTeamLocal = match.localTeam === teamName;
         
         if (stat === 'goals' && isMyTeam) {
-            const teamGoals1H = _.sumBy(Object.values(_.get(updatedStats, '1H', {})), 'goals');
-            const teamGoals2H = _.sumBy(Object.values(_.get(updatedStats, '2H', {})), 'goals');
+            const teamGoals1H = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0));
+            const teamGoals2H = _.sumBy(players, p => _.get(updatedStats, `2H.${p.id}.goals`, 0));
             const opponentGoals1H = _.get(match.opponentStats, '1H.goals', 0);
             const opponentGoals2H = _.get(match.opponentStats, '2H.goals', 0);
 
@@ -505,16 +506,19 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
-             const myTeamGoals = match.localScore;
+             const myTeamGoals1H = _.sumBy(Object.values(_.get(match.playerStats, '1H', {})), 'goals');
+             const myTeamGoals2H = _.sumBy(Object.values(_.get(match.playerStats, '2H', {})), 'goals');
+             const totalMyTeamGoals = myTeamGoals1H + myTeamGoals2H;
+             
 
              const isOpponentLocal = match.localTeam === teamName;
 
              if(isOpponentLocal) {
                 batchUpdate.localScore = goals1H + goals2H;
-                batchUpdate.visitorScore = myTeamGoals;
+                batchUpdate.visitorScore = totalMyTeamGoals;
              } else {
                 batchUpdate.visitorScore = goals1H + goals2H;
-                batchUpdate.localScore = myTeamGoals;
+                batchUpdate.localScore = totalMyTeamGoals;
              }
 
              // Add or remove goal event

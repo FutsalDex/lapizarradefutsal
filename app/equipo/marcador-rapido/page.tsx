@@ -146,8 +146,8 @@ export default function QuickScoreboardPage() {
 
     // Timer and Period State
     const [time, setTime] = useState(matchDuration);
-    const [isTimerActive, setIsTimerActive] = useState(false);
-    const [period, setPeriod] = useState(1);
+    const [isActive, setIsActive] = useState(false);
+    const [periodo, setPeriodo] = useState<'1ª Parte' | '2ª Parte'>('1ª Parte');
     
     // Config Dialog State
     const [configDuration, setConfigDuration] = useState(25);
@@ -161,14 +161,14 @@ export default function QuickScoreboardPage() {
             interval = setInterval(() => {
                 setTime(prevTime => prevTime - 1);
             }, 1000);
-        } else if (isTimerActive && time === 0) {
-            setIsTimerActive(false);
-            toast({ title: "Tiempo Finalizado", description: `Ha terminado la ${period}ª parte.` });
+        } else if (isActive && time === 0) {
+            setIsActive(false);
+            toast({ title: "Tiempo Finalizado", description: `Ha terminado la ${periodo}.` });
         }
         return () => {
             if (interval) clearInterval(interval);
         };
-    }, [isActive, time, period, toast]);
+    }, [isActive, time, periodo, toast]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
@@ -187,7 +187,7 @@ export default function QuickScoreboardPage() {
     
     const resetPeriod = () => {
         setTime(matchDuration);
-        setIsTimerActive(false);
+        setIsActive(false);
         setLocalTimeouts(0);
         setVisitorTimeouts(0);
         setGeneralStats(prev => ({
@@ -197,9 +197,9 @@ export default function QuickScoreboardPage() {
         }));
     };
 
-    const handlePeriodChange = (newPeriod: number) => {
-        if (period !== newPeriod) {
-            setPeriod(newPeriod);
+    const handlePeriodChange = (newPeriod: '1ª Parte' | '2ª Parte') => {
+        if (periodo !== newPeriod) {
+            setPeriodo(newPeriod);
             resetPeriod();
         }
     };
@@ -209,7 +209,7 @@ export default function QuickScoreboardPage() {
             local: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
             visitor: { goals: 0, fouls: 0, yellowCards: 0, redCards: 0 },
         });
-        handlePeriodChange(1);
+        handlePeriodChange('1ª Parte');
     };
 
     const applySettings = () => {
@@ -217,7 +217,7 @@ export default function QuickScoreboardPage() {
         setVisitorTeam(configVisitorName);
         const newDurationInSeconds = configDuration * 60;
         setMatchDuration(newDurationInSeconds);
-        if (!isTimerActive) {
+        if (!isActive) {
             setTime(newDurationInSeconds);
         }
         toast({title: "Configuración guardada", description: "Se han aplicado los nuevos ajustes."})
@@ -248,7 +248,7 @@ export default function QuickScoreboardPage() {
     
 
     return (
-        <div className="container mx-auto px-4 py-8 flex flex-col items-center">
+        <div className="container mx-auto max-w-2xl py-12 px-4">
             <div className="w-full max-w-2xl">
                  <Button asChild variant="outline" className="mb-4">
                     <Link href={`/equipo/gestion`}>
@@ -301,7 +301,7 @@ export default function QuickScoreboardPage() {
 
                     {/* Main Controls */}
                     <div className="flex justify-center items-center gap-4">
-                        <Button onClick={() => setIsTimerActive(!isActive)} variant="default" size="sm" className={cn(isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
+                        <Button onClick={() => setIsActive(!isActive)} variant="default" size="sm" className={cn(isActive ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90")}>
                             {isActive ? <Pause className="mr-2 h-4 w-4"/> : <Play className="mr-2 h-4 w-4"/>}
                             {isActive ? 'Pausar' : 'Iniciar'}
                         </Button>
@@ -318,12 +318,12 @@ export default function QuickScoreboardPage() {
                                 </DialogHeader>
                                 <div className="grid gap-4 py-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="local-name">Equipo Local</Label>
-                                        <Input id="local-name" value={configLocalName} onChange={(e) => setConfigLocalName(e.target.value)} />
+                                        <Label htmlFor="localTeam">Equipo Local</Label>
+                                        <Input id="localTeam" value={configLocalName} onChange={(e) => setConfigLocalName(e.target.value)} />
                                     </div>
                                      <div className="space-y-2">
-                                        <Label htmlFor="visitor-name">Equipo Visitante</Label>
-                                        <Input id="visitor-name" value={configVisitorName} onChange={(e) => setConfigVisitorName(e.target.value)} />
+                                        <Label htmlFor="visitorTeam">Equipo Visitante</Label>
+                                        <Input id="visitorTeam" value={configVisitorName} onChange={(e) => setConfigVisitorName(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="duration">Tiempo (min)</Label>
@@ -339,9 +339,9 @@ export default function QuickScoreboardPage() {
 
                     {/* Period selection */}
                     <div className="flex justify-center pt-4">
-                        <div className="flex rounded-md border p-1">
-                            <Button onClick={() => handlePeriodChange(1)} variant={period === 1 ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
-                            <Button onClick={() => handlePeriodChange(2)} variant={period === 2 ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
+                        <div className="flex rounded-md border p-1 bg-muted">
+                            <Button onClick={() => handlePeriodChange('1ª Parte')} variant={periodo === '1ª Parte' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">1ª Parte</Button>
+                            <Button onClick={() => handlePeriodChange('2ª Parte')} variant={periodo === '2ª Parte' ? 'secondary' : 'ghost'} size="sm" className="h-8 px-3">2ª Parte</Button>
                         </div>
                     </div>
                 </CardContent>
