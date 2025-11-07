@@ -100,7 +100,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     return (
         <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-4 rounded-lg shadow-lg overflow-hidden border flex flex-col">
              <div className="p-2 bg-gray-100 border-b grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-800">
-                {sessionData.name && <div className="font-semibold">Sesión: <span className="font-normal">{sessionData.name}</span></div>}
+                <div className="font-bold text-lg col-span-2 text-center">Sesión núm: {sessionData.name}</div>
                 {sessionData.date && <div className="font-semibold">Fecha: <span className="font-normal">{format(sessionData.date, 'PPP', { locale: es })}</span></div>}
                 {sessionData.time && <div className="font-semibold">Hora: <span className="font-normal">{sessionData.time}</span></div>}
                 {sessionData.facility && <div className="font-semibold">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
@@ -295,16 +295,26 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children, disable
 
 function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: () => void }) {
     return (
-        <Card className="group relative overflow-hidden flex flex-col justify-center items-center text-center p-2 min-h-[140px]">
-            <p className="font-semibold text-sm leading-tight">{exercise.name}</p>
-            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
-                <Trash2 className="h-4 w-4" />
-            </Button>
-             <div className="absolute bottom-2">
-                 <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                    <PlusCircle className="h-5 w-5" />
-                </div>
-             </div>
+        <Card className="group relative overflow-hidden flex items-center p-2">
+            <div className="relative aspect-square w-16 h-16 mr-4 flex-shrink-0 bg-muted rounded-md">
+                {exercise.image ? (
+                    <Image
+                        src={exercise.image}
+                        alt={exercise.name}
+                        fill
+                        className="object-contain p-1"
+                    />
+                ) : (
+                    <FutsalCourt className="w-full h-full p-1" />
+                )}
+            </div>
+            <div className="flex-grow overflow-hidden">
+                <p className="font-semibold text-sm leading-tight truncate">{exercise.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{exercise.category}</p>
+            </div>
+             <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onRemove}>
+                <Trash2 className="h-3 w-3" />
+             </Button>
         </Card>
     )
 }
@@ -316,7 +326,7 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full min-h-[140px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
+        "w-full min-h-[88px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
         disabled 
           ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
           : "hover:border-primary hover:text-primary"

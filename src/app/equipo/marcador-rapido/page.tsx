@@ -78,13 +78,8 @@ export default function MarcadorPage() {
     const stats = team === 'local' ? localGeneralStats : visitorGeneralStats;
     
     const isUsed = stats.timeouts > 0;
-    const delta = isUsed ? -1 : 1;
-
+    
     setter(prev => ({ ...prev, timeouts: isUsed ? 0 : 1 }));
-    setTimeLeft(time => Math.max(0, time + (delta * 60)));
-    if (delta === 1 && isActive) {
-      setIsActive(false);
-    }
   }
 
   const handlePeriodChange = (newPeriod: '1ª Parte' | '2ª Parte') => {
@@ -128,16 +123,6 @@ export default function MarcadorPage() {
     setIsActive(false);
     setIsSettingsOpen(false);
   }
-
-
-  useEffect(() => {
-    // This effect is to correctly sync the state for the main score display
-  }, [localGeneralStats.goals]);
-  
-  useEffect(() => {
-     // This effect is to correctly sync the state for the main score display
-  }, [visitorGeneralStats.goals]);
-
 
   const resetGeneralStats = () => {
     setLocalGeneralStats({...defaultGeneralStats});
@@ -324,3 +309,4 @@ export default function MarcadorPage() {
     </div>
   );
 }
+
