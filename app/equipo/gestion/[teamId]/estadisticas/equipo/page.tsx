@@ -93,10 +93,14 @@ export default function TeamOverallStatsPage() {
 
     const [filter, setFilter] = useState<'Todos' | 'Liga' | 'Copa' | 'Torneo' | 'Amistoso'>('Todos');
 
-    const teamRef = useMemoFirebase(() => doc(firestore, 'teams', teamId), [firestore, teamId]);
+    const teamRef = useMemoFirebase(() => {
+        if (!firestore || !teamId) return null;
+        return doc(firestore, 'teams', teamId);
+    }, [firestore, teamId]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
     const matchesQuery = useMemoFirebase(() => {
+        if (!firestore || !teamId) return null;
         return query(
             collection(firestore, 'matches'),
             where('teamId', '==', teamId),
@@ -214,10 +218,6 @@ export default function TeamOverallStatsPage() {
                 </Card>
             </div>
         );
-    }
-
-    if (!team && !isLoading) {
-        return null;
     }
 
     if (!team) return null;
