@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, collection, writeBatch, query, where, getDocs, getDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, writeBatch, query, where, getDocs, getDoc, addDoc, deleteDoc, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
@@ -44,6 +44,7 @@ const staffSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, 'Mínimo 3 caracteres.'),
   role: z.string().min(2, 'Mínimo 2 caracteres.'),
+  email: z.string().email('Email inválido').optional().or(z.literal('')),
 });
 
 const staffFormSchema = z.object({
@@ -64,6 +65,8 @@ interface StaffMember {
     id: string;
     name: string;
     role: string;
+    email?: string;
+    userId?: string;
 }
 
 interface Team {
@@ -110,6 +113,7 @@ function InfoCard({ team }: { team: Team }) {
 function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMember[] | null, isLoadingStaff: boolean }) {
     const { toast } = useToast();
     const firestore = useFirestore();
+    const { user } = useUser();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [removedStaffIds, setRemovedStaffIds] = useState<string[]>([]);
   
@@ -133,15 +137,42 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
       setIsSubmitting(true);
       const batch = writeBatch(firestore);
       const staffRef = collection(firestore, `teams/${team.id}/staff`);
+      const teamRef = doc(firestore, 'teams', team.id);
   
       removedStaffIds.forEach(id => {
         if (id) batch.delete(doc(staffRef, id));
       });
   
-      values.staff.forEach(member => {
+      for (const member of values.staff) {
         const memberRef = member.id ? doc(staffRef, member.id) : doc(staffRef);
-        batch.set(memberRef, { name: member.name, role: member.role }, { merge: true });
-      });
+        const data: Omit<StaffMember, 'id'> = { name: member.name, role: member.role };
+        if (member.email) {
+          data.email = member.email;
+
+          // Check if user with this email already exists
+          const usersCollection = collection(firestore, 'users');
+          const q = query(usersCollection, where('email', '==', member.email));
+          const snapshot = await getDocs(q);
+
+          if (!snapshot.empty) {
+            const existingUser = snapshot.docs[0];
+            data.userId = existingUser.id;
+            batch.update(teamRef, { memberIds: arrayUnion(existingUser.id) });
+          } else {
+             // Create invitation if user does not exist
+             const invitationsRef = collection(firestore, 'invitations');
+             await addDoc(invitationsRef, {
+                 inviterId: user?.uid,
+                 inviteeEmail: member.email,
+                 teamId: team.id,
+                 status: 'pending',
+                 createdAt: serverTimestamp(),
+             });
+             toast({ title: 'Invitación enviada', description: `Se ha enviado una invitación a ${member.email} para unirse al equipo.`})
+          }
+        }
+        batch.set(memberRef, data, { merge: true });
+      };
   
       try {
         await batch.commit();
@@ -167,7 +198,7 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Briefcase/>Staff Técnico</CardTitle>
-          <CardDescription>Gestiona los miembros del cuerpo técnico.</CardDescription>
+          <CardDescription>Gestiona los miembros del cuerpo técnico. Si añades un email, se le invitará para que pueda colaborar.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -177,13 +208,14 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
-                      <TableHead className="w-[200px]">Rol</TableHead>
+                      <TableHead className="w-[150px]">Rol</TableHead>
+                      <TableHead className="w-[220px]">Email</TableHead>
                       <TableHead className="w-[100px] text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoadingStaff ? (
-                      <TableRow><TableCell colSpan={3}><Skeleton className="h-10 w-full" /></TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4}><Skeleton className="h-10 w-full" /></TableCell></TableRow>
                     ) : fields.length > 0 ? (
                       fields.map((field, index) => (
                         <TableRow key={field.id}>
@@ -193,9 +225,12 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                           <TableCell>
                             <FormField control={form.control} name={`staff.${index}.role`} render={({ field }) => (<Input {...field} placeholder="Ej: Entrenador"/>)} />
                           </TableCell>
+                          <TableCell>
+                            <FormField control={form.control} name={`staff.${index}.email`} render={({ field }) => (<Input type="email" {...field} placeholder="email@ejemplo.com"/>)} />
+                          </TableCell>
                           <TableCell className="text-right">
                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
+                                <AlertDialogTrigger>
                                     <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -213,13 +248,13 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                         </TableRow>
                       ))
                     ) : (
-                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground h-24">No hay miembros en el staff.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground h-24">No hay miembros en el staff.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
               </div>
               <div className="flex justify-between items-center">
-                <Button type="button" variant="outline" onClick={() => append({ name: '', role: '' })} disabled={isSubmitting}>
+                <Button type="button" variant="outline" onClick={() => append({ name: '', role: '', email: '' })} disabled={isSubmitting}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Miembro
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
@@ -356,8 +391,8 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                         </TableCell>
                         <TableCell className="text-right">
                           <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                <AlertDialogTrigger>
+                                  <Button type="button" variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -374,9 +409,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                       </TableRow>
                     ))
                   ) : (
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground h-24">No hay jugadores en tu plantilla. ¡Añade el primero!</TableCell>
-                    </TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground h-24">No hay jugadores en tu plantilla. ¡Añade el primero!</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -456,6 +489,12 @@ export default function RosterPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
         <div>
+            <Button asChild variant="outline" className="mb-4">
+                <Link href={`/equipo/gestion/${teamId}`}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Volver al Panel
+                </Link>
+            </Button>
             <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
             <Users className="mr-3 h-10 w-10" />
             Mi Plantilla
@@ -464,12 +503,6 @@ export default function RosterPage() {
             Gestiona la plantilla de tu equipo, tanto jugadores como cuerpo técnico.
             </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href={`/equipo/gestion/${teamId}`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver al Panel
-          </Link>
-        </Button>
       </div>
 
        <div className="space-y-8">
