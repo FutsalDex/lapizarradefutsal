@@ -404,8 +404,8 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                                     <TableRow key={player.id} className={cn(isActive && "bg-accent")}>
                                         <TableCell className="py-1 px-2 w-[150px]">
                                             <Button variant="link" className="p-0 text-left h-auto text-foreground hover:no-underline" onClick={() => toggleActivePlayer(player.id)}>
-                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-accent-foreground")}>{player.number}.</span>
-                                                 <span className={cn('truncate', isActive && 'font-bold text-accent-foreground')}>{player.name}</span>
+                                                 <span className={cn("font-bold mr-2 w-6", isActive && "text-destructive")}>{player.number}.</span>
+                                                 <span className={cn('truncate', isActive && 'font-bold text-destructive')}>{player.name}</span>
                                             </Button>
                                         </TableCell>
                                         <TableCell className="text-center tabular-nums py-1 px-1 text-xs">{formatStatTime(minutesPlayedTotals[player.id] || 0)}</TableCell>
@@ -718,9 +718,6 @@ export default function MatchStatsPage() {
         setIsTimerActive(false);
         setTime(matchDuration);
         setPeriod(newPeriod);
-        if (newPeriod === '2H') {
-            handleUpdate({ timeouts: { ...localMatchData?.timeouts, '2H': { local: 0, visitor: 0 } } });
-        }
     }
   };
 
@@ -738,18 +735,25 @@ export default function MatchStatsPage() {
   
   const handleTimeout = (team: 'local' | 'visitor') => {
     if(!localMatchData) return;
-    const currentVal = _.get(localMatchData.timeouts, `${period}.${team}`, 0);
+    
+    // Using a function with the state setter to ensure we have the latest state
+    setLocalMatchData(currentMatchData => {
+        if (!currentMatchData) return null;
 
-    // Allow toggling off, but not exceeding 1.
-    if (currentVal > 0) { // If it's on, turn it off
-      const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
-      _.set(updatedTimeouts, `${period}.${team}`, 0);
-      handleUpdate({ timeouts: updatedTimeouts });
-    } else { // If it's off, turn it on
-      const updatedTimeouts = _.cloneDeep(localMatchData.timeouts || {});
-       _.set(updatedTimeouts, `${period}.${team}`, 1);
-       handleUpdate({ timeouts: updatedTimeouts });
-    }
+        const currentVal = _.get(currentMatchData.timeouts, `${period}.${team}`, 0);
+        
+        // Only one timeout per half
+        if (currentVal > 0) {
+          return currentMatchData; // Do nothing if timeout already used
+        }
+
+        const updatedTimeouts = _.cloneDeep(currentMatchData.timeouts || {});
+        _.set(updatedTimeouts, `${period}.${team}`, 1);
+        
+        const updatedData = { ...currentMatchData, timeouts: updatedTimeouts };
+        handleUpdate(updatedData); // Propagate the update
+        return updatedData;
+    });
   };
 
   const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
