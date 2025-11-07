@@ -58,14 +58,6 @@ const menuItems = [
     disabled: false,
     soon: false,
   },
-  {
-    title: 'Soporte Técnico',
-    description: 'Chatea con nuestro entrenador por IA configurado para darte respuestas sobre dudas, órdenes, etc.',
-    icon: <MessageSquare className="w-8 h-8 text-primary" />,
-    href: '#',
-    disabled: true,
-    soon: true,
-  },
 ];
 
 export default function TeamDashboardPage() {

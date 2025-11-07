@@ -40,12 +40,6 @@ const adminItems = [
     icon: <Upload className="w-6 h-6 text-primary" />,
     href: '/admin/ejercicios',
   },
-   {
-    title: 'Scripts',
-    description: 'Ejecuta scripts para realizar tareas de mantenimiento y actualizaciones.',
-    icon: <PlaySquare className="w-6 h-6 text-primary" />,
-    href: '/admin/scripts',
-  },
 ];
 
 
