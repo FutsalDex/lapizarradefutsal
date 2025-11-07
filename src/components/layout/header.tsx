@@ -15,7 +15,7 @@ import {
 import { Button } from "../ui/button";
 import { Menu, User, Star, BookOpen, Edit, Heart, Shield, LogOut, Gift, Users as UsersIcon } from "lucide-react";
 import { useUser } from "@/firebase/use-auth-user";
-import { useAuth, useFirestore, useCollection } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import {
   DropdownMenu,
@@ -26,10 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { collection, query, where } from "firebase/firestore";
-import { useMemoFirebase } from "@/firebase/use-memo-firebase";
-import { Badge } from "../ui/badge";
 import { Logo } from './logo';
+import { AdminBadges } from "./admin-badges";
 
 
 const navLinks = [
@@ -47,7 +45,6 @@ export function Header() {
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const firestore = useFirestore();
 
   useEffect(() => {
     setIsMounted(true);
@@ -59,44 +56,6 @@ export function Header() {
   
   const isAdmin = user?.email === 'futsaldex@gmail.com';
   const allNavLinks = isAdmin ? [...navLinks.filter(l => l.href !== '/admin'), adminLink] : navLinks;
-
-  // Queries for admin badges
-  const pendingInvitationsQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
-    return query(collection(firestore, 'invitations'), where('status', '==', 'pending'));
-  }, [firestore, isAdmin]);
-  
-  const pendingUsersQuery = useMemoFirebase(() => {
-    if (!firestore || !isAdmin) return null;
-    return query(collection(firestore, 'users'), where('subscription', '==', 'Invitado'));
-  }, [firestore, isAdmin]);
-
-  const { data: pendingInvitations } = useCollection(pendingInvitationsQuery);
-  const { data: pendingUsers } = useCollection(pendingUsersQuery);
-
-  const pendingInvitationsCount = pendingInvitations?.length || 0;
-  const pendingUsersCount = pendingUsers?.length || 0;
-
-  const AdminBadges = () => (
-    <>
-      <Button asChild variant="ghost" className="relative h-10 w-10 rounded-full">
-        <Link href="/admin/invitaciones">
-            <Gift className="h-5 w-5" />
-            {pendingInvitationsCount > 0 && (
-                <Badge variant="destructive" className="absolute top-1 right-1 h-5 w-5 p-0 justify-center rounded-full text-xs">{pendingInvitationsCount}</Badge>
-            )}
-        </Link>
-      </Button>
-       <Button asChild variant="ghost" className="relative h-10 w-10 rounded-full">
-        <Link href="/admin/usuarios">
-            <UsersIcon className="h-5 w-5" />
-            {pendingUsersCount > 0 && (
-                <Badge variant="destructive" className="absolute top-1 right-1 h-5 w-5 p-0 justify-center rounded-full text-xs">{pendingUsersCount}</Badge>
-            )}
-        </Link>
-      </Button>
-    </>
-  );
 
   const renderUserAuthDesktop = () => {
     if (isUserLoading || !isMounted) {
