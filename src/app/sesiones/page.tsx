@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -326,16 +325,14 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full min-h-[88px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 transition-colors",
-        disabled 
-          ? "cursor-not-allowed bg-muted/50 text-muted-foreground/50"
+        "relative w-full min-h-[88px] flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/50 text-muted-foreground transition-colors",
+        disabled
+          ? "cursor-not-allowed bg-muted/50"
           : "hover:border-primary hover:text-primary"
       )}
     >
-        <p className="font-semibold text-sm">Añadir Tarea</p>
-        <div className="mt-2 h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center text-gray-600">
-            <PlusCircle className="h-5 w-5" />
-        </div>
+      <span className="text-sm font-medium">Añadir Tarea</span>
+      <span className="text-2xl font-light mt-1">+</span>
     </button>
   );
 }
