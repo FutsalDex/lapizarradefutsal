@@ -35,10 +35,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 // TIPOS Y SCHEMAS
 // ====================
 const sessionSchema = z.object({
-  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  name: z.string().min(1, 'El número de sesión es requerido.'),
   date: z.date({ required_error: 'La fecha es requerida.' }),
   time: z.string().optional(),
   facility: z.string().optional(),
+  microcycle: z.string().optional(),
   objectives: z.string().min(3, 'Los objetivos son requeridos'),
   initialExercises: z.array(z.string()),
   mainExercises: z.array(z.string()),
@@ -172,9 +173,9 @@ function ProSessionPreview({ sessionData, exercises }: { sessionData: SessionFor
             {exercisePages.map((pageExercises, pageIndex) => (
                  <div key={pageIndex} className="bg-white text-black w-full md:w-[21cm] h-auto md:h-[29.7cm] mx-auto p-6 rounded-lg shadow-lg overflow-hidden border flex flex-col mb-4 print-page">
                     <div className="p-2 bg-gray-800 text-white grid grid-cols-3 gap-4 items-center text-center text-sm">
-                        <div className="flex items-center justify-center gap-2"><Shield className="h-5 w-5 hidden sm:block" /> <span>Microciclo</span></div>
-                        <div className="flex items-center justify-center gap-2"><span>Sesión:</span><span>{sessionData.name}</span></div>
-                        <div className="flex items-center justify-center gap-2"><span>Fecha:</span><span>{format(sessionData.date, "dd/MM/yyyy")}</span></div>
+                        <div className="flex items-center justify-center gap-2"><span>Microciclo:</span><span className="font-bold">{sessionData.microcycle || 'N/A'}</span></div>
+                        <div className="flex items-center justify-center gap-2"><span>Sesión:</span><span className="font-bold">{sessionData.name}</span></div>
+                        <div className="flex items-center justify-center gap-2"><span>Fecha:</span><span className="font-bold">{format(sessionData.date, "dd/MM/yyyy")}</span></div>
                     </div>
                      <ScrollArea className="flex-grow">
                         {pageExercises.map(ex => <ExercisePreview key={ex.id} exercise={ex} />)}
@@ -339,6 +340,7 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
 
 
 function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any, limit: number }) {
+
     const selectedExercises = useMemo(() => {
         return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
@@ -351,8 +353,8 @@ function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggl
                 <CardTitle className="text-xl font-bold tracking-tight">{title} <span className="text-muted-foreground text-base font-normal">({selectedIds.length}/{limit})</span></CardTitle>
             </CardHeader>
              <CardContent className="flex-grow space-y-2">
-                {selectedExercises.map(ex => (
-                    <ExerciseCard key={ex.id} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
+                {selectedExercises.map((ex, index) => (
+                    <ExerciseCard key={`${ex.id}-${index}`} exercise={ex} onRemove={() => onExerciseToggle(ex.id, phase)} />
                 ))}
                 {!atLimit &&
                     <ExercisePickerDialog
@@ -397,6 +399,7 @@ export default function CreateSessionPage() {
             date: new Date(),
             time: format(new Date(), 'HH:mm'),
             facility: '',
+            microcycle: '',
             objectives: '',
             initialExercises: [],
             mainExercises: [],
@@ -461,6 +464,7 @@ export default function CreateSessionPage() {
                 objectives: values.objectives,
                 time: values.time,
                 facility: values.facility,
+                microcycle: values.microcycle,
                 exercises: exercisesData,
                 sessionType: selectedSessionType,
                 userId: user.uid,
@@ -516,12 +520,13 @@ export default function CreateSessionPage() {
 
                     <Card>
                         <CardHeader><CardTitle>Detalles de la Sesión</CardTitle></CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Número de sesión</FormLabel><FormControl><Input placeholder="Ej: Sesión 01" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 items-end">
+                            <FormField control={form.control} name="name" render={({ field }) => ( <FormItem><FormLabel>Número de sesión</FormLabel><FormControl><Input placeholder="Ej: 01" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="microcycle" render={({ field }) => ( <FormItem><FormLabel>Microciclo</FormLabel><FormControl><Input placeholder="Ej: 3" {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="date" render={({ field }) => ( <FormItem className="flex flex-col"><FormLabel>Fecha</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant={'outline'} className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')} >{field.value ? format(field.value, 'PPP', { locale: es }) : <span>Elige una fecha</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="time" render={({ field }) => ( <FormItem><FormLabel>Hora</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem> )} />
                             <FormField control={form.control} name="facility" render={({ field }) => ( <FormItem><FormLabel>Instalación</FormLabel><FormControl><Input placeholder="Ej: Polideportivo Municipal" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                            <FormField control={form.control} name="objectives" render={({ field }) => ( <FormItem className="md:col-span-2 lg:col-span-4"><FormLabel>Objetivos Principales</FormLabel><FormControl><Textarea placeholder="Define los objetivos clave para este entrenamiento..." {...field} /></FormControl><FormMessage /></FormItem> )} />
+                            <FormField control={form.control} name="objectives" render={({ field }) => ( <FormItem className="lg:col-span-5"><FormLabel>Objetivos Principales</FormLabel><FormControl><Textarea placeholder="Define los objetivos clave para este entrenamiento..." {...field} /></FormControl><FormMessage /></FormItem> )} />
                         </CardContent>
                     </Card>
 
@@ -662,4 +667,3 @@ export default function CreateSessionPage() {
         </div>
     );
 }
-

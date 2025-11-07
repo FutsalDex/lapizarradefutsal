@@ -52,7 +52,8 @@
         "space": {"type": "string"},
         "updatedAt": {"type": "string", "format": "date-time"},
         "userId": {"type": "string"},
-        "exercises": {"type": "array", "items": {"type": "string"}}
+        "exercises": {"type": "array", "items": {"type": "string"}},
+        "microcycle": {"type": "string"}
       },
       "required": ["name", "date", "userId", "exercises"]
     },
@@ -338,5 +339,3 @@
     }
   }
 }
-
-    
