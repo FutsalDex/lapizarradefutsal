@@ -2,8 +2,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFirestore } from '@/firebase';
-import { doc, collection, getDocs, writeBatch, query, where } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import { doc, collection, getDocs, writeBatch, query, where, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,38 +37,56 @@ function UpdatePlayerTimesScript() {
 
     setIsSubmitting(true);
     try {
-      // 1. Obtener todos los jugadores del equipo del partido
+      // 1. Obtener el teamId desde el documento del partido
       const matchRef = doc(firestore, 'matches', matchId);
-      const teamId = (await getDocs(query(collection(firestore, 'teams'), where('__name__', '==', matchRef.parent.parent!.id)))).docs[0].id;
+      const matchSnap = await getDoc(matchRef);
+      if (!matchSnap.exists()) {
+        throw new Error('No se encontró el partido con el ID proporcionado.');
+      }
+      const teamId = matchSnap.data()?.teamId;
+      if (!teamId) {
+        throw new Error('El partido no tiene un teamId asociado.');
+      }
       
+      // 2. Obtener todos los jugadores del equipo
       const playersSnapshot = await getDocs(collection(firestore, `teams/${teamId}/players`));
       const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().name, doc.id]));
 
-      // 2. Parsear los datos introducidos
+      // 3. Parsear los datos introducidos
       const lines = playerData.trim().split('\n');
       const updates = new Map<string, number>();
       lines.forEach(line => {
-        const parts = line.split(': ');
+        const parts = line.split(':');
         if (parts.length === 2) {
           const name = parts[0].trim();
           const time = parts[1].trim();
           const playerId = playersMap.get(name);
           if (playerId) {
             updates.set(playerId, parseTimeToSeconds(time));
+          } else {
+             console.warn(`Jugador no encontrado en la plantilla: ${name}`);
           }
         }
       });
 
-      // 3. Crear el batch de actualización
+      if (updates.size === 0) {
+        throw new Error('No se encontraron jugadores coincidentes para actualizar.');
+      }
+      
+      // 4. Crear el batch de actualización
       const batch = writeBatch(firestore);
       const playerStats1H: { [key: string]: any } = {};
+      const playerStats2H: { [key: string]: any } = {};
 
       updates.forEach((seconds, playerId) => {
+        // Asignamos todo a la primera parte como solución temporal/general
         playerStats1H[playerId] = { minutesPlayed: seconds };
+        playerStats2H[playerId] = { minutesPlayed: 0 };
       });
       
       batch.update(matchRef, { 
-        'playerStats.1H': playerStats1H
+        'playerStats.1H': playerStats1H,
+        'playerStats.2H': playerStats2H, // Aseguramos que la 2H exista
       });
       
       await batch.commit();
@@ -123,6 +141,18 @@ function UpdatePlayerTimesScript() {
 
 
 export default function AdminScriptsPage() {
+    const { user } = useUser();
+    const isAdmin = user?.email === 'futsaldex@gmail.com';
+
+    if (!isAdmin) {
+        return (
+             <div className="container mx-auto px-4 py-8 text-center">
+                <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
+                <p className="text-muted-foreground">No tienes permisos para acceder a esta sección.</p>
+            </div>
+        )
+    }
+    
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
