@@ -79,13 +79,14 @@ function InfoCard({ team, teamId }: { team: Team, teamId: string }) {
     const [isLoadingStaff, setIsLoadingStaff] = useState(true);
 
     const teamMembersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
         return query(collection(firestore, 'teamMembers'), where('teamId', '==', teamId));
     }, [firestore, teamId]);
 
     const { data: staffMembers, isLoading: isLoadingMembers } = useCollection<TeamMember>(teamMembersQuery);
 
     const fetchStaffData = useCallback(async () => {
-        if (isLoadingMembers || !team.ownerId) {
+        if (isLoadingMembers || !team.ownerId || !firestore) {
             return;
         }
 
@@ -280,7 +281,7 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Dorsal</TableHead>
+                    <TableHead className="w-[70px]">Dorsal</TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead className="w-[200px]">Posición</TableHead>
                     <TableHead className="w-[100px] text-right">Acciones</TableHead>
@@ -421,18 +422,8 @@ export default function MembersPage() {
     );
   }
 
-  if (!team) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
-        <Button asChild variant="outline">
-          <Link href="/equipo/gestion">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a mis equipos
-          </Link>
-        </Button>
-      </div>
-    );
+  if (!team && !isLoading) {
+    return null;
   }
   
   if (!isOwner) {
@@ -449,6 +440,8 @@ export default function MembersPage() {
         </div>
       );
   }
+
+  if (!team) return null;
 
 
   return (
