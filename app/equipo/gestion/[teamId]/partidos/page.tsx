@@ -210,8 +210,11 @@ function MatchFormDialog({
         localTeam: values.localTeam,
         visitorTeam: values.visitorTeam,
         competition: values.competition,
-        matchday: values.matchday ? Number(values.matchday) : undefined,
       };
+
+      if (values.matchday && !isNaN(Number(values.matchday))) {
+        matchData.matchday = Number(values.matchday);
+      }
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
@@ -711,7 +714,7 @@ export default function MatchesPage() {
   }
 
   if (!team && !isLoading) {
-    return null;
+    return null
   }
 
   if (!canView) {
