@@ -30,6 +30,8 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useDoc } from '@/firebase';
+
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -383,6 +385,13 @@ export default function CreateSessionPage() {
     const [isPdfPreviewOpen, setIsPdfPreviewOpen] = useState(false);
     const pdfPreviewRef = useRef<HTMLDivElement>(null);
 
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile } = useDoc<{ subscription?: 'Básico' | 'Pro' }>(userProfileRef);
+
+    const isPro = userProfile?.subscription === 'Pro';
 
     const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
     const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
@@ -444,15 +453,17 @@ export default function CreateSessionPage() {
             toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear una sesión.' });
             return;
         }
+
+        if (selectedSessionType === 'pro' && !isPro) {
+            toast({ variant: 'destructive', title: 'Función Pro', description: 'Necesitas una suscripción Pro para guardar este tipo de sesión.' });
+            return;
+        }
+        
         setIsSubmitting(true);
         try {
             const values = form.getValues();
             
-            let exercisesData: any;
-
-             // For both 'basic' and 'pro', we just store IDs for now.
-             // PDF generation logic will fetch full data for 'pro'.
-             exercisesData = {
+            const exercisesData = {
                 initial: values.initialExercises,
                 main: values.mainExercises,
                 final: values.finalExercises,
@@ -482,6 +493,11 @@ export default function CreateSessionPage() {
     };
     
     const handleDownloadPdf = async () => {
+        if (selectedSessionType === 'pro' && !isPro) {
+            toast({ variant: 'destructive', title: 'Función Pro', description: 'Necesitas una suscripción Pro para descargar este PDF.' });
+            return;
+        }
+
         const element = pdfPreviewRef.current;
         if (element) {
             toast({ title: 'Generando PDF...', description: 'Esto puede tardar unos segundos.' });
@@ -602,11 +618,20 @@ export default function CreateSessionPage() {
                                         <div
                                             className={cn(
                                                 "cursor-pointer rounded-lg border-2 p-4 text-center transition-colors space-y-2",
-                                                selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted'
+                                                selectedSessionType === 'pro' ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted',
+                                                !isPro && 'cursor-not-allowed opacity-50'
                                             )}
-                                            onClick={() => setSelectedSessionType('pro')}
+                                            onClick={() => {
+                                                if (!isPro) {
+                                                    toast({ variant: 'destructive', title: 'Función Pro', description: 'Necesitas una suscripción Pro para seleccionar este formato.' });
+                                                    return;
+                                                }
+                                                setSelectedSessionType('pro')
+                                            }}
                                         >
-                                            <h3 className="font-semibold text-lg">Pro</h3>
+                                            <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
+                                                Pro <Shield className="h-4 w-4 text-primary" />
+                                            </h3>
                                             <div className="relative mx-auto h-48 w-full rounded-md border bg-muted p-2">
                                                  <Image
                                                     src="https://i.ibb.co/pBKy6D20/pro.png"
@@ -618,13 +643,13 @@ export default function CreateSessionPage() {
                                         </div>
                                     </div>
                                     <DialogFooter className="sm:justify-end gap-2 pt-4">
-                                         <Button onClick={handleSave} disabled={isSubmitting}>
+                                         <Button onClick={handleSave} disabled={isSubmitting || (selectedSessionType === 'pro' && !isPro)}>
                                             <Save className="mr-2 h-4 w-4"/>
                                             {isSubmitting ? 'Guardando...' : 'Guardar Sesión'}
                                         </Button>
                                         <Dialog open={isPdfPreviewOpen} onOpenChange={setIsPdfPreviewOpen}>
                                             <DialogTrigger asChild>
-                                                <Button variant="outline">
+                                                <Button variant="outline" disabled={selectedSessionType === 'pro' && !isPro}>
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     Previsualizar PDF
                                                 </Button>
@@ -650,7 +675,7 @@ export default function CreateSessionPage() {
                                                     </div>
                                                </ScrollArea>
                                                 <DialogFooter>
-                                                    <Button variant="primary" onClick={handleDownloadPdf}>
+                                                    <Button variant="primary" onClick={handleDownloadPdf} disabled={selectedSessionType === 'pro' && !isPro}>
                                                         <Download className="mr-2 h-4 w-4"/>
                                                         Descargar PDF
                                                     </Button>
