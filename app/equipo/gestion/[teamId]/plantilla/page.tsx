@@ -387,7 +387,24 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
                            <FormField control={form.control} name={`players.${index}.name`} render={({ field }) => ( <Input {...field} placeholder="Nombre del jugador"/> )} />
                         </TableCell>
                         <TableCell>
-                           <FormField control={form.control} name={`players.${index}.position`} render={({ field }) => ( <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Selecciona..." /> </SelectTrigger> </FormControl> <SelectContent> <SelectItem value="Portero">Portero</SelectItem> <SelectItem value="Cierre">Cierre</SelectItem> <SelectItem value="Ala">Ala</SelectItem> <SelectItem value="Pívot">Pívot</SelectItem> <SelectItem value="Ala-Pívot">Ala-Pívot</SelectItem> </SelectContent> </Select> )}/>
+                          <FormField
+                            control={form.control}
+                            name={`players.${index}.position`}
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecciona..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Portero">Portero</SelectItem>
+                                  <SelectItem value="Cierre">Cierre</SelectItem>
+                                  <SelectItem value="Ala">Ala</SelectItem>
+                                  <SelectItem value="Pívot">Pívot</SelectItem>
+                                  <SelectItem value="Ala-Pívot">Ala-Pívot</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                            <AlertDialog>
