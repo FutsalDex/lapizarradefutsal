@@ -323,11 +323,11 @@ function ExerciseCard({ exercise, onRemove }: { exercise: Exercise, onRemove: ()
 const AddExerciseCard = ({ title, ...props }: React.HTMLAttributes<HTMLDivElement> & { title: string }) => (
     <div
       {...props}
-      className="relative flex h-full min-h-[88px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+      className="relative flex h-full min-h-[88px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-muted-foreground transition-colors hover:border-primary hover:text-primary"
     >
       <div className="text-center">
         <p className="mb-2 font-semibold">{title}</p>
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
           <Plus className="h-5 w-5" />
         </div>
       </div>
@@ -336,6 +336,7 @@ const AddExerciseCard = ({ title, ...props }: React.HTMLAttributes<HTMLDivElemen
 
 
 function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, onAddSlot, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, onAddSlot: () => void, limit: number }) {
+
     const selectedExercises = useMemo(() => {
         return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
@@ -667,7 +668,10 @@ export default function CreateSessionPage() {
                                                         )}
                                                     </div>
                                                </ScrollArea>
-                                                <DialogFooter>
+                                                <DialogFooter className="sm:justify-between">
+                                                    <DialogClose asChild>
+                                                        <Button type="button" variant="secondary">Cerrar</Button>
+                                                    </DialogClose>
                                                     <Button variant="primary" onClick={handleDownloadPdf} disabled={selectedSessionType === 'pro' && !isPro}>
                                                         <Download className="mr-2 h-4 w-4"/>
                                                         Descargar PDF
