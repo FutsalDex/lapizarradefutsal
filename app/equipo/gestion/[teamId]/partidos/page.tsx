@@ -605,7 +605,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                     </Link>
                 </Button>
                 <Button asChild variant="ghost" size="icon" className="h-8 w-8" disabled={!isFinished}>
-                    <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
+                     <Link href={`/equipo/gestion/${team.id}/partidos/${id}/resumen`}>
                         <Eye className="h-4 w-4" />
                     </Link>
                 </Button>
@@ -619,14 +619,14 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                       <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={onEdit}>
                               <Edit className="mr-2 h-4 w-4" />
-                              Editar Partido
+                              <span>Editar Partido</span>
                           </DropdownMenuItem>
                           <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
+                                  <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive focus:text-destructive">
                                       <Trash2 className="mr-2 h-4 w-4"/>
-                                      Eliminar
-                                  </DropdownMenuItem>
+                                      <span>Eliminar</span>
+                                  </div>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                   <AlertDialogHeader>
@@ -717,6 +717,14 @@ export default function MatchesPage() {
     );
   }
 
+  if (!team) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
+      </div>
+    );
+  }
+
   if (!canView) {
       return (
         <div className="container mx-auto px-4 py-8 text-center">
@@ -725,8 +733,6 @@ export default function MatchesPage() {
         </div>
       )
   }
-
-  if (!team) return null;
 
   return (
     <div className="container mx-auto px-4 py-8">
