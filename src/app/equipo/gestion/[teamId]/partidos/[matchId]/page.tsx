@@ -70,8 +70,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   squad?: string[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
-  opponentStats?: { [key in Period]?: Partial<OpponentStats> };
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
+  opponentStats?: { [key in Period]?: Partial<OpponentStats> } | Partial<OpponentStats>; // Legacy support
   fouls?: { [key in Period]?: { local: number; visitor: number } };
   timeouts?: { [key in Period]?: { local: number; visitor: number } };
   events?: MatchEvent[];
@@ -88,11 +88,36 @@ const formatStatTime = (totalSeconds: number) => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-function ensureNestedStructures(matchData: Match): Match {
+/**
+ * Migrates a match object from a legacy data structure to the new period-based structure.
+ */
+function migrateLegacyMatchData(matchData: Match): Match {
     if (!matchData) return matchData;
 
-    const migratedData = _.cloneDeep(matchData);
+    let migratedData = _.cloneDeep(matchData);
+    let wasMigrated = false;
 
+    const needsPlayerStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
+    const needsOpponentStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
+    
+    if (needsPlayerStatsMigration(migratedData.playerStats)) {
+        const legacyPlayerStats = migratedData.playerStats;
+        migratedData.playerStats = {
+            '1H': legacyPlayerStats as { [playerId: string]: Partial<PlayerStats> },
+            '2H': {}
+        };
+        wasMigrated = true;
+    }
+
+    if (needsOpponentStatsMigration(migratedData.opponentStats)) {
+        const legacyOpponentStats = migratedData.opponentStats;
+        migratedData.opponentStats = { 
+            '1H': legacyOpponentStats as Partial<OpponentStats>,
+            '2H': { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 }
+        };
+        wasMigrated = true;
+    }
+    
     // Ensure all nested structures exist to prevent runtime errors
     if (!migratedData.playerStats) migratedData.playerStats = { '1H': {}, '2H': {} };
     if (!migratedData.playerStats['1H']) migratedData.playerStats['1H'] = {};
@@ -110,6 +135,10 @@ function ensureNestedStructures(matchData: Match): Match {
     if (!migratedData.fouls['1H']) migratedData.fouls['1H'] = {local: 0, visitor: 0};
     if (!migratedData.fouls['2H']) migratedData.fouls['2H'] = {local: 0, visitor: 0};
 
+    if (wasMigrated) {
+        console.log("Legacy match data migrated for compatibility.");
+    }
+    
     return migratedData;
 }
 
@@ -585,7 +614,7 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (remoteMatchData) {
         setLocalMatchData(prevLocal => {
-            const migratedData = ensureNestedStructures(remoteMatchData);
+            const migratedData = migrateLegacyMatchData(remoteMatchData);
             if (!_.isEqual(prevLocal, migratedData)) {
                 return migratedData;
             }

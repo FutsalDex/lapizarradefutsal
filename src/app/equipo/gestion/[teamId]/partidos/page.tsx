@@ -222,7 +222,7 @@ function MatchFormDialog({
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
         // Remove matchday if it's empty, to avoid storing undefined
         if (!matchData.matchday) {
-            delete matchData.matchday;
+            delete (matchData as any).matchday;
         }
         await updateDoc(matchRef, matchData);
          toast({
