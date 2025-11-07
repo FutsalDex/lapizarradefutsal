@@ -331,9 +331,9 @@ export default function GestionEquiposPage() {
         </div>
       <AuthGuard>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            <div className="md:col-span-1">
+             <div className="md:col-span-1">
                 <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
-            </div>
+             </div>
             <div className="md:col-span-2">
                 <TeamList 
                     teams={ownedTeams}
@@ -347,3 +347,4 @@ export default function GestionEquiposPage() {
   );
 }
 
+    
