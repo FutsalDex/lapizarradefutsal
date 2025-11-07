@@ -265,19 +265,21 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         _.set(updatedStats, `${period}.${playerId}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
-        const isLocalTeam = match.localTeam === teamName;
+        const isMyTeamLocal = match.localTeam === teamName;
         
         if (stat === 'goals' && isMyTeam) {
-             const currentLocalScore = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0) + _.get(updatedStats, `2H.${p.id}.goals`, 0));
-             const currentVisitorScore = (_.get(match.opponentStats, '1H.goals', 0) + _.get(match.opponentStats, '2H.goals', 0));
-             
-             if(isLocalTeam) {
-                 batchUpdate.localScore = currentLocalScore;
-                 batchUpdate.visitorScore = currentVisitorScore;
-             } else {
-                 batchUpdate.localScore = currentVisitorScore;
-                 batchUpdate.visitorScore = currentLocalScore;
-             }
+            const teamGoals1H = _.sumBy(Object.values(_.get(updatedStats, '1H', {})), 'goals');
+            const teamGoals2H = _.sumBy(Object.values(_.get(updatedStats, '2H', {})), 'goals');
+            const opponentGoals1H = _.get(match.opponentStats, '1H.goals', 0);
+            const opponentGoals2H = _.get(match.opponentStats, '2H.goals', 0);
+
+            if(isMyTeamLocal) {
+                batchUpdate.localScore = teamGoals1H + teamGoals2H;
+                batchUpdate.visitorScore = opponentGoals1H + opponentGoals2H;
+            } else {
+                batchUpdate.localScore = opponentGoals1H + opponentGoals2H;
+                batchUpdate.visitorScore = teamGoals1H + teamGoals2H;
+            }
 
              // Add or remove goal event
              if (increment) {
@@ -285,7 +287,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                  const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
                  const newEvent: MatchEvent = {
                      type: 'goal',
-                     team: isLocalTeam ? 'local' : 'visitor',
+                     team: isMyTeamLocal ? 'local' : 'visitor',
                      period: period,
                      minute: eventMinute,
                      playerId: player.id,
@@ -297,7 +299,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         
         if (stat === 'fouls') {
           const fouls = _.sumBy(Object.values(_.get(updatedStats, period, {})), 'fouls');
-          const isMyTeamLocal = match.localTeam === teamName;
+          
           const updatedFouls = _.cloneDeep(match.fouls || {});
           
           if(isMyTeamLocal) {
@@ -503,13 +505,16 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
+             const myTeamGoals = match.localScore;
 
              const isOpponentLocal = match.localTeam === teamName;
 
              if(isOpponentLocal) {
                 batchUpdate.localScore = goals1H + goals2H;
+                batchUpdate.visitorScore = myTeamGoals;
              } else {
                 batchUpdate.visitorScore = goals1H + goals2H;
+                batchUpdate.localScore = myTeamGoals;
              }
 
              // Add or remove goal event
@@ -612,13 +617,13 @@ export default function MatchStatsPage() {
   
   useEffect(() => {
     if (remoteMatchData) {
-      setLocalMatchData(prevLocal => {
-        const migratedData = migrateLegacyMatchData(remoteMatchData);
-        if (!_.isEqual(prevLocal, migratedData)) {
-            return migratedData;
-        }
-        return prevLocal;
-      });
+        setLocalMatchData(prevLocal => {
+            const migratedData = migrateLegacyMatchData(remoteMatchData);
+            if (!_.isEqual(prevLocal, migratedData)) {
+                return migratedData;
+            }
+            return prevLocal;
+        });
     }
   }, [remoteMatchData]);
 
