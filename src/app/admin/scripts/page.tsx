@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -20,13 +19,11 @@ function UpdatePlayerTimesScript() {
   const [playerData, setPlayerData] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const parseTimeToSeconds = (time: string): number => {
-    const parts = time.split(':');
-    if (parts.length !== 2) return 0;
-    const minutes = parseInt(parts[0], 10);
-    const seconds = parseInt(parts[1], 10);
-    if (isNaN(minutes) || isNaN(seconds)) return 0;
-    return minutes * 60 + seconds;
+  const parseTimeToSeconds = (minutes: string, seconds: string): number => {
+    const mins = parseInt(minutes, 10);
+    const secs = parseInt(seconds, 10);
+    if (isNaN(mins) || isNaN(secs)) return 0;
+    return mins * 60 + secs;
   };
 
   const handleUpdate = async () => {
@@ -50,26 +47,28 @@ function UpdatePlayerTimesScript() {
       
       // 2. Obtener todos los jugadores del equipo
       const playersSnapshot = await getDocs(collection(firestore, `teams/${teamId}/players`));
-      const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().name, doc.id]));
+      const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().name.trim(), doc.id]));
 
       // 3. Parsear los datos introducidos
-      const entries = playerData.trim().replace(/\n/g, ',').split(',').filter(Boolean);
+      const lines = playerData.trim().split(/[\n,]/).filter(Boolean);
       const updates = new Map<string, number>();
-      
-      entries.forEach(entry => {
-        const parts = entry.split(':');
-        if (parts.length >= 3) {
-          const secondsStr = parts.pop()?.trim();
-          const minutesStr = parts.pop()?.trim();
-          const name = parts.join(':').trim();
-          const time = `${minutesStr}:${secondsStr}`;
+
+      const timeRegex = /(.+?):(\d{1,2}):(\d{2})/;
+
+      lines.forEach(line => {
+        const match = line.trim().match(timeRegex);
+        if (match) {
+          const [, name, minutes, seconds] = match;
+          const trimmedName = name.trim();
+          const playerId = playersMap.get(trimmedName);
           
-          const playerId = playersMap.get(name);
           if (playerId) {
-            updates.set(playerId, parseTimeToSeconds(time));
+            updates.set(playerId, parseTimeToSeconds(minutes, seconds));
           } else {
-             console.warn(`Jugador no encontrado en la plantilla: ${name}`);
+             console.warn(`Jugador no encontrado en la plantilla: "${trimmedName}"`);
           }
+        } else {
+            console.warn(`Formato de línea incorrecto: "${line.trim()}"`);
         }
       });
 
@@ -113,7 +112,7 @@ function UpdatePlayerTimesScript() {
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
           Pega el ID del partido y la lista de jugadores con sus tiempos para actualizarlos en la base de datos.
-          El formato debe ser: `Nombre del Jugador:mm:ss`, una línea por jugador.
+          El formato debe ser: `Nombre del Jugador:mm:ss`, uno por línea o separados por comas.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -132,9 +131,7 @@ function UpdatePlayerTimesScript() {
             id="playerData"
             value={playerData}
             onChange={(e) => setPlayerData(e.target.value)}
-            placeholder="Manel:25:00
-Marc Montoro:22:41
-..."
+            placeholder="Manel:25:00, Marc Montoro:22:41, ..."
             rows={12}
           />
         </div>
