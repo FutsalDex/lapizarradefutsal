@@ -57,7 +57,9 @@ export default function AdminPage() {
                 </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                {[...Array(adminItems.length)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
             </div>
         </div>
       );
