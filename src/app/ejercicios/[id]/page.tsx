@@ -96,9 +96,9 @@ export default function ExerciseDetailPage() {
                     )}
                 </div>
             </Card>
-             <Card>
+            <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg flex items-center"><Info className="mr-2 h-5 w-5 text-primary"/>Detalles del Ejercicio</CardTitle>
+                    <CardTitle className="text-lg">Detalles del Ejercicio</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                      <div className='flex items-start'><Layers className="mr-3 h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0"/> <div><strong>Categoría:</strong><span className='ml-2 text-muted-foreground'>{exercise.category}</span></div></div>
@@ -123,7 +123,7 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center text-lg'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground">{exercise.description}</div>
+                        <p className="text-sm text-muted-foreground">{exercise.description}</p>
                     </CardContent>
                 </Card>
 
@@ -132,17 +132,17 @@ export default function ExerciseDetailPage() {
                         <CardTitle className='flex items-center text-lg'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-muted-foreground">{exercise.objectives}</div>
+                        <p className="text-sm text-muted-foreground">{exercise.objectives}</p>
                     </CardContent>
                 </Card>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                   <Card>
+                    <Card>
                         <CardHeader>
                             <CardTitle className='flex items-center text-lg'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <div className="text-sm text-muted-foreground">{exercise.consejos || 'No se especifican consejos.'}</div>
+                             <p className="text-sm text-muted-foreground">{exercise.consejos || 'No se especifican consejos.'}</p>
                         </CardContent>
                     </Card>
 
@@ -150,13 +150,14 @@ export default function ExerciseDetailPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className='flex items-center text-lg'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
-                            </CardHeader>
+                            </Header>
                             <CardContent>
-                                <div className="text-sm text-muted-foreground">{exercise.variations}</div>
+                                <p className="text-sm text-muted-foreground">{exercise.variations}</p>
                             </CardContent>
                         </Card>
                     )}
                 </div>
+
             </div>
         </div>
       </div>
