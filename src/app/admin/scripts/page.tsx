@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -45,27 +46,26 @@ function UpdatePlayerTimesScript() {
         throw new Error('El partido no tiene un teamId asociado.');
       }
       
-      // 2. Obtener todos los jugadores del equipo
+      // 2. Obtener todos los jugadores del equipo y mapearlos por número
       const playersSnapshot = await getDocs(collection(firestore, `teams/${teamId}/players`));
-      const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().name.trim(), doc.id]));
+      const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().number.toString(), doc.id]));
 
       // 3. Parsear los datos introducidos
       const lines = playerData.trim().split(/[\n,]/).filter(Boolean);
       const updates = new Map<string, number>();
 
-      const timeRegex = /(.+?):(\d{1,2}):(\d{2})/;
+      const timeRegex = /(\d+):(\d{1,2}):(\d{2})/;
 
       lines.forEach(line => {
         const match = line.trim().match(timeRegex);
         if (match) {
-          const [, name, minutes, seconds] = match;
-          const trimmedName = name.trim();
-          const playerId = playersMap.get(trimmedName);
+          const [, playerNumber, minutes, seconds] = match;
+          const playerId = playersMap.get(playerNumber);
           
           if (playerId) {
             updates.set(playerId, parseTimeToSeconds(minutes, seconds));
           } else {
-             console.warn(`Jugador no encontrado en la plantilla: "${trimmedName}"`);
+             console.warn(`Jugador con dorsal no encontrado en la plantilla: "${playerNumber}"`);
           }
         } else {
             console.warn(`Formato de línea incorrecto: "${line.trim()}"`);
@@ -112,7 +112,7 @@ function UpdatePlayerTimesScript() {
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
           Pega el ID del partido y la lista de jugadores con sus tiempos para actualizarlos en la base de datos.
-          El formato debe ser: `Nombre del Jugador:mm:ss`, uno por línea o separados por comas.
+          El formato debe ser: `Número:mm:ss`, uno por línea o separados por comas.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -131,7 +131,7 @@ function UpdatePlayerTimesScript() {
             id="playerData"
             value={playerData}
             onChange={(e) => setPlayerData(e.target.value)}
-            placeholder="Manel:25:00, Marc Montoro:22:41, ..."
+            placeholder="1:25:00, 2:22:41, ..."
             rows={12}
           />
         </div>
