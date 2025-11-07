@@ -1,15 +1,15 @@
-
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useSearchParams } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useUser, useCollection } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,17 +18,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Plus, PlusCircle, Calendar as CalendarIcon, Search, Save, Trash2, BookOpen, Clock, Users, ArrowLeft, Eye, Download, Shield, Replace, Loader2, ClipboardList } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Save, Trash2, Eye, Download, Shield, Replace, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { Exercise, mapExercise } from '@/lib/data';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDoc } from '@/firebase';
 import { Separator } from '@/components/ui/separator';
 
@@ -52,6 +51,7 @@ type PhaseType = 'initial' | 'main' | 'final';
 // ====================
 // COMPONENTES
 // ====================
+
 const ExerciseCard = ({
   exercise,
   onRemove,
@@ -67,21 +67,23 @@ const ExerciseCard = ({
     return (
       <div className="relative group">
         <Card className="overflow-hidden h-48 flex flex-col">
-          <Image
-            src={exercise.image || `https://picsum.photos/seed/${exercise.id}/400/250`}
-            alt={exercise.name}
-            data-ai-hint={exercise.aiHint || 'futsal drill court'}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-black/60" />
-          <CardHeader className="relative z-10 p-2 text-white">
+          <div className="relative w-full h-full bg-muted">
+            <Image
+              src={exercise.image || `https://picsum.photos/seed/${exercise.id}/400/250`}
+              alt={exercise.name}
+              data-ai-hint={exercise.aiHint || 'futsal drill court'}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+          <CardHeader className="absolute top-0 z-10 p-2 text-white">
             <CardTitle className="text-sm font-bold truncate">{exercise.name}</CardTitle>
             <CardDescription className="text-xs text-gray-300">
               {exercise.duration} min
             </CardDescription>
           </CardHeader>
-          <CardContent className="relative z-10 mt-auto p-2 flex gap-2">
+          <CardContent className="absolute bottom-0 z-10 p-2 flex gap-2">
             {children}
             <Button size="icon" variant="destructive" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
               <Trash2 className="h-4 w-4" />
@@ -99,7 +101,8 @@ const ExerciseCard = ({
   );
 };
 
-function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: string, phase: PhaseType) => void, phase: PhaseType, children: React.ReactNode }) {
+
+function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: Exercise, phase: PhaseType) => void, phase: PhaseType, children: React.ReactNode }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('Todas');
     const [ageFilter, setAgeFilter] = useState('Todas');
@@ -180,8 +183,8 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                                         )}
                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                              <DialogClose asChild>
-                                                <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise.id, phase)}>
-                                                    <PlusCircle className="h-5 w-5" />
+                                                <Button size="icon" className="rounded-full h-10 w-10" onClick={() => onSelect(exercise, phase)}>
+                                                    <Plus className="h-5 w-5" />
                                                 </Button>
                                              </DialogClose>
                                         </div>
@@ -198,6 +201,77 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                 </ScrollArea>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function AddExerciseCard({ title }: { title: string }) {
+    return (
+        <Card className="relative flex flex-col items-center justify-center text-center p-4 border-2 border-dashed h-48 bg-transparent hover:border-primary hover:bg-accent/50 transition-colors cursor-pointer">
+            <CardHeader className="p-0">
+                <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 mt-2">
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground">
+                    <Plus className="h-5 w-5" />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+
+function PhaseSection({ title, phase, exercises, onExerciseSelected, onRemoveExercise, onAddSlot, limit }: { 
+    title: string, 
+    phase: PhaseType, 
+    exercises: (Exercise | null)[], 
+    onExerciseSelected: (phase: PhaseType, index: number, exercise: Exercise) => void,
+    onRemoveExercise: (phase: PhaseType, index: number) => void,
+    onAddSlot: (phase: PhaseType) => void,
+    limit: number 
+}) {
+    const firestore = useFirestore();
+    const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
+    const { data: rawExercises } = useCollection<any>(exercisesCollection);
+    const allExercises = useMemo(() => rawExercises ? rawExercises.map(mapExercise).sort((a,b) => a.name.localeCompare(b.name)) : [], [rawExercises]);
+    
+    const atLimit = exercises.length >= limit;
+
+    return (
+        <div>
+            <h3 className="text-xl font-semibold mb-4 border-b pb-2">{title}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                {exercises.map((ex, index) => (
+                    <ExerciseCard
+                        key={`${phase}-${index}`}
+                        exercise={ex}
+                        onRemove={() => onRemoveExercise(phase, index)}
+                        title={`Tarea ${index + 1}`}
+                    >
+                        <ExercisePickerDialog allExercises={allExercises} onSelect={(exercise) => onExerciseSelected(phase, index, exercise)} phase={phase}>
+                            {ex ? (
+                                <Button size="icon" variant="secondary" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                                    <Replace className="h-4 w-4" />
+                                </Button>
+                            ) : (
+                                <AddExerciseCard title={`Tarea ${index + 1}`} />
+                            )}
+                        </ExercisePickerDialog>
+                    </ExerciseCard>
+                ))}
+                {!atLimit && (
+                    <Card className="flex flex-col items-center justify-center text-center p-4 border-2 border-dashed h-48 bg-transparent hover:border-primary hover:bg-accent/50 cursor-pointer" onClick={() => onAddSlot(phase)}>
+                        <CardHeader className="p-0">
+                            <CardTitle className="text-lg font-semibold text-muted-foreground">Añadir Tarea</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0 mt-2">
+                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-secondary-foreground">
+                                <Plus className="h-6 w-6" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -220,19 +294,12 @@ export default function CreateSessionPage() {
     const [mainExercises, setMainExercises] = useState<(Exercise | null)[]>([null, null]);
     const [finalExercises, setFinalExercises] = useState<(Exercise | null)[]>([null]);
 
-    const exercisesCollection = useMemoFirebase(() => collection(firestore, 'exercises'), [firestore]);
-    const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
-
-    const allExercises = useMemo(() => {
-        if (!rawExercises) return [];
-        return rawExercises.map(mapExercise).sort((a,b) => a.name.localeCompare(b.name));
-    }, [rawExercises]);
 
     const form = useForm<SessionFormValues>({
         resolver: zodResolver(sessionSchema),
         defaultValues: {
             date: new Date(),
-            sessionNumber: '1',
+            name: '1',
             microcycle: '',
             team: '',
             season: '',
@@ -293,7 +360,7 @@ export default function CreateSessionPage() {
                     form.reset({
                         date: (sessionData.date as Timestamp).toDate(),
                         microcycle: sessionData.microcycle || '',
-                        sessionNumber: sessionData.sessionNumber,
+                        name: sessionData.sessionNumber,
                         team: sessionData.team || '',
                         club: sessionData.club || '',
                         season: sessionData.season || '',
@@ -364,7 +431,7 @@ export default function CreateSessionPage() {
             season: data.season || '',
             club: data.club || '',
             microcycle: data.microcycle || '',
-            sessionNumber: data.sessionNumber || '1',
+            sessionNumber: data.name || '1',
         };
 
         const sessionData = {
@@ -390,7 +457,7 @@ export default function CreateSessionPage() {
                     createdAt: serverTimestamp(),
                 });
                 toast({ title: '¡Sesión Guardada!', description: 'Tu sesión de entrenamiento ha sido guardada.' });
-                router.push(`/crear-sesion?sessionId=${newSession.id}`);
+                router.push(`/sesiones?sessionId=${newSession.id}`);
             }
         } catch (error) {
             console.error("Error saving session: ", error);
@@ -399,56 +466,6 @@ export default function CreateSessionPage() {
             setIsSaving(false);
         }
     }
-
-
-    const renderPhase = (phase: PhaseType, exercises: (Exercise | null)[], title: string, limit: number) => {
-        return (
-            <div>
-                <h3 className="text-xl font-semibold mb-4 border-b pb-2">{title}</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    {exercises.map((ex, index) => (
-                        <ExerciseCard
-                            key={`${phase}-${index}`}
-                            exercise={ex}
-                            onRemove={() => removeExerciseSlot(phase, index)}
-                            title={`Tarea ${index + 1}`}
-                        >
-                            <SelectExerciseDialog allExercises={allExercises} onSelect={(exercise) => handleExerciseSelected(phase, index, exercise)} phase={phase}>
-                                {ex ? (
-                                    <Button size="icon" variant="secondary" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                        <Replace className="h-4 w-4" />
-                                    </Button>
-                                ) : (
-                                    <Card className="relative flex flex-col items-center justify-center text-center p-4 border-2 border-dashed h-48 hover:border-primary hover:bg-accent/50 transition-colors cursor-pointer">
-                                        <CardHeader className="p-0">
-                                            <CardTitle className="text-lg font-semibold">{`Tarea ${index + 1}`}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="p-0 mt-2">
-                                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground">
-                                                <Plus className="h-5 w-5" />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
-                            </SelectExerciseDialog>
-                        </ExerciseCard>
-                    ))}
-                    {exercises.length < limit && (
-                        <Card className="flex flex-col items-center justify-center text-center p-4 border-2 border-dashed h-48 bg-transparent hover:border-primary hover:bg-accent/50 cursor-pointer" onClick={() => addExerciseSlot(phase)}>
-                            <CardHeader className="p-0">
-                                <CardTitle className="text-lg font-semibold text-muted-foreground">Añadir Tarea</CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-0 mt-2">
-                                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-secondary-foreground">
-                                    <Plus className="h-6 w-6" />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-            </div>
-        );
-    };
 
     return (
         <>
@@ -475,7 +492,7 @@ export default function CreateSessionPage() {
                             <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <FormField control={form.control} name="date" render={({ field }) => ( <FormItem> <FormLabel>Día de entrenamiento</FormLabel> <Popover> <PopoverTrigger asChild> <Button variant={'outline'} className={cn('w-full justify-start text-left font-normal', !field.value && 'text-muted-foreground')} > <CalendarIcon className="mr-2 h-4 w-4" /> {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Elige una fecha</span>} </Button> </PopoverTrigger> <PopoverContent className="w-auto p-0"> <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus locale={es} /> </PopoverContent> </Popover> <FormMessage /> </FormItem> )} />
                                 <FormField control={form.control} name="microcycle" render={({ field }) => ( <FormItem> <FormLabel>Microciclo</FormLabel> <FormControl> <Input type="number" placeholder="Ej: 1" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
-                                <FormField control={form.control} name="sessionNumber" render={({ field }) => ( <FormItem> <FormLabel>Número de sesión</FormLabel> <FormControl> <Input type="number" placeholder="Ej: 1" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
+                                <FormField control={form.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Número de sesión</FormLabel> <FormControl> <Input type="number" placeholder="Ej: 1" {...field} /> </FormControl> <FormMessage /> </FormItem> )} />
                             </CardContent>
                         </Card>
 
@@ -498,9 +515,33 @@ export default function CreateSessionPage() {
                             <h2 className="text-2xl font-bold font-headline text-primary mb-2">Estructura de la Sesión</h2>
                             <p className="text-muted-foreground mb-6">Selecciona los ejercicios para cada fase del entrenamiento.</p>
                             <div className="space-y-8">
-                                {renderPhase('initial', initialExercises, 'Fase Inicial', 2)}
-                                {renderPhase('main', mainExercises, 'Fase Principal', 4)}
-                                {renderPhase('final', finalExercises, 'Fase Final', 2)}
+                                <PhaseSection
+                                    title="Fase Inicial"
+                                    phase="initial"
+                                    exercises={initialExercises}
+                                    onExerciseSelected={handleExerciseSelected}
+                                    onRemoveExercise={removeExerciseSlot}
+                                    onAddSlot={addExerciseSlot}
+                                    limit={2}
+                                />
+                                <PhaseSection
+                                    title="Fase Principal"
+                                    phase="main"
+                                    exercises={mainExercises}
+                                    onExerciseSelected={handleExerciseSelected}
+                                    onRemoveExercise={removeExerciseSlot}
+                                    onAddSlot={addExerciseSlot}
+                                    limit={4}
+                                />
+                                 <PhaseSection
+                                    title="Fase Final"
+                                    phase="final"
+                                    exercises={finalExercises}
+                                    onExerciseSelected={handleExerciseSelected}
+                                    onRemoveExercise={removeExerciseSlot}
+                                    onAddSlot={addExerciseSlot}
+                                    limit={2}
+                                />
                             </div>
                         </div>
 
@@ -518,4 +559,3 @@ export default function CreateSessionPage() {
         </>
     );
 }
-
