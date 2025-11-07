@@ -99,50 +99,61 @@ function migrateLegacyMatchData(matchData: Match): Match {
     if (!matchData) return matchData;
 
     const isLegacy = (matchData.visitorPlayers || matchData.localPlayers) && !matchData.playerStats;
-    if (!isLegacy) {
-      const modernData = _.cloneDeep(matchData);
-      if (!modernData.playerStats) modernData.playerStats = {};
-      if (!modernData.playerStats['1H']) modernData.playerStats['1H'] = {};
-      if (!modernData.playerStats['2H']) modernData.playerStats['2H'] = {};
-      return modernData;
+    const migratedData = _.cloneDeep(matchData);
+
+    if (isLegacy) {
+      const userTeamPlayers = (migratedData.userTeam === 'visitor' ? migratedData.visitorPlayers : migratedData.localPlayers) || [];
+      const playerStats1H: { [playerId: string]: Partial<PlayerStats> } = {};
+
+      userTeamPlayers.forEach((player: any) => {
+        playerStats1H[player.id] = {
+          goals: player.goals || 0,
+          assists: player.assists || 0,
+          yellowCards: player.amarillas || 0,
+          redCards: player.rojas || 0,
+          fouls: player.faltas || 0,
+          shotsOnTarget: player.tirosPuerta || 0,
+          shotsOffTarget: player.tirosFuera || 0,
+          recoveries: player.recuperaciones || 0,
+          turnovers: player.perdidas || 0,
+          saves: player.paradas || 0,
+          goalsConceded: player.gRec || 0,
+          minutesPlayed: player.timeOnCourt || 0,
+          unoVsUno: player.vs1 || 0,
+        };
+      });
+      
+      migratedData.playerStats = {
+        '1H': playerStats1H,
+        '2H': {}
+      };
+      
+      // Clean up old fields
+      delete (migratedData as any).visitorPlayers;
+      delete (migratedData as any).localPlayers;
+      delete (migratedData as any).teamStats1;
+      delete (migratedData as any).teamStats2;
+      delete (migratedData as any).opponentStats1;
+      delete (migratedData as any).opponentStats2;
     }
   
-    const migratedData = _.cloneDeep(matchData);
-    const userTeamPlayers = (migratedData.userTeam === 'visitor' ? migratedData.visitorPlayers : migratedData.localPlayers) || [];
-  
-    const playerStats1H: { [playerId: string]: Partial<PlayerStats> } = {};
-  
-    userTeamPlayers.forEach((player: any) => {
-      playerStats1H[player.id] = {
-        goals: player.goals || 0,
-        assists: player.assists || 0,
-        yellowCards: player.amarillas || 0,
-        redCards: player.rojas || 0,
-        fouls: player.faltas || 0,
-        shotsOnTarget: player.tirosPuerta || 0,
-        shotsOffTarget: player.tirosFuera || 0,
-        recoveries: player.recuperaciones || 0,
-        turnovers: player.perdidas || 0,
-        saves: player.paradas || 0,
-        goalsConceded: player.gRec || 0,
-        minutesPlayed: player.timeOnCourt || 0,
-        unoVsUno: player.vs1 || 0,
-      };
-    });
+    // Ensure all nested structures exist to prevent runtime errors on modern objects too
+    if (!migratedData.playerStats) migratedData.playerStats = {};
+    if (!migratedData.playerStats['1H']) migratedData.playerStats['1H'] = {};
+    if (!migratedData.playerStats['2H']) migratedData.playerStats['2H'] = {};
     
-    migratedData.playerStats = {
-      '1H': playerStats1H,
-      '2H': {}
-    };
+    if (!migratedData.opponentStats) migratedData.opponentStats = { '1H': {}, '2H': {} };
+    if (!migratedData.opponentStats['1H']) migratedData.opponentStats['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['2H']) migratedData.opponentStats['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
     
-    // Clean up old fields
-    delete (migratedData as any).visitorPlayers;
-    delete (migratedData as any).localPlayers;
-    delete (migratedData as any).teamStats1;
-    delete (migratedData as any).teamStats2;
-    delete (migratedData as any).opponentStats1;
-    delete (migratedData as any).opponentStats2;
-  
+    if (!migratedData.timeouts) migratedData.timeouts = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
+    if (!migratedData.timeouts['1H']) migratedData.timeouts['1H'] = {local: 0, visitor: 0};
+    if (!migratedData.timeouts['2H']) migratedData.timeouts['2H'] = {local: 0, visitor: 0};
+
+    if (!migratedData.fouls) migratedData.fouls = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
+    if (!migratedData.fouls['1H']) migratedData.fouls['1H'] = {local: 0, visitor: 0};
+    if (!migratedData.fouls['2H']) migratedData.fouls['2H'] = {local: 0, visitor: 0};
+    
     return migratedData;
 }
 

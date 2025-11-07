@@ -617,7 +617,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                      <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
+                              <Settings className="h-4 w-4" />
                           </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
