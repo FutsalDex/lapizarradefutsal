@@ -21,6 +21,7 @@ export type Exercise = {
   visible: boolean;
   userId?: string;
   createdAt?: any;
+  'Espacio y materiales necesarios'?: string;
 };
 
 export function mapExercise(doc: any): Exercise {
@@ -41,6 +42,7 @@ export function mapExercise(doc: any): Exercise {
         image: data['Imagen'] || '',
         aiHint: data['aiHint'] || '',
         visible: data['Visible'] !== false,
+        'Espacio y materiales necesarios': data['Espacio y materiales necesarios'] || '',
         ...data
     };
 }
