@@ -64,12 +64,9 @@ interface UserProfileData {
 function ProfileForm() {
     const { user, setUser } = useUser();
     const auth = useAuth();
-    const storage = useStorage();
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -94,46 +91,7 @@ function ProfileForm() {
             });
         }
     }, [user, form]);
-
-    const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!user || !auth.currentUser || !event.target.files || event.target.files.length === 0) return;
-        
-        const file = event.target.files[0];
-        const storageRef = ref(storage, `profile-pictures/${user.uid}`);
-        setIsUploading(true);
-
-        try {
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            
-            await updateProfile(auth.currentUser, { photoURL: downloadURL });
-            
-            const userDocRef = doc(firestore, "users", user.uid);
-            await updateDoc(userDocRef, { photoURL: downloadURL });
-
-            // Force update the local user state for immediate UI refresh
-            setUser({ ...auth.currentUser });
-            
-            toast({
-                title: 'Foto de perfil actualizada',
-                description: 'Tu nueva foto de perfil se ha guardado.',
-            });
-        } catch (error) {
-            console.error("Error uploading photo:", error);
-             toast({
-                variant: 'destructive',
-                title: 'Error al subir la foto',
-                description: 'No se pudo subir tu foto de perfil.',
-            });
-        } finally {
-            setIsUploading(false);
-             if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
-        }
-    };
-
-
+    
     const onSubmit = async (data: ProfileFormValues) => {
         if (!user || !auth.currentUser) return;
         setIsSubmitting(true);
@@ -166,87 +124,58 @@ function ProfileForm() {
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid md:grid-cols-3 gap-8">
-                <div className="md:col-span-1">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-xl">Foto de Perfil</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center gap-4">
-                                <Avatar className="h-32 w-32 border-4 border-muted">
-                                <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || 'Avatar'} />
-                                <AvatarFallback className="text-4xl">
-                                    <UserIcon/>
-                                </AvatarFallback>
-                            </Avatar>
-                            <Input 
-                                type="file" 
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept="image/png, image/jpeg"
-                                onChange={handlePhotoUpload}
-                            />
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full">
-                                <Camera className="mr-2 h-4 w-4" />
-                                {isUploading ? 'Subiendo...' : 'Cambiar Foto'}
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="md:col-span-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-xl">Información de la Cuenta</CardTitle>
-                            <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                                <FormField
-                                control={form.control}
-                                name="displayName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nombre</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Tu nombre" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                                />
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">Información de la Cuenta</CardTitle>
+                        <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
                             <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <Input type="email" {...field} disabled />
-                                        </FormControl>
-                                        <p className="text-sm text-muted-foreground">No puedes cambiar tu dirección de correo electrónico.</p>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormItem>
-                                <FormLabel>Suscripción</FormLabel>
-                                <Input value={userProfile?.subscription || 'Invitado'} disabled />
-                            </FormItem>
-                            {subscriptionEndDate && (
+                            control={form.control}
+                            name="displayName"
+                            render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Fin de la Suscripción</FormLabel>
-                                    <Input value={format(subscriptionEndDate, 'PPP', { locale: es })} disabled />
+                                    <FormLabel>Nombre</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Tu nombre" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )}
-                        </CardContent>
-                        <CardFooter className="justify-end">
-                            <Button type="submit" disabled={isSubmitting}>
-                                <Save className="mr-2 h-4 w-4" />
-                                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </div>
+                            />
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                        <Input type="email" {...field} disabled />
+                                    </FormControl>
+                                    <p className="text-sm text-muted-foreground">No puedes cambiar tu dirección de correo electrónico.</p>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormItem>
+                            <FormLabel>Suscripción</FormLabel>
+                            <Input value={userProfile?.subscription || 'Invitado'} disabled />
+                        </FormItem>
+                        {subscriptionEndDate && (
+                            <FormItem>
+                                <FormLabel>Fin de la Suscripción</FormLabel>
+                                <Input value={format(subscriptionEndDate, 'PPP', { locale: es })} disabled />
+                            </FormItem>
+                        )}
+                    </CardContent>
+                    <CardFooter className="justify-end">
+                        <Button type="submit" disabled={isSubmitting}>
+                            <Save className="mr-2 h-4 w-4" />
+                            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </CardFooter>
+                </Card>
             </form>
         </Form>
     )
@@ -417,7 +346,3 @@ export default function PerfilPage() {
     </div>
   );
 }
-
-    
-
-    
