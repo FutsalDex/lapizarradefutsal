@@ -10,10 +10,10 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, Target, ClipboardList, Recycle, Brain, Info } from 'lucide-react';
+import { Users, Clock, Target, ClipboardList, Recycle, Brain, Info, ArrowLeft, Layers, Users2, Shapes } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { FutsalCourt } from '@/components/futsal-court';
 
 export default function ExerciseDetailPage() {
   const params = useParams();
@@ -34,8 +34,9 @@ export default function ExerciseDetailPage() {
       <div className="container mx-auto px-4 py-8">
         <Skeleton className="h-8 w-48 mb-8" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-1">
-            <Skeleton className="aspect-square w-full rounded-lg" />
+          <div className="md:col-span-1 space-y-4">
+            <Skeleton className="aspect-[4/3] w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
           </div>
           <div className="md:col-span-2 space-y-6">
             <Skeleton className="h-10 w-3/4" />
@@ -68,6 +69,7 @@ export default function ExerciseDetailPage() {
   }
   
   const edadArray = Array.isArray(exercise.edad) ? exercise.edad : [];
+  const materials = exercise['Espacio y materiales necesarios'] || 'No especificados';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -78,18 +80,30 @@ export default function ExerciseDetailPage() {
             </Link>
         </Button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
-            <Card>
-                <CardContent className="p-0">
-                    <div className="relative aspect-[4/3] w-full bg-black/5 rounded-t-lg">
-                        <Image
-                            src={exercise.image || 'https://picsum.photos/seed/placeholder/800/600'}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-1 space-y-6">
+            <Card className="overflow-hidden">
+                 <div className="relative aspect-[4/3] w-full bg-muted">
+                    {exercise.image ? (
+                       <Image
+                            src={exercise.image}
                             alt={`Imagen de ${exercise.name}`}
                             fill
                             className="object-contain p-2"
                         />
-                    </div>
+                    ) : (
+                       <FutsalCourt className="w-full h-full p-1" />
+                    )}
+                </div>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Detalles Clave</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                     <p className='flex items-start'><Layers className="mr-3 h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0"/> <div><strong>Categoría:</strong><span className='ml-2 text-muted-foreground'>{exercise.category}</span></div></p>
+                     <p className='flex items-start'><Users2 className="mr-3 h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0"/> <div><strong>Edades:</strong><span className='ml-2 text-muted-foreground capitalize'>{edadArray.join(', ')}</span></div></p>
+                     <p className='flex items-start'><Shapes className="mr-3 h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0"/> <div><strong>Materiales:</strong><span className='ml-2 text-muted-foreground'>{materials}</span></div></p>
                 </CardContent>
             </Card>
         </div>
@@ -97,60 +111,63 @@ export default function ExerciseDetailPage() {
         <div className="lg:col-span-2">
             <h1 className="font-headline text-3xl font-bold text-primary mb-2">{exercise.name}</h1>
              <div className="flex flex-wrap gap-2 mb-6">
-                {exercise.category && <Badge variant="secondary">{exercise.category}</Badge>}
+                {exercise.fase && <Badge variant="secondary">{exercise.fase}</Badge>}
                 {edadArray.map(age => <Badge key={age} variant="outline" className="capitalize">{age}</Badge>)}
             </div>
           
             <div className="space-y-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle className='flex items-center'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
+                        <CardTitle className='flex items-center text-lg'><ClipboardList className="mr-2 h-5 w-5 text-primary"/>Descripción</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise.description}</p>
+                        <p className="text-sm text-muted-foreground">{exercise.description}</p>
                     </CardContent>
                 </Card>
 
                  <Card>
                     <CardHeader>
-                        <CardTitle className='flex items-center'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
+                        <CardTitle className='flex items-center text-lg'><Target className="mr-2 h-5 w-5 text-primary"/>Objetivos</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise.objectives}</p>
+                        <p className="text-sm text-muted-foreground">{exercise.objectives}</p>
                     </CardContent>
                 </Card>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className='flex items-center'><Info className="mr-2 h-5 w-5 text-primary"/>Detalles</CardTitle>
+                            <CardTitle className='flex items-center text-lg'><Info className="mr-2 h-5 w-5 text-primary"/>Detalles del Ejercicio</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="space-y-3 pt-2">
                             <p className='flex items-center text-sm'><Users className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Jugadores:</strong><span className='ml-2 text-muted-foreground'>{exercise.numberOfPlayers}</span></p>
                              <p className='flex items-center text-sm'><Clock className="mr-2 h-4 w-4 text-muted-foreground"/> <strong>Duración:</strong><span className='ml-2 text-muted-foreground'>{exercise.duration} min</span></p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle className='flex items-center'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
+                            <CardTitle className='flex items-center text-lg'><Brain className="mr-2 h-5 w-5 text-primary"/>Consejos</CardTitle>
                         </CardHeader>
                         <CardContent>
-                             <p className="text-sm text-muted-foreground text-justify">{exercise.consejos}</p>
+                             <p className="text-sm text-muted-foreground">{exercise.consejos}</p>
                         </CardContent>
                     </Card>
                 </div>
 
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className='flex items-center'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm text-muted-foreground text-justify">{exercise.variations}</p>
-                    </CardContent>
-                </Card>
+                 {exercise.variations && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className='flex items-center text-lg'><Recycle className="mr-2 h-5 w-5 text-primary"/>Variantes</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground">{exercise.variations}</p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
       </div>
     </div>
   );
 }
+
