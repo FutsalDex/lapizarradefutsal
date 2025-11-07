@@ -53,13 +53,17 @@ function UpdatePlayerTimesScript() {
       const playersMap = new Map(playersSnapshot.docs.map(doc => [doc.data().name, doc.id]));
 
       // 3. Parsear los datos introducidos
-      const lines = playerData.trim().split('\n');
+      const entries = playerData.trim().replace(/\n/g, ',').split(',').filter(Boolean);
       const updates = new Map<string, number>();
-      lines.forEach(line => {
-        const lastColonIndex = line.lastIndexOf(':');
-        if (lastColonIndex > -1) {
-          const name = line.substring(0, lastColonIndex).trim();
-          const time = line.substring(lastColonIndex + 1).trim();
+      
+      entries.forEach(entry => {
+        const parts = entry.split(':');
+        if (parts.length >= 3) {
+          const secondsStr = parts.pop()?.trim();
+          const minutesStr = parts.pop()?.trim();
+          const name = parts.join(':').trim();
+          const time = `${minutesStr}:${secondsStr}`;
+          
           const playerId = playersMap.get(name);
           if (playerId) {
             updates.set(playerId, parseTimeToSeconds(time));
@@ -68,6 +72,7 @@ function UpdatePlayerTimesScript() {
           }
         }
       });
+
 
       if (updates.size === 0) {
         throw new Error('No se encontraron jugadores coincidentes para actualizar.');
@@ -108,7 +113,7 @@ function UpdatePlayerTimesScript() {
         <CardTitle className="flex items-center gap-2"><PlaySquare/>Actualizar Tiempos de Jugadores</CardTitle>
         <CardDescription>
           Pega el ID del partido y la lista de jugadores con sus tiempos para actualizarlos en la base de datos.
-          El formato debe ser: `Nombre del Jugador: mm:ss`, una línea por jugador.
+          El formato debe ser: `Nombre del Jugador:mm:ss`, una línea por jugador.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -127,8 +132,8 @@ function UpdatePlayerTimesScript() {
             id="playerData"
             value={playerData}
             onChange={(e) => setPlayerData(e.target.value)}
-            placeholder="Manel: 25:00
-Marc Montoro: 22:41
+            placeholder="Manel:25:00
+Marc Montoro:22:41
 ..."
             rows={12}
           />
