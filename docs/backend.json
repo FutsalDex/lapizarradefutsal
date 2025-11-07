@@ -105,7 +105,8 @@
       "description": "Represents a staff member of a team.",
       "properties": {
         "name": { "type": "string" },
-        "role": { "type": "string" }
+        "role": { "type": "string" },
+        "email": { "type": "string", "format": "email" }
       },
       "required": ["name", "role"]
     },
@@ -337,3 +338,5 @@
     }
   }
 }
+
+    

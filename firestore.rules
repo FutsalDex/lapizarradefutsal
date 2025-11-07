@@ -98,9 +98,11 @@ service cloud.firestore {
     // 💌 INVITATIONS
     // =============================
     match /invitations/{invitationId} {
-      allow read, list: if isAdmin();
+      allow read, list: if isAdmin() || (isAuth() && request.auth.uid == resource.data.inviterId);
       allow create: if isAuth() && request.resource.data.inviterId == request.auth.uid;
       allow update, delete: if isAdmin();
     }
   }
 }
+
+    
