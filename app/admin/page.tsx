@@ -7,6 +7,7 @@ import {
   Upload,
   BookUser,
   Gift,
+  PlaySquare,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,12 @@ const adminItems = [
     description: 'Añade ejercicios a la biblioteca, individualmente o en lote.',
     icon: <Upload className="w-6 h-6 text-primary" />,
     href: '/admin/ejercicios',
+  },
+   {
+    title: 'Scripts',
+    description: 'Ejecuta scripts para realizar tareas de mantenimiento y actualizaciones.',
+    icon: <PlaySquare className="w-6 h-6 text-primary" />,
+    href: '/admin/scripts',
   },
 ];
 
