@@ -78,6 +78,18 @@ interface Team {
   ownerName?: string;
 }
 
+const staffRoles = [
+  "Entrenador",
+  "2º Entrenador",
+  "Delegado",
+  "Preparador Físico",
+  "Analista Táctico/Scouting",
+  "Fisioterapeuta",
+  "Médico",
+  "Psicólogo",
+  "Nutricionista",
+];
+
 
 // ====================
 // COMPONENTES
@@ -110,7 +122,7 @@ function InfoCard({ team }: { team: Team }) {
     );
 }
 
-function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMember[] | null, isLoadingStaff: boolean }) {
+function StaffForm({ team, staff, isLoadingStaff, onStaffUpdated }: { team: Team, staff: StaffMember[] | null, isLoadingStaff: boolean, onStaffUpdated: () => void }) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const { user } = useUser();
@@ -149,7 +161,6 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
         if (member.email) {
           data.email = member.email;
 
-          // Check if user with this email already exists
           const usersCollection = collection(firestore, 'users');
           const q = query(usersCollection, where('email', '==', member.email));
           const snapshot = await getDocs(q);
@@ -159,7 +170,6 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
             data.userId = existingUser.id;
             batch.update(teamRef, { memberIds: arrayUnion(existingUser.id) });
           } else {
-             // Create invitation if user does not exist
              const invitationsRef = collection(firestore, 'invitations');
              await addDoc(invitationsRef, {
                  inviterId: user?.uid,
@@ -178,6 +188,7 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
         await batch.commit();
         toast({ title: 'Staff actualizado', description: 'Los cambios en tu staff técnico se han guardado.' });
         setRemovedStaffIds([]);
+        onStaffUpdated();
       } catch (e) {
         console.error("Error updating staff:", e);
         toast({ variant: 'destructive', title: 'Error al guardar', description: 'No se pudieron guardar los cambios.' });
@@ -208,7 +219,7 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
-                      <TableHead className="w-[150px]">Rol</TableHead>
+                      <TableHead className="w-[200px]">Rol</TableHead>
                       <TableHead className="w-[220px]">Email</TableHead>
                       <TableHead className="w-[100px] text-right">Acciones</TableHead>
                     </TableRow>
@@ -223,7 +234,22 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                             <FormField control={form.control} name={`staff.${index}.name`} render={({ field }) => (<Input {...field} placeholder="Nombre"/>)} />
                           </TableCell>
                           <TableCell>
-                            <FormField control={form.control} name={`staff.${index}.role`} render={({ field }) => (<Input {...field} placeholder="Ej: Entrenador"/>)} />
+                             <FormField
+                                control={form.control}
+                                name={`staff.${index}.role`}
+                                render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona..." />
+                                    </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                    {staffRoles.map(role => <SelectItem key={role} value={role}>{role}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                )}
+                            />
                           </TableCell>
                           <TableCell>
                             <FormField control={form.control} name={`staff.${index}.email`} render={({ field }) => (<Input type="email" {...field} placeholder="email@ejemplo.com"/>)} />
@@ -254,7 +280,7 @@ function StaffForm({ team, staff, isLoadingStaff }: { team: Team, staff: StaffMe
                 </Table>
               </div>
               <div className="flex justify-between items-center">
-                <Button type="button" variant="outline" onClick={() => append({ name: '', role: '', email: '' })} disabled={isSubmitting}>
+                <Button type="button" variant="outline" onClick={() => append({ name: '', role: 'Entrenador', email: '' })} disabled={isSubmitting}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Añadir Miembro
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
@@ -460,6 +486,7 @@ export default function RosterPage() {
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
   const { user } = useUser();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const teamRef = useMemoFirebase(() => {
     if (!firestore || !teamId) return null;
@@ -467,7 +494,7 @@ export default function RosterPage() {
   }, [firestore, teamId]);
 
   const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
-  const staffRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/staff`), [firestore, teamId]);
+  const staffRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/staff`), [firestore, teamId, refreshKey]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
   const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
@@ -524,7 +551,7 @@ export default function RosterPage() {
 
        <div className="space-y-8">
          <InfoCard team={team} />
-         <StaffForm team={team} staff={staff} isLoadingStaff={isLoadingStaff} />
+         <StaffForm team={team} staff={staff} isLoadingStaff={isLoadingStaff} onStaffUpdated={() => setRefreshKey(k => k + 1)} />
          <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
        </div>
     </div>
