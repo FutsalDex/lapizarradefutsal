@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -98,7 +97,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
     return (
         <div className="bg-white text-black w-[21cm] h-[29.7cm] mx-auto p-4 rounded-lg shadow-lg overflow-hidden border flex flex-col">
              <div className="p-2 bg-gray-100 border-b grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-800">
-                {sessionData.name && <div className="font-semibold">Número de sesión: <span className="font-normal">{sessionData.name}</span></div>}
+                {sessionData.name && <div className="font-semibold">Sesión: <span className="font-normal">{sessionData.name}</span></div>}
                 {sessionData.date && <div className="font-semibold">Fecha: <span className="font-normal">{format(sessionData.date, 'PPP', { locale: es })}</span></div>}
                 {sessionData.time && <div className="font-semibold">Hora: <span className="font-normal">{sessionData.time}</span></div>}
                 {sessionData.facility && <div className="font-semibold">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
@@ -340,7 +339,6 @@ function AddExerciseCard({ onClick, disabled }: { onClick: () => void; disabled?
 
 
 function PhaseSection({ title, phase, allExercises, selectedIds, onExerciseToggle, control, limit }: { title: string, phase: Phase, allExercises: Exercise[], selectedIds: string[], onExerciseToggle: (id: string, phase: Phase) => void, control: any, limit: number }) {
-
     const selectedExercises = useMemo(() => {
         return selectedIds.map(id => allExercises.find(ex => ex.id === id)).filter(Boolean) as Exercise[];
     }, [allExercises, selectedIds]);
@@ -664,3 +662,4 @@ export default function CreateSessionPage() {
         </div>
     );
 }
+

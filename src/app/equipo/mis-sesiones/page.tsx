@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -126,7 +127,7 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
                                     <p>Cargando ejercicios...</p>
                                 ) : (
                                     <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                                        {exerciseDetails.map((ex) => <li key={ex.id}>{ex.name}</li>)}
+                                        {exerciseDetails.map((ex, index) => <li key={`${ex.id}-${index}`}>{ex.name}</li>)}
                                     </ul>
                                 )}
                             </div>
@@ -286,3 +287,4 @@ export default function SesionesPage() {
     </div>
   );
 }
+
