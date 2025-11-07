@@ -108,42 +108,51 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
 
     const aggregatedStats = useMemo(() => {
         if (!squadPlayers.length || !match.playerStats) return [];
-    
-        const statsMap: { [playerId: string]: PlayerStats & { name: string, number: string } } = {};
 
+        const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
+
+        // Initialize map with all players in the squad
         squadPlayers.forEach(player => {
-            statsMap[player.id] = {
+            statsMap.set(player.id, {
                 name: player.name,
                 number: player.number,
-                minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
+                minutesPlayed: 0,
+                goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
                 saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-                recoveries: 0, turnovers: 0,
-            };
+                recoveries: 0, turnovers: 0
+            });
         });
 
+        // Aggregate stats from both halves
         (['1H', '2H'] as Period[]).forEach(period => {
             const periodStats = match.playerStats?.[period];
             if (!periodStats) return;
 
             for (const playerId in periodStats) {
-                if (Object.prototype.hasOwnProperty.call(periodStats, playerId) && statsMap[playerId]) {
-                    const playerPeriodStats = periodStats[playerId];
-                    statsMap[playerId].minutesPlayed! += playerPeriodStats.minutesPlayed || 0;
-                    statsMap[playerId].goals! += playerPeriodStats.goals || 0;
-                    statsMap[playerId].assists! += playerPeriodStats.assists || 0;
-                    statsMap[playerId].yellowCards! += playerPeriodStats.yellowCards || 0;
-                    statsMap[playerId].redCards! += playerPeriodStats.redCards || 0;
-                    statsMap[playerId].fouls! += playerPeriodStats.fouls || 0;
-                    statsMap[playerId].saves! += playerPeriodStats.saves || 0;
-                    statsMap[playerId].goalsConceded! += playerPeriodStats.goalsConceded || 0;
-                    statsMap[playerId].unoVsUno! += playerPeriodStats.unoVsUno || 0;
+                if (statsMap.has(playerId)) {
+                    const existingStats = statsMap.get(playerId)!;
+                    const playerPeriodStats = periodStats[playerId] as Partial<PlayerStats>;
+                    
+                    existingStats.minutesPlayed! += playerPeriodStats.minutesPlayed || 0;
+                    existingStats.goals! += playerPeriodStats.goals || 0;
+                    existingStats.assists! += playerPeriodStats.assists || 0;
+                    existingStats.yellowCards! += playerPeriodStats.yellowCards || 0;
+                    existingStats.redCards! += playerPeriodStats.redCards || 0;
+                    existingStats.fouls! += playerPeriodStats.fouls || 0;
+                    existingStats.saves! += playerPeriodStats.saves || 0;
+                    existingStats.goalsConceded! += playerPeriodStats.goalsConceded || 0;
+                    existingStats.unoVsUno! += playerPeriodStats.unoVsUno || 0;
+                    existingStats.shotsOnTarget! += playerPeriodStats.shotsOnTarget || 0;
+                    existingStats.shotsOffTarget! += playerPeriodStats.shotsOffTarget || 0;
+                    existingStats.recoveries! += playerPeriodStats.recoveries || 0;
+                    existingStats.turnovers! += playerPeriodStats.turnovers || 0;
                 }
             }
         });
-        
-        return Object.values(statsMap).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
+        return Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
     }, [match.playerStats, squadPlayers]);
+
 
     const totals = useMemo(() => {
         return (aggregatedStats || []).reduce((acc, player) => {
