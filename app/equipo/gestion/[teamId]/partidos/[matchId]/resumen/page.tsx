@@ -49,7 +49,7 @@ interface Match {
   date: any; // Firestore timestamp
   squad?: string[];
   events?: MatchEvent[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
 }
 
 interface Player {
@@ -68,6 +68,24 @@ const formatStatTime = (totalSeconds: number) => {
     const seconds = totalSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
+
+function migrateLegacyMatchData(matchData: Match): Match {
+    if (!matchData || !matchData.playerStats) return matchData;
+
+    const playerStats = matchData.playerStats;
+    // Check if it's the old format (not having 1H or 2H keys)
+    if (!('1H' in playerStats) && !('2H' in playerStats) && Object.keys(playerStats).length > 0) {
+        const migratedData = _.cloneDeep(matchData);
+        migratedData.playerStats = {
+            '1H': playerStats as { [playerId: string]: Partial<PlayerStats> },
+            '2H': {}
+        };
+        return migratedData;
+    }
+
+    return matchData;
+}
+
 
 // ====================
 // SUB-COMPONENTS
@@ -107,40 +125,46 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
     }, [allPlayers, match.squad]);
 
     const aggregatedStats = useMemo(() => {
-    if (!squadPlayers.length || !match.playerStats) return [];
-    
-    const stats: { [playerId: string]: PlayerStats & { name: string, number: string } } = {};
+        if (!squadPlayers.length || !match.playerStats) return [];
 
-    squadPlayers.forEach(player => {
-        const stats1H = _.get(match.playerStats, `1H.${player.id}`, {}) as Partial<PlayerStats>;
-        const stats2H = _.get(match.playerStats, `2H.${player.id}`, {}) as Partial<PlayerStats>;
+        const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
+
+        // Initialize map with all players in the squad to ensure all are listed
+        squadPlayers.forEach(player => {
+            statsMap.set(player.id, {
+                name: player.name,
+                number: player.number,
+                minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
+                saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
+                recoveries: 0, turnovers: 0,
+            });
+        });
+
+        // Aggregate stats from both halves
+        (['1H', '2H'] as Period[]).forEach(period => {
+            const periodStats = match.playerStats?.[period];
+            if (!periodStats) return;
+
+            for (const playerId in periodStats) {
+                if (statsMap.has(playerId)) {
+                    const existingStats = statsMap.get(playerId)!;
+                    const playerPeriodStats = periodStats[playerId] as Partial<PlayerStats>;
+                    
+                    Object.keys(playerPeriodStats).forEach(key => {
+                        const statKey = key as keyof PlayerStats;
+                        (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerPeriodStats[statKey] || 0);
+                    });
+                }
+            }
+        });
         
-        stats[player.id] = {
-            name: player.name,
-            number: player.number,
-            minutesPlayed: (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0),
-            goals: (stats1H.goals || 0) + (stats2H.goals || 0),
-            assists: (stats1H.assists || 0) + (stats2H.assists || 0),
-            yellowCards: (stats1H.yellowCards || 0) + (stats2H.yellowCards || 0),
-            redCards: (stats1H.redCards || 0) + (stats2H.redCards || 0),
-            fouls: (stats1H.fouls || 0) + (stats2H.fouls || 0),
-            saves: (stats1H.saves || 0) + (stats2H.saves || 0),
-            goalsConceded: (stats1H.goalsConceded || 0) + (stats2H.goalsConceded || 0),
-            unoVsUno: (stats1H.unoVsUno || 0) + (stats2H.unoVsUno || 0),
-            shotsOnTarget: (stats1H.shotsOnTarget || 0) + (stats2H.shotsOnTarget || 0),
-            shotsOffTarget: (stats1H.shotsOffTarget || 0) + (stats2H.shotsOffTarget || 0),
-            recoveries: (stats1H.recoveries || 0) + (stats2H.recoveries || 0),
-            turnovers: (stats1H.turnovers || 0) + (stats2H.turnovers || 0),
-        };
-    });
+        return Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
-    return Object.values(stats).sort((a,b) => parseInt(a.number, 10) - parseInt(b.number, 10));
+    }, [match.playerStats, squadPlayers]);
 
-}, [match.playerStats, squadPlayers]);
 
     const totals = useMemo(() => {
-        return aggregatedStats.reduce((acc, player) => {
-            acc.minutesPlayed += player.minutesPlayed || 0;
+        return (aggregatedStats || []).reduce((acc, player) => {
             acc.goals += player.goals || 0;
             acc.assists += player.assists || 0;
             acc.yellowCards += player.yellowCards || 0;
@@ -151,7 +175,7 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
             acc.unoVsUno += player.unoVsUno || 0;
             return acc;
         }, {
-            minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, saves: 0, goalsConceded: 0, unoVsUno: 0
+            goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, saves: 0, goalsConceded: 0, unoVsUno: 0
         });
     }, [aggregatedStats]);
 
@@ -183,7 +207,7 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {aggregatedStats.length > 0 ? aggregatedStats.map(player => (
+                            {(aggregatedStats && aggregatedStats.length > 0) ? aggregatedStats.map(player => (
                                 <TableRow key={player.number}>
                                     <TableCell className="font-medium">{player.number}</TableCell>
                                     <TableCell>{player.name}</TableCell>
@@ -205,8 +229,7 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string }) =
                         </TableBody>
                         <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
-                                <TableCell colSpan={2}>Total Equipo</TableCell>
-                                <TableCell>{formatStatTime(totals.minutesPlayed)}</TableCell>
+                                <TableCell colSpan={3}>Total Equipo</TableCell>
                                 <TableCell>{totals.goals}</TableCell>
                                 <TableCell>{totals.assists}</TableCell>
                                 <TableCell>{totals.yellowCards}</TableCell>
@@ -236,10 +259,16 @@ export default function MatchDetailsPage() {
   const firestore = useFirestore();
 
   const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
-  const { data: match, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
+  const { data: rawMatch, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
   
   const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
+  
+  const match = useMemo(() => {
+    if (!rawMatch) return null;
+    return migrateLegacyMatchData(rawMatch);
+  }, [rawMatch]);
+
 
   const goalEvents = useMemo(() => {
       if (!match?.events) return [];

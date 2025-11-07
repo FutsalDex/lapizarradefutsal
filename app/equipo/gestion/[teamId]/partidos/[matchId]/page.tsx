@@ -84,7 +84,7 @@ interface Match {
 const formatStatTime = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 };
 
 /**
@@ -100,7 +100,6 @@ function migrateLegacyMatchData(matchData: Match): Match {
     const needsOpponentStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
     
     if (needsPlayerStatsMigration(migratedData.playerStats)) {
-        console.log("Migrating legacy playerStats...");
         const legacyPlayerStats = migratedData.playerStats;
         migratedData.playerStats = {
             '1H': legacyPlayerStats as { [playerId: string]: Partial<PlayerStats> },
@@ -110,7 +109,6 @@ function migrateLegacyMatchData(matchData: Match): Match {
     }
 
     if (needsOpponentStatsMigration(migratedData.opponentStats)) {
-        console.log("Migrating legacy opponentStats...");
         const legacyOpponentStats = migratedData.opponentStats;
         migratedData.opponentStats = { 
             '1H': legacyOpponentStats as Partial<OpponentStats>,
@@ -119,17 +117,25 @@ function migrateLegacyMatchData(matchData: Match): Match {
         wasMigrated = true;
     }
     
+    // Ensure all nested structures exist to prevent runtime errors
     if (!migratedData.playerStats) migratedData.playerStats = { '1H': {}, '2H': {} };
+    if (!migratedData.playerStats['1H']) migratedData.playerStats['1H'] = {};
+    if (!migratedData.playerStats['2H']) migratedData.playerStats['2H'] = {};
+    
     if (!migratedData.opponentStats) migratedData.opponentStats = { '1H': {}, '2H': {} };
+    if (!migratedData.opponentStats['1H']) migratedData.opponentStats['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['2H']) migratedData.opponentStats['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    
     if (!migratedData.timeouts) migratedData.timeouts = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
-    if (!migratedData.fouls) migratedData.fouls = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
-
-    // Ensure nested period objects exist
     if (!migratedData.timeouts['1H']) migratedData.timeouts['1H'] = {local: 0, visitor: 0};
     if (!migratedData.timeouts['2H']) migratedData.timeouts['2H'] = {local: 0, visitor: 0};
 
+    if (!migratedData.fouls) migratedData.fouls = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
+    if (!migratedData.fouls['1H']) migratedData.fouls['1H'] = {local: 0, visitor: 0};
+    if (!migratedData.fouls['2H']) migratedData.fouls['2H'] = {local: 0, visitor: 0};
+
     if (wasMigrated) {
-        console.log("Data migration complete:", migratedData);
+        console.log("Legacy match data migrated for compatibility.");
     }
     
     return migratedData;
@@ -172,10 +178,10 @@ const Scoreboard = ({
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
-  const localTimeoutsUsed = _.get(match.timeouts, `${period}.local`, 0) > 0;
-  const visitorTimeoutsUsed = _.get(match.timeouts, `${period}.visitor`, 0) > 0;
-  const localFouls = _.get(match.fouls, `${period}.local`, 0);
-  const visitorFouls = _.get(match.fouls, `${period}.visitor`, 0);
+  const localTimeoutsUsed = _.get(match, `timeouts.${period}.local`, 0) > 0;
+  const visitorTimeoutsUsed = _.get(match, `timeouts.${period}.visitor`, 0) > 0;
+  const localFouls = _.get(match, `fouls.${period}.local`, 0);
+  const visitorFouls = _.get(match, `fouls.${period}.visitor`, 0);
 
   return (
     <Card>
