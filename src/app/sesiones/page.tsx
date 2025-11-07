@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
@@ -103,7 +102,7 @@ function BasicSessionPreview({ sessionData, exercises }: { sessionData: SessionF
                 <div className="font-bold text-lg col-span-2 text-center">Sesión núm: {sessionData.name}</div>
                 {sessionData.date && <div className="font-semibold">Fecha: <span className="font-normal">{format(sessionData.date, 'PPP', { locale: es })}</span></div>}
                 {sessionData.time && <div className="font-semibold">Hora: <span className="font-normal">{sessionData.time}</span></div>}
-                {sessionData.facility && <div className="font-semibold">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
+                {sessionData.facility && <div className="font-semibold col-span-2">Instalación: <span className="font-normal">{sessionData.facility}</span></div>}
             </div>
             <ScrollArea className="flex-grow">
                  <div className="p-4 space-y-4">
@@ -328,7 +327,7 @@ const AddExerciseCard = ({ title, ...props }: React.HTMLAttributes<HTMLDivElemen
     >
       <div className="text-center">
         <p className="mb-2 font-semibold">{title}</p>
-        <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200">
           <Plus className="h-5 w-5" />
         </div>
       </div>
