@@ -52,7 +52,7 @@ export default function Home() {
             </CardContent>
             <div className="p-6 pt-0">
               <Button variant="outline" asChild className="w-full">
-                <Link href="/registro">
+                <Link href="/login">
                   Regístrate o Inicia Sesión <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
