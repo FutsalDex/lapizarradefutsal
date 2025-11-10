@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
@@ -97,6 +98,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
+              <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium mt-8">
                 {[...navLinks, ...(isAdmin ? adminNavLinks : [])].map((link) => (
                   <Link
