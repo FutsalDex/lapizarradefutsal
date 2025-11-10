@@ -9,6 +9,7 @@ import {
   SheetContent,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
 import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Gift, Users, User, LogOut, LogIn } from "lucide-react";
@@ -20,7 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { useState } from "react";
+
 
 const navLinks = [
   { href: "/ejercicios", label: "Ver ejercicios", icon: <BookOpen className="w-5 h-5"/>, auth: false },
@@ -38,12 +40,17 @@ export function Header() {
   // Simulación de estado de sesión
   const isLoggedIn = false; 
   const isAdmin = isLoggedIn; // Un admin debe estar logueado
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const pendingInvitations = 2;
   const pendingUsers = 5;
   
   const visibleNavLinks = navLinks.filter(link => !link.auth || isLoggedIn);
   const visibleAdminNavLinks = adminNavLinks.filter(link => !link.auth || isAdmin);
+
+  const handleLinkClick = () => {
+    setIsSheetOpen(false);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground">
@@ -96,7 +103,7 @@ export function Header() {
               LaPizarra
             </span>
           </Link>
-          <Sheet>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="hover:bg-primary/80">
                 <Menu className="h-6 w-6" />
@@ -110,6 +117,7 @@ export function Header() {
                   <Link
                     key={link.href}
                     href={link.href}
+                    onClick={handleLinkClick}
                     className={cn(
                       "flex items-center gap-2 text-lg font-semibold transition-colors hover:text-foreground/80",
                       pathname === link.href
@@ -125,7 +133,7 @@ export function Header() {
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                   {isLoggedIn ? (
                      <Button variant="outline" asChild>
-                        <Link href="#">
+                        <Link href="#" onClick={handleLinkClick}>
                             <LogOut className="mr-2 h-4 w-4" />
                             Cerrar Sesión
                         </Link>
@@ -133,13 +141,13 @@ export function Header() {
                   ) : (
                     <>
                         <Button asChild>
-                            <Link href="/login">
+                            <Link href="/login" onClick={handleLinkClick}>
                                 <LogIn className="mr-2 h-4 w-4" />
                                 Iniciar Sesión
                             </Link>
                         </Button>
                         <Button variant="secondary" asChild>
-                            <Link href="/registro">
+                            <Link href="/registro" onClick={handleLinkClick}>
                                 Registrarse
                             </Link>
                         </Button>
