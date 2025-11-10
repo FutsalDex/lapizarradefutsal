@@ -44,8 +44,8 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
-  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
-  opponentStats?: { ['1H']?: Partial<OpponentStats>, ['2H']?: Partial<OpponentStats> };
+  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
+  opponentStats?: { ['1H']?: Partial<OpponentStats>, ['2H']?: Partial<OpponentStats> } | Partial<OpponentStats>; // Legacy support
 }
 
 type MatchResult = 'win' | 'loss' | 'draw';
@@ -140,53 +140,57 @@ export default function TeamOverallStatsPage() {
         const performance = filteredMatches.reduce((acc, match) => {
             const isLocal = match.localTeam === team.name;
 
-            // Match result
-            const userScore = isLocal ? (match.localScore || 0) : (match.visitorScore || 0);
-            const opponentScore = isLocal ? (match.visitorScore || 0) : (match.localScore || 0);
+            const userScore = isLocal ? (match.localScore ?? 0) : (match.visitorScore ?? 0);
+            const opponentScore = isLocal ? (match.visitorScore ?? 0) : (match.localScore ?? 0);
 
             if (userScore > opponentScore) wins++;
             else if (userScore < opponentScore) losses++;
             else draws++;
+            
+            const playerStats1H = match.playerStats?.['1H'] ? _.values(match.playerStats['1H']) : [];
+            const playerStats2H = match.playerStats?.['2H'] ? _.values(match.playerStats['2H']) : [];
 
-            const playerStats1H = _.values(match.playerStats?.['1H'] || {});
-            const playerStats2H = _.values(match.playerStats?.['2H'] || {});
+            let allPlayerStats: Partial<PlayerStats>[] = [...playerStats1H, ...playerStats2H];
             
             // Handle legacy flat structure
             if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
-                const legacyStats = _.values(match.playerStats || {});
-                playerStats1H.push(...legacyStats);
+                allPlayerStats = _.values(match.playerStats || {});
             }
+
+            acc.shotsOnTarget += _.sumBy(allPlayerStats, 'shotsOnTarget') || 0;
+            acc.shotsOffTarget += _.sumBy(allPlayerStats, 'shotsOffTarget') || 0;
+            acc.foulsCommitted += _.sumBy(allPlayerStats, 'fouls') || 0;
+            acc.turnovers += _.sumBy(allPlayerStats, 'turnovers') || 0;
+            acc.recoveries += _.sumBy(allPlayerStats, 'recoveries') || 0;
+            acc.yellowCards += _.sumBy(allPlayerStats, 'yellowCards') || 0;
+            acc.redCards += _.sumBy(allPlayerStats, 'redCards') || 0;
             
-            acc.shotsOnTarget += _.sumBy(playerStats1H, 'shotsOnTarget') + _.sumBy(playerStats2H, 'shotsOnTarget');
-            acc.shotsOffTarget += _.sumBy(playerStats1H, 'shotsOffTarget') + _.sumBy(playerStats2H, 'shotsOffTarget');
-            acc.foulsCommitted += _.sumBy(playerStats1H, 'fouls') + _.sumBy(playerStats2H, 'fouls');
-            acc.turnovers += _.sumBy(playerStats1H, 'turnovers') + _.sumBy(playerStats2H, 'turnovers');
-            acc.recoveries += _.sumBy(playerStats1H, 'recoveries') + _.sumBy(playerStats2H, 'recoveries');
-            acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
-            acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
-            
-            // Opponent stats
             const opponentStats1H = match.opponentStats?.['1H'] || {};
             const opponentStats2H = match.opponentStats?.['2H'] || {};
             if (!match.opponentStats?.['1H'] && !match.opponentStats?.['2H']) {
-                Object.assign(opponentStats1H, match.opponentStats);
+                Object.assign(opponentStats1H, (match.opponentStats as Partial<OpponentStats>) || {});
             }
 
             acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
 
-            // Goal stats
-            const teamGoals1H = _.sumBy(playerStats1H, 'goals');
-            const teamGoals2H = _.sumBy(playerStats2H, 'goals');
+            const teamGoals1H = _.sumBy(playerStats1H, 'goals') || 0;
+            const teamGoals2H = _.sumBy(playerStats2H, 'goals') || 0;
             const opponentGoals1H = opponentStats1H.goals || 0;
             const opponentGoals2H = opponentStats2H.goals || 0;
+            
+            // Legacy goals calculation fallback
+            let legacyGoals = 0;
+            if(!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
+                legacyGoals = _.sumBy(allPlayerStats, 'goals') || 0;
+            }
 
             acc.goalsFor1H += teamGoals1H;
             acc.goalsFor2H += teamGoals2H;
             acc.goalsAgainst1H += opponentGoals1H;
             acc.goalsAgainst2H += opponentGoals2H;
-            acc.goalsFor += teamGoals1H + teamGoals2H;
+            acc.goalsFor += (teamGoals1H + teamGoals2H) || legacyGoals;
             acc.goalsAgainst += opponentGoals1H + opponentGoals2H;
-
+            
             return acc;
 
         }, initialPerformanceStats);
@@ -228,7 +232,7 @@ export default function TeamOverallStatsPage() {
             </div>
         );
     }
-    
+
     if (!user) {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
@@ -308,9 +312,9 @@ export default function TeamOverallStatsPage() {
                         <CardTitle className="text-xl">Goles a Favor</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <GoalStatRow label="Totales" value={performance.goalsFor} icon={Plus} />
-                        <GoalStatRow label="1ª Parte" value={performance.goalsFor1H} icon={Plus} />
-                        <GoalStatRow label="2ª Parte" value={performance.goalsFor2H} icon={Plus} />
+                        <GoalStatRow label="Totales" value={performance.goalsFor || 0} icon={Plus} />
+                        <GoalStatRow label="1ª Parte" value={performance.goalsFor1H || 0} icon={Plus} />
+                        <GoalStatRow label="2ª Parte" value={performance.goalsFor2H || 0} icon={Plus} />
                     </CardContent>
                 </Card>
                 <Card>
@@ -318,9 +322,9 @@ export default function TeamOverallStatsPage() {
                         <CardTitle className="text-xl">Goles en Contra</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <GoalStatRow label="Totales" value={performance.goalsAgainst} icon={Minus} />
-                        <GoalStatRow label="1ª Parte" value={performance.goalsAgainst1H} icon={Minus} />
-                        <GoalStatRow label="2ª Parte" value={performance.goalsAgainst2H} icon={Minus} />
+                        <GoalStatRow label="Totales" value={performance.goalsAgainst || 0} icon={Minus} />
+                        <GoalStatRow label="1ª Parte" value={performance.goalsAgainst1H || 0} icon={Minus} />
+                        <GoalStatRow label="2ª Parte" value={performance.goalsAgainst2H || 0} icon={Minus} />
                     </CardContent>
                 </Card>
             </div>

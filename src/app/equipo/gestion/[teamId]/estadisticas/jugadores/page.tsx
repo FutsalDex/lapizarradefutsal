@@ -45,7 +45,7 @@ interface Match {
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
   squad?: string[];
-  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
+  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
 }
 
 type StatCategory = keyof PlayerStats;
@@ -135,17 +135,17 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
     ];
     
     const totals = useMemo(() => {
-        return filteredAndSortedStats.reduce((acc, player) => {
-            (Object.keys(player) as Array<keyof typeof player>).forEach(key => {
-                if (typeof player[key] === 'number' && key !== 'number') {
-                    (acc as any)[key] = ((acc as any)[key] || 0) + player[key];
-                }
-            });
-            return acc;
-        }, {
+        const initialTotals: Partial<PlayerStats> = {
             minutesPlayed: 0, pj: 0, goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
             recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, fouls: 0, yellowCards: 0, redCards: 0
-        });
+        };
+
+        return filteredAndSortedStats.reduce((acc, player) => {
+            (Object.keys(initialTotals) as Array<keyof typeof initialTotals>).forEach(key => {
+                acc[key] = (acc[key] || 0) + (player[key] || 0);
+            });
+            return acc;
+        }, initialTotals);
     }, [filteredAndSortedStats]);
 
     return (
@@ -201,19 +201,19 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
                          <TableFooter>
                             <TableRow className="font-bold bg-muted/50">
                                 <TableCell colSpan={2}>Total</TableCell>
-                                <TableCell className="text-center">{formatStatTime(totals.minutesPlayed)}</TableCell>
-                                <TableCell className="text-center">{totals.pj}</TableCell>
-                                <TableCell className="text-center">{totals.goals}</TableCell>
-                                <TableCell className="text-center">{totals.assists}</TableCell>
-                                <TableCell className="text-center">{totals.shotsOnTarget}</TableCell>
-                                <TableCell className="text-center">{totals.shotsOffTarget}</TableCell>
-                                <TableCell className="text-center">{totals.recoveries}</TableCell>
-                                <TableCell className="text-center">{totals.turnovers}</TableCell>
-                                <TableCell className="text-center">{totals.saves}</TableCell>
-                                <TableCell className="text-center">{totals.goalsConceded}</TableCell>
-                                <TableCell className="text-center">{totals.fouls}</TableCell>
-                                <TableCell className="text-center">{totals.yellowCards}</TableCell>
-                                <TableCell className="text-center">{totals.redCards}</TableCell>
+                                <TableCell className="text-center">{formatStatTime(totals.minutesPlayed || 0)}</TableCell>
+                                <TableCell className="text-center">{totals.pj || 0}</TableCell>
+                                <TableCell className="text-center">{totals.goals || 0}</TableCell>
+                                <TableCell className="text-center">{totals.assists || 0}</TableCell>
+                                <TableCell className="text-center">{totals.shotsOnTarget || 0}</TableCell>
+                                <TableCell className="text-center">{totals.shotsOffTarget || 0}</TableCell>
+                                <TableCell className="text-center">{totals.recoveries || 0}</TableCell>
+                                <TableCell className="text-center">{totals.turnovers || 0}</TableCell>
+                                <TableCell className="text-center">{totals.saves || 0}</TableCell>
+                                <TableCell className="text-center">{totals.goalsConceded || 0}</TableCell>
+                                <TableCell className="text-center">{totals.fouls || 0}</TableCell>
+                                <TableCell className="text-center">{totals.yellowCards || 0}</TableCell>
+                                <TableCell className="text-center">{totals.redCards || 0}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -240,14 +240,14 @@ export default function PlayerStatsPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const teamRef = useMemoFirebase(() => {
-        if (!firestore || !teamId || !user) return null;
-        return doc(firestore, 'teams', teamId);
+      if (!firestore || !teamId || !user) return null;
+      return doc(firestore, 'teams', teamId);
     }, [firestore, teamId, user]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
     
     const playersRef = useMemoFirebase(() => {
-        if (!firestore || !teamId || !user) return null;
-        return collection(firestore, `teams/${teamId}/players`);
+      if (!firestore || !teamId || !user) return null;
+      return collection(firestore, `teams/${teamId}/players`);
     }, [firestore, teamId, user]);
     const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
 
@@ -283,34 +283,29 @@ export default function PlayerStatsPage() {
         filteredMatches.forEach(match => {
             if (!match.squad) return;
             
-            const playerStats1H = match.playerStats?.['1H'] || {};
-            const playerStats2H = match.playerStats?.['2H'] || {};
-    
-            // Handle legacy flat structure
-            const allPlayerStats: { [key: string]: any } = {};
-            if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
-                 Object.assign(allPlayerStats, match.playerStats);
-            }
-    
             match.squad.forEach(playerId => {
                 if (!statsMap[playerId]) return;
                 
                 statsMap[playerId].pj! += 1;
     
-                const stats1H = playerStats1H[playerId] || {};
-                const stats2H = playerStats2H[playerId] || {};
-                const legacyStats = allPlayerStats[playerId] || {};
-
                 const statKeys: Array<keyof PlayerStats> = [
                     'minutesPlayed', 'goals', 'assists', 'shotsOnTarget', 'shotsOffTarget', 'recoveries', 
                     'turnovers', 'saves', 'goalsConceded', 'fouls', 'yellowCards', 'redCards', 'unoVsUno'
                 ];
 
+                 const stats1H = _.get(match.playerStats, `1H.${playerId}`, {});
+                 const stats2H = _.get(match.playerStats, `2H.${playerId}`, {});
+
+                let legacyStats: Partial<PlayerStats> = {};
+                 if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
+                    legacyStats = _.get(match.playerStats, playerId, {});
+                }
+
                 statKeys.forEach(key => {
-                    statsMap[playerId][key] = (statsMap[playerId][key] || 0) + 
-                                              (stats1H[key] || 0) + 
-                                              (stats2H[key] || 0) +
-                                              (legacyStats[key] || 0);
+                    const val1H = stats1H[key] || 0;
+                    const val2H = stats2H[key] || 0;
+                    const valLegacy = legacyStats[key] || 0;
+                    statsMap[playerId][key] = (statsMap[playerId][key] || 0) + val1H + val2H + valLegacy;
                 });
             });
         });
@@ -331,23 +326,14 @@ export default function PlayerStatsPage() {
             if (!playerInfo) continue;
 
             const isGoalkeeperCategory = cat.title.toLowerCase().includes('portero');
-            const isOutfieldPlayerCategory = cat.title.toLowerCase().startsWith('jugador');
-
             if (isGoalkeeperCategory && playerInfo.position !== 'Portero') continue;
+
+            const isOutfieldPlayerCategory = !isGoalkeeperCategory && (cat.key === 'minutesPlayed');
             if (isOutfieldPlayerCategory && playerInfo.position === 'Portero') continue;
             
             const statValue = playerStats[cat.key] ?? 0;
-
-            if (leaderPlayer === null) {
-                leaderPlayer = { name: playerStats.name, value: statValue };
-                continue;
-            }
-
-            const isBetter = cat.higherIsBetter
-                ? statValue > leaderPlayer.value
-                : statValue < leaderPlayer.value;
-
-            if (isBetter) {
+            
+            if (leaderPlayer === null || (cat.higherIsBetter ? statValue > leaderPlayer.value : statValue < leaderPlayer.value)) {
                 leaderPlayer = { name: playerStats.name, value: statValue };
             }
         }

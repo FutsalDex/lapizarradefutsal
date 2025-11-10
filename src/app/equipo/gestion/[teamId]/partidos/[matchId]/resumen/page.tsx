@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
@@ -46,7 +46,7 @@ interface Match {
   teamId: string;
   isFinished: boolean;
   matchType: string;
-  date: any; // Firestore timestamp or string
+  date: any; // Firestore timestamp
   squad?: string[];
   events?: MatchEvent[];
   playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> };
@@ -114,11 +114,11 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
             }
         });
     } else if (match.playerStats && !isModern) { // Legacy flat format in playerStats
-        const legacyPlayerStats = match.playerStats;
+        const legacyPlayerStats = match.playerStats as { [playerId: string]: Partial<PlayerStats> };
         for (const playerId in legacyPlayerStats) {
              if (statsMap.has(playerId)) {
                 const existingStats = statsMap.get(playerId)!;
-                const playerLegacyStats = legacyPlayerStats[playerId] as Partial<PlayerStats>;
+                const playerLegacyStats = legacyPlayerStats[playerId] || {};
                 Object.keys(playerLegacyStats).forEach(key => {
                     const statKey = key as keyof PlayerStats;
                     (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerLegacyStats[statKey] || 0);
