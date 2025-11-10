@@ -1,109 +1,342 @@
 
 'use client';
 
-import {
-  Users,
-  Calendar,
-  ClipboardList,
-  BarChart3,
-  ArrowRight,
-  Shield,
-  Upload,
-  MessageSquare,
-  Book,
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useMemo, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { collection, query, where, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
+import { useMemoFirebase } from '@/firebase/use-memo-firebase';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { Shield, Users, PlusCircle, Settings, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { useUser } from '@/firebase';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-const menuItems = [
-  {
-    title: 'Mis Equipos',
-    description: 'Crea nuevos equipos y accede a sus paneles de control.',
-    icon: <Shield className="w-8 h-8 text-primary" />,
-    href: '/equipo/gestion/equipos',
-    disabled: false,
-    soon: false,
-  },
-  {
-    title: 'Mis Sesiones',
-    description: 'Encuentra y organiza todas las sesiones de entrenamiento que has creado manualmente.',
-    icon: <Calendar className="w-8 h-8 text-primary" />,
-    href: '/equipo/mis-sesiones',
-    disabled: false,
-    soon: false,
-  },
-  {
-    title: 'Mis Ejercicios',
-    description: 'Aporta ejercicios a la comunidad, gestiónalos y gana puntos para tu suscripción.',
-    icon: <Book className="w-8 h-8 text-primary" />,
-    href: '/equipo/mis-ejercicios',
-    disabled: false,
-    soon: false,
-  },
-  {
-    title: 'Mis Eventos',
-    description: 'Visualiza la cronología de todos tus partidos y sesiones de entrenamiento guardados.',
-    icon: <ClipboardList className="w-8 h-8 text-primary" />,
-    href: '/equipo/mis-eventos',
-    disabled: false,
-    soon: false,
-  },
-  {
-    title: 'Marcador Rápido',
-    description: 'Usa un marcador con crono para un partido rápido o una sesión de entrenamiento.',
-    icon: <BarChart3 className="w-8 h-8 text-primary" />,
-    href: '/equipo/marcador-rapido',
-    disabled: false,
-    soon: false,
-  },
-];
 
-export default function TeamDashboardPage() {
+interface Team {
+  id: string;
+  name: string;
+  club?: string;
+  competition?: string;
+  ownerId: string;
+  memberIds?: string[];
+}
+
+interface UserProfile {
+  subscription?: 'Básico' | 'Pro' | 'Invitado';
+}
+
+const createTeamSchema = z.object({
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres.'),
+  club: z.string().optional(),
+  competition: z.string().optional(),
+});
+
+type CreateTeamValues = z.infer<typeof createTeamSchema>;
+
+
+function CreateTeamForm({ onTeamCreated, disabled, disabledReason }: { onTeamCreated: () => void, disabled: boolean, disabledReason: string }) {
+  const { toast } = useToast();
+  const firestore = useFirestore();
   const { user } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<CreateTeamValues>({
+    resolver: zodResolver(createTeamSchema),
+    defaultValues: { name: '', club: '', competition: '' },
+  });
+
+  const onSubmit = async (values: CreateTeamValues) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para crear un equipo.' });
+      return;
+    }
+    if (disabled) {
+        toast({ variant: 'destructive', title: 'Límite alcanzado', description: disabledReason });
+        return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(firestore, 'teams'), {
+        ...values,
+        ownerId: user.uid,
+        ownerName: user.displayName || user.email,
+        memberIds: [user.uid],
+        createdAt: serverTimestamp(),
+      });
+      
+      toast({
+        title: 'Éxito',
+        description: 'Equipo creado correctamente.',
+      });
+      form.reset();
+      onTeamCreated();
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo crear el equipo.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <PlusCircle className="mr-2 h-5 w-5" />
+          Crear Nuevo Equipo
+        </CardTitle>
+        <CardDescription>
+          Añade un nuevo equipo para empezar a gestionarlo.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre del Equipo</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: Futsal Kings" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="club"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Club (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: City Futsal Club" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="competition"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Competición (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: 1ª División Nacional" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isSubmitting || disabled} className="w-full">
+              {isSubmitting ? 'Creando...' : 'Crear Equipo'}
+            </Button>
+            {disabled && <p className="text-xs text-center text-destructive mt-2">{disabledReason}</p>}
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeamList({ teams, isLoading, onTeamDeleted }: {
+  teams: Team[] | null;
+  isLoading: boolean;
+  onTeamDeleted?: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base"><Users/>Mis Equipos</CardTitle>
+        <CardDescription className='text-xs'>Lista de equipos que administras.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <Skeleton className="h-20 w-full" /> : 
+          <div className="space-y-4">
+            {teams && teams.length > 0 ? (
+              teams.map(team => <TeamListItem key={team.id} team={team} isOwner onTeamDeleted={onTeamDeleted} />)
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">No has creado ningún equipo.</p>
+            )}
+          </div>
+        }
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeamListItem({ team, isOwner = false, onTeamDeleted }: { team: Team, isOwner?: boolean, onTeamDeleted?: () => void }) {
+    const { toast } = useToast();
+    const firestore = useFirestore();
+
+    const handleDelete = async () => {
+        try {
+            await deleteDoc(doc(firestore, "teams", team.id));
+            toast({ title: "Equipo eliminado", description: `El equipo "${team.name}" ha sido eliminado.` });
+            if (onTeamDeleted) onTeamDeleted();
+        } catch (error) {
+            console.error("Error deleting team:", error);
+            toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el equipo." });
+        }
+    }
+
+    return (
+        <div className="rounded-lg border bg-background p-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h4 className="font-semibold">{team.name}</h4>
+                    <p className="text-sm text-muted-foreground">{team.club || 'Sin club'}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                     <Button asChild>
+                        <Link href={`/equipo/gestion/${team.id}`}>
+                           <Settings className="mr-2 h-4 w-4" /> Gestionar
+                        </Link>
+                    </Button>
+                    {isOwner && (
+                        <>
+                           <Button variant="ghost" size="icon" disabled><Edit className="h-4 w-4"/></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4"/></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>¿Estás seguro de que quieres eliminar el equipo?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Esta acción no se puede deshacer. Se eliminará permanentemente el equipo y todos sus datos asociados (jugadores, partidos, etc.).
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Eliminar</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+    const { user, isUserLoading } = useUser();
+
+    if (isUserLoading) {
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
+                <div className="md:col-span-2 space-y-8"><Skeleton className="h-48 w-full" /></div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <Card className="text-center py-16 max-w-lg mx-auto">
+                <CardHeader>
+                    <CardTitle>Acceso Requerido</CardTitle>
+                    <CardDescription>Debes iniciar sesión para gestionar tus equipos.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/acceso">Acceder</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return <>{children}</>;
+}
+
+
+export default function GestionEquiposPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { user, isUserLoading: isAuthLoading } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+    
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
+  const ownedTeamsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collection(firestore, 'teams'), where('ownerId', '==', user.uid));
+  }, [firestore, user, refreshKey]);
+
+  const { data: ownedTeams, isLoading: isLoadingOwned } = useCollection<Team>(ownedTeamsQuery);
+  
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+  
+  const ownedTeamsCount = ownedTeams?.length ?? 0;
+
+  const { isCreationDisabled, disabledReason } = useMemo(() => {
+    const plan = userProfile?.subscription;
+    if (plan === 'Invitado') {
+        return { isCreationDisabled: true, disabledReason: 'Necesitas un plan de suscripción para crear equipos.'};
+    }
+    if (plan === 'Básico' && ownedTeamsCount >= 1) {
+        return { isCreationDisabled: true, disabledReason: 'El Plan Básico permite solo 1 equipo.'};
+    }
+    if (plan === 'Pro' && ownedTeamsCount >= 3) {
+        return { isCreationDisabled: true, disabledReason: 'El Plan Pro permite hasta 3 equipos.'};
+    }
+    return { isCreationDisabled: false, disabledReason: ''};
+  }, [userProfile, ownedTeamsCount]);
+
+  const isLoading = isAuthLoading || isLoadingOwned || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold font-headline text-primary">Panel de Mi Equipo</h1>
-        <p className="text-lg text-muted-foreground mt-2">
-          {user ? `Bienvenido, ${user.displayName || 'entrenador'}.` : 'Bienvenido.'} Aquí tienes el centro de mando para tu equipo.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {menuItems.map((item) => (
-          <Card
-            key={item.title}
-            className={`flex flex-col hover:shadow-lg transition-shadow ${
-              item.disabled ? 'bg-muted/50' : ''
-            }`}
-          >
-            <CardHeader className="flex-row items-center gap-4 space-y-0 pb-4">
-              <div
-                className={`bg-primary/10 p-4 rounded-lg ${
-                  item.disabled ? 'opacity-50' : ''
-                }`}
-              >
-                {item.icon}
-              </div>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <CardTitle className="font-headline text-xl mb-1">{item.title}</CardTitle>
-              <CardDescription>{item.description}</CardDescription>
-            </CardContent>
-            <div className="p-6 pt-0">
-              <Button asChild className="w-full" disabled={item.disabled}>
-                <Link href={item.href}>
-                  {item.soon ? 'Próximamente' : `Ir a ${item.title}`}
-                  {!item.soon && <ArrowRight className="w-4 h-4 ml-2" />}
-                </Link>
-              </Button>
+        <div className="mb-8">
+            <div className="flex items-center gap-3">
+                <div className="bg-primary/10 text-primary rounded-full p-3 border border-primary/20">
+                    <Shield className="h-6 w-6" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Gestión de Equipos</h1>
+                    <p className="text-muted-foreground mt-1">Crea y administra tus equipos. Invita a tu cuerpo técnico para colaborar.</p>
+                </div>
             </div>
-          </Card>
-        ))}
-      </div>
+        </div>
+      <AuthGuard>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+             <div className="md:col-span-1">
+                <CreateTeamForm onTeamCreated={handleRefresh} disabled={isCreationDisabled} disabledReason={disabledReason}/>
+             </div>
+            <div className="md:col-span-2">
+                <TeamList 
+                    teams={ownedTeams}
+                    isLoading={isLoading}
+                    onTeamDeleted={handleRefresh}
+                />
+            </div>
+        </div>
+      </AuthGuard>
     </div>
   );
 }

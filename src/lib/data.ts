@@ -25,7 +25,7 @@ export type Exercise = {
 };
 
 export function mapExercise(doc: any): Exercise {
-    const data = doc;
+    const data = doc.data ? doc.data() : doc; // Handle both doc snapshot and plain objects
     return {
         id: doc.id,
         number: data['Número'] || '',
@@ -46,89 +46,3 @@ export function mapExercise(doc: any): Exercise {
         ...data
     };
 }
-
-
-export const sessions: Session[] = [
-    {
-        id: '1',
-        name: 'Sesión de Técnica y Posesión',
-        date: '2024-08-01',
-        exercises: [{id: '1', name: 'Rondo 4 vs 1'}],
-    },
-    {
-        id: '2',
-        name: 'Entrenamiento Físico y Transiciones',
-        date: '2024-08-03',
-        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
-    },
-    {
-        id: '3',
-        name: 'Preparación de Partido',
-        date: '2024-08-05',
-        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
-    }
-]
-
-export type Session = {
-    id: string;
-    name: string;
-    date: string;
-    exercises: Partial<Exercise>[]; // Can be partial if just storing references
-}
-
-
-export type Match = {
-    id: string;
-    opponent: string;
-    date: string;
-    result: 'Victoria' | 'Derrota' | 'Empate';
-    score: string;
-    stats: {
-        goals: number;
-        assists: number;
-        shots: number;
-        possession: number;
-    }
-}
-
-export const matches: Match[] = [
-    {
-        id: '1',
-        opponent: 'Titanes del Futsal',
-        date: '2024-07-28',
-        result: 'Victoria',
-        score: '5 - 3',
-        stats: {
-            goals: 5,
-            assists: 4,
-            shots: 15,
-            possession: 65,
-        }
-    },
-    {
-        id: '2',
-        opponent: 'Inter Sala',
-        date: '2024-07-21',
-        result: 'Derrota',
-        score: '2 - 4',
-        stats: {
-            goals: 2,
-            assists: 1,
-            shots: 8,
-            possession: 45,
-        }
-    },
-    {
-        id: '3',
-        opponent: 'Furia Roja FS',
-        date: '2024-07-14',
-        result: 'Empate',
-        score: '2 - 2',
-        stats: {
-            goals: 2,
-            assists: 2,
-            shots: 12,
-            possession: 55,
-        }
-    }
-]
