@@ -222,7 +222,7 @@ function MatchFormDialog({
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
         // Remove matchday if it's empty, to avoid storing undefined
         if (!matchData.matchday) {
-            delete matchData.matchday;
+            delete (matchData as any).matchday;
         }
         await updateDoc(matchRef, matchData);
          toast({
@@ -569,14 +569,18 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
   const matchTitle = `${match.localTeam} vs ${match.visitorTeam}`;
   const scoreDisplay = isFinished ? `${localScore} - ${visitorScore}` : 'vs';
   
-  const formattedDate = () => {
+  const formattedDate = useMemo(() => {
     if (!date) return 'Fecha no disponible';
-    const dateObj = date.toDate ? date.toDate() : new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return 'Fecha inválida';
+    try {
+        const dateObj = date.toDate ? date.toDate() : new Date(date);
+        if (isNaN(dateObj.getTime())) {
+          return 'Fecha inválida';
+        }
+        return format(dateObj, 'dd/MM/yyyy', { locale: es });
+    } catch(e) {
+        return 'Fecha inválida';
     }
-    return format(dateObj, 'dd/MM/yyyy', { locale: es });
-  };
+  }, [date]);
 
   const convocadosCount = squad?.length || 0;
 
@@ -584,7 +588,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
     <Card className="flex flex-col">
        <CardHeader className="text-center flex-grow pt-6 pb-2">
             <CardTitle className="text-base font-semibold">{matchTitle}</CardTitle>
-            <CardDescription className="text-xs">{formattedDate()}</CardDescription>
+            <CardDescription className="text-xs">{formattedDate}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col items-center justify-center py-2">
             <p className={`text-4xl font-bold ${getResultClasses()}`}>{scoreDisplay}</p>
@@ -655,27 +659,27 @@ export default function MatchesPage() {
   const params = useParams();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const [filter, setFilter] = useState('Todos');
   const [isFormOpen, setFormOpen] = useState(false);
   const [matchToEdit, setMatchToEdit] = useState<Match | undefined>(undefined);
   const [key, setKey] = useState(0);
 
   const teamRef = useMemoFirebase(() => {
-    if (!firestore || !teamId) return null;
+    if (!firestore || !teamId || !user) return null;
     return doc(firestore, 'teams', teamId);
-  }, [firestore, teamId]);
+  }, [firestore, teamId, user]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
   const matchesQuery = useMemoFirebase(() => {
-    if (!firestore || !team?.id) return null;
+    if (!firestore || !team?.id || !user) return null;
     return query(
         collection(firestore, `matches`), 
         where('teamId', '==', team.id), 
         orderBy('date', 'asc')
     );
-  }, [firestore, team?.id, key]);
+  }, [firestore, team?.id, user, key]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
@@ -689,7 +693,7 @@ export default function MatchesPage() {
   const isMember = user && team && team.memberIds?.includes(user.uid);
   const canView = isOwner || isMember;
   
-  const isLoading = isLoadingTeam || isLoadingMatches;
+  const isLoading = isUserLoading || isLoadingTeam || isLoadingMatches;
   
   const handleOpenForm = (match?: Match) => {
     setMatchToEdit(match);
@@ -699,8 +703,7 @@ export default function MatchesPage() {
   const handleRefresh = () => {
     setKey(k => k + 1);
   };
-
-
+  
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -715,6 +718,21 @@ export default function MatchesPage() {
         </div>
       </div>
     );
+  }
+  
+  if (!user) {
+    return (
+        <div className="container mx-auto px-4 py-8 text-center">
+           <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+           <p className="text-muted-foreground mb-4">Debes iniciar sesión para ver los partidos de un equipo.</p>
+           <Button asChild variant="outline">
+             <Link href="/acceso">
+               <ArrowLeft className="mr-2 h-4 w-4" />
+               Acceder
+             </Link>
+           </Button>
+        </div>
+      );
   }
 
   if (!team) {
@@ -790,3 +808,5 @@ export default function MatchesPage() {
     </div>
   );
 }
+
+    
