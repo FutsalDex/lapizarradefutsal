@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, collection, getDocs, query, where } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection } from '@/firebase';
+import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -153,7 +153,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
 
     const totals: PlayerStats = aggregated.reduce((acc, player) => {
         (Object.keys(acc) as Array<keyof PlayerStats>).forEach(key => {
-            acc[key]! += player[key] || 0;
+            acc[key] = (acc[key] || 0) + (player[key] || 0);
         });
         return acc;
     }, { ...initialTotals });
@@ -187,7 +187,7 @@ const GoalChronology = ({ events, isLocal }: { events: MatchEvent[], isLocal: bo
     )
 }
 
-const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: string, teamName: string }) => {
+const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string}) => {
     const firestore = useFirestore();
 
     const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
@@ -229,7 +229,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                                 <TableHead>Nombre</TableHead>
                                 <TableHead>Min.</TableHead>
                                 <TableHead>G</TableHead>
-                                <TableHead>As</TableHead>
+                                <TableHead>A</TableHead>
                                 <TableHead>Faltas</TableHead>
                                 <TableHead>T.P.</TableHead>
                                 <TableHead>T.F.</TableHead>
@@ -293,15 +293,24 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
 export default function MatchDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const matchId = typeof params.matchId === 'string' ? params.matchId : '';
   
   const firestore = useFirestore();
 
-  const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
+  const matchRef = useMemoFirebase(() => {
+    if (!firestore || !matchId || !user) return null;
+    return doc(firestore, `matches/${matchId}`);
+  }, [firestore, matchId, user]);
+
   const { data: match, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
   
-  const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
+  const teamRef = useMemoFirebase(() => {
+    if (!firestore || !teamId || !user) return null;
+    return doc(firestore, `teams/${teamId}`);
+  }, [firestore, teamId, user]);
+  
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
   
   const goalEvents = useMemo(() => {
@@ -309,7 +318,7 @@ export default function MatchDetailsPage() {
       return match.events.filter(e => e.type === 'goal');
   }, [match]);
 
-  const isLoading = isLoadingMatch || isLoadingTeam;
+  const isLoading = isLoadingMatch || isLoadingTeam || isUserLoading;
 
   const formattedDate = useMemo(() => {
     if (!match?.date) return 'Fecha no disponible';
@@ -328,6 +337,21 @@ export default function MatchDetailsPage() {
     return <div className="container mx-auto px-4 py-8"><Skeleton className="h-screen w-full"/></div>;
   }
   
+  if (!user) {
+    return (
+        <div className="container mx-auto px-4 py-8 text-center">
+           <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+           <p className="text-muted-foreground mb-4">Debes iniciar sesión para ver los detalles del partido.</p>
+           <Button asChild variant="outline">
+             <Link href="/acceso">
+               <ArrowLeft className="mr-2 h-4 w-4" />
+               Volver
+             </Link>
+           </Button>
+        </div>
+      );
+  }
+
   if (!match || !team) {
     return <div className="container mx-auto px-4 py-8 text-center">No se encontraron datos del partido o del equipo.</div>;
   }
@@ -389,11 +413,10 @@ export default function MatchDetailsPage() {
             </TabsContent>
             <TabsContent value="stats">
                  <div className="mt-4">
-                    <PlayerStatsTable match={match} teamId={teamId} teamName={team.name}/>
+                    <PlayerStatsTable match={match} teamId={teamId} />
                  </div>
             </TabsContent>
         </Tabs>
     </div>
   );
 }
-
