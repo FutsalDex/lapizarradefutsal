@@ -1,0 +1,61 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's public profile information.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's primary email address."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's profile picture."
+        }
+      },
+      "required": ["displayName", "email"]
+    },
+    "FavoriteExercise": {
+      "title": "Favorite Exercise",
+      "description": "Represents a user's favorited exercise.",
+      "type": "object",
+      "properties": {
+        "exerciseId": {
+          "type": "string",
+          "description": "The ID of the favorited exercise."
+        },
+        "favoritedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user favorited the exercise."
+        }
+      },
+      "required": ["exerciseId", "favoritedAt"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores public profile information for each user."
+    },
+    "/users/{userId}/favorites/{favoriteId}": {
+      "schema": {
+        "$ref": "#/entities/FavoriteExercise"
+      },
+      "description": "A subcollection storing the exercises a user has favorited."
+    }
+  }
+}
