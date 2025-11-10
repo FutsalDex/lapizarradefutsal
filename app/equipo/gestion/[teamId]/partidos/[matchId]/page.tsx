@@ -124,8 +124,8 @@ function migrateLegacyMatchData(matchData: Match): Match {
     if (!migratedData.playerStats['2H']) migratedData.playerStats['2H'] = {};
     
     if (!migratedData.opponentStats) migratedData.opponentStats = { '1H': {}, '2H': {} };
-    if (!migratedData.opponentStats['1H']) migratedData.opponentStats['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
-    if (!migratedData.opponentStats['2H']) migratedData.opponentStats['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['1H']) (migratedData.opponentStats as any)['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['2H']) (migratedData.opponentStats as any)['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
     
     if (!migratedData.timeouts) migratedData.timeouts = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
     if (!migratedData.timeouts['1H']) migratedData.timeouts['1H'] = {local: 0, visitor: 0};
@@ -336,7 +336,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
             saves: 0, goalsConceded: 0, minutesPlayed: 0
         };
-        if (!players || !match.playerStats || !match.playerStats[period]) return initialTotals;
+        if (!players || !match.playerStats || !match.playerStats[period as Period]) return initialTotals;
         
         return players.reduce((acc, player) => {
             const stats = (match.playerStats as any)[period]?.[player.id] || {};
@@ -502,23 +502,16 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
-        
+        const isOpponentLocal = match.localTeam === teamName;
+
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
-             const myTeamGoals1H = _.sumBy(Object.values(_.get(match.playerStats, '1H', {})), 'goals');
-             const myTeamGoals2H = _.sumBy(Object.values(_.get(match.playerStats, '2H', {})), 'goals');
-             const totalMyTeamGoals = myTeamGoals1H + myTeamGoals2H;
-             
-
-             const isOpponentLocal = match.localTeam === teamName;
-
+            
              if(isOpponentLocal) {
                 batchUpdate.localScore = goals1H + goals2H;
-                batchUpdate.visitorScore = totalMyTeamGoals;
              } else {
                 batchUpdate.visitorScore = goals1H + goals2H;
-                batchUpdate.localScore = totalMyTeamGoals;
              }
 
              // Add or remove goal event
@@ -538,7 +531,6 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         
         if (stat === 'fouls') {
           const fouls = _.get(updatedStats, `${period}.fouls`, 0);
-          const isOpponentLocal = match.localTeam === teamName;
           const updatedFouls = _.cloneDeep(match.fouls || {});
 
           if(isOpponentLocal) {

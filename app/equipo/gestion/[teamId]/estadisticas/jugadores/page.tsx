@@ -243,13 +243,21 @@ export default function PlayerStatsPage() {
         filteredMatches.forEach(match => {
             if (!match.squad) return;
             
+            const playerStats1H = match.playerStats?.['1H'] || {};
+            const playerStats2H = match.playerStats?.['2H'] || {};
+
+            // Handle legacy flat structure
+            if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
+                Object.assign(playerStats1H, match.playerStats);
+            }
+
             match.squad.forEach(playerId => {
                 if (!statsMap[playerId]) return;
                 
                 statsMap[playerId].pj! += 1;
 
-                const stats1H = match.playerStats?.['1H']?.[playerId] || {};
-                const stats2H = match.playerStats?.['2H']?.[playerId] || {};
+                const stats1H = playerStats1H[playerId] || {};
+                const stats2H = playerStats2H[playerId] || {};
                 
                 statsMap[playerId].minutesPlayed! += (stats1H.minutesPlayed || 0) + (stats2H.minutesPlayed || 0);
                 statsMap[playerId].goals! += (stats1H.goals || 0) + (stats2H.goals || 0);

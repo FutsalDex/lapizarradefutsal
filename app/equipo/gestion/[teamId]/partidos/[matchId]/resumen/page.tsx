@@ -49,7 +49,7 @@ interface Match {
   date: any; // Firestore timestamp
   squad?: string[];
   events?: MatchEvent[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> };
   
   // Legacy fields for backwards compatibility
   localPlayers?: any[];
@@ -93,7 +93,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
     
     if (isModern) {
         (['1H', '2H'] as Period[]).forEach(period => {
-            const periodStats = match.playerStats?.[period];
+            const periodStats = match.playerStats?.[period as Period];
             if (!periodStats) return;
 
             for (const playerId in periodStats) {
@@ -107,28 +107,17 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
                 }
             }
         });
-    } else { // Legacy format
-        const isMyTeamLocal = match.localTeam === teamName;
-        const legacyPlayerList = isMyTeamLocal ? match.localPlayers : match.visitorPlayers;
-        if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
-            legacyPlayerList.forEach((legacyPlayer) => {
-                if (legacyPlayer.id && statsMap.has(legacyPlayer.id)) {
-                    const stats = statsMap.get(legacyPlayer.id)!;
-                    stats.goals = legacyPlayer.goals || 0;
-                    stats.assists = legacyPlayer.assists || 0;
-                    stats.yellowCards = legacyPlayer.amarillas || 0;
-                    stats.redCards = legacyPlayer.rojas || 0;
-                    stats.fouls = legacyPlayer.faltas || 0;
-                    stats.shotsOnTarget = legacyPlayer.tirosPuerta || 0;
-                    stats.shotsOffTarget = legacyPlayer.tirosFuera || 0;
-                    stats.recoveries = legacyPlayer.recuperaciones || 0;
-                    stats.turnovers = legacyPlayer.perdidas || 0;
-                    stats.saves = legacyPlayer.paradas || 0;
-                    stats.goalsConceded = legacyPlayer.gRec || 0;
-                    stats.unoVsUno = legacyPlayer.vs1 || 0;
-                    stats.minutesPlayed = legacyPlayer.timeOnCourt || 0;
-                }
-            });
+    } else if (match.playerStats && !isModern) { // Legacy format in playerStats
+        const legacyPlayerStats = match.playerStats;
+        for (const playerId in legacyPlayerStats) {
+             if (statsMap.has(playerId)) {
+                const existingStats = statsMap.get(playerId)!;
+                const playerLegacyStats = legacyPlayerStats[playerId] as Partial<PlayerStats>;
+                Object.keys(playerLegacyStats).forEach(key => {
+                    const statKey = key as keyof PlayerStats;
+                    (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerLegacyStats[statKey] || 0);
+                });
+            }
         }
     }
     

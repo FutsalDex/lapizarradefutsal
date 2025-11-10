@@ -147,27 +147,35 @@ export default function TeamOverallStatsPage() {
             else if (userScore < opponentScore) losses++;
             else draws++;
 
-            // Player stats
             const playerStats1H = _.values(match.playerStats?.['1H'] || {});
             const playerStats2H = _.values(match.playerStats?.['2H'] || {});
             
-            acc.shotsOnTarget += _.sumBy(playerStats1H, s => s.shotsOnTarget || 0) + _.sumBy(playerStats2H, s => s.shotsOnTarget || 0);
-            acc.shotsOffTarget += _.sumBy(playerStats1H, s => s.shotsOffTarget || 0) + _.sumBy(playerStats2H, s => s.shotsOffTarget || 0);
-            acc.foulsCommitted += _.sumBy(playerStats1H, s => s.fouls || 0) + _.sumBy(playerStats2H, s => s.fouls || 0);
-            acc.turnovers += _.sumBy(playerStats1H, s => s.turnovers || 0) + _.sumBy(playerStats2H, s => s.turnovers || 0);
-            acc.recoveries += _.sumBy(playerStats1H, s => s.recoveries || 0) + _.sumBy(playerStats2H, s => s.recoveries || 0);
-            acc.yellowCards += _.sumBy(playerStats1H, s => s.yellowCards || 0) + _.sumBy(playerStats2H, s => s.yellowCards || 0);
-            acc.redCards += _.sumBy(playerStats1H, s => s.redCards || 0) + _.sumBy(playerStats2H, s => s.redCards || 0);
+            // Handle legacy flat structure
+            if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
+                const legacyStats = _.values(match.playerStats || {});
+                playerStats1H.push(...legacyStats);
+            }
+            
+            acc.shotsOnTarget += _.sumBy(playerStats1H, 'shotsOnTarget') + _.sumBy(playerStats2H, 'shotsOnTarget');
+            acc.shotsOffTarget += _.sumBy(playerStats1H, 'shotsOffTarget') + _.sumBy(playerStats2H, 'shotsOffTarget');
+            acc.foulsCommitted += _.sumBy(playerStats1H, 'fouls') + _.sumBy(playerStats2H, 'fouls');
+            acc.turnovers += _.sumBy(playerStats1H, 'turnovers') + _.sumBy(playerStats2H, 'turnovers');
+            acc.recoveries += _.sumBy(playerStats1H, 'recoveries') + _.sumBy(playerStats2H, 'recoveries');
+            acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
+            acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
             
             // Opponent stats
             const opponentStats1H = match.opponentStats?.['1H'] || {};
             const opponentStats2H = match.opponentStats?.['2H'] || {};
+            if (!match.opponentStats?.['1H'] && !match.opponentStats?.['2H']) {
+                Object.assign(opponentStats1H, match.opponentStats);
+            }
 
             acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
 
             // Goal stats
-            const teamGoals1H = _.sumBy(playerStats1H, 'goals') || 0;
-            const teamGoals2H = _.sumBy(playerStats2H, 'goals') || 0;
+            const teamGoals1H = _.sumBy(playerStats1H, 'goals');
+            const teamGoals2H = _.sumBy(playerStats2H, 'goals');
             const opponentGoals1H = opponentStats1H.goals || 0;
             const opponentGoals2H = opponentStats2H.goals || 0;
 
