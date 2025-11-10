@@ -1,18 +1,47 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { exercises, Exercise } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Eye, Heart } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
-// Simula una lista de IDs de ejercicios favoritos
-const favoriteExerciseIds = ['1', '6'];
+// Simulación de un estado de favoritos compartido (en una app real sería un context o una store)
+let favoriteExerciseIdsStore = new Set(['1', '6']);
 
 export default function FavoritosPage() {
-  const favoriteExercises = exercises.filter(ex => favoriteExerciseIds.includes(ex.id));
+  const [favoriteIds, setFavoriteIds] = useState(favoriteExerciseIdsStore);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Sincronizar con el store simulado al montar el componente
+    setFavoriteIds(favoriteExerciseIdsStore);
+  }, []);
+
+  const handleFavoriteToggle = (exerciseId: string) => {
+    const newFavoriteIds = new Set(favoriteIds);
+    if (newFavoriteIds.has(exerciseId)) {
+      newFavoriteIds.delete(exerciseId);
+      toast({
+        description: "Ejercicio eliminado de favoritos.",
+      });
+    } else {
+      newFavoriteIds.add(exerciseId);
+       toast({
+        description: "Ejercicio añadido a favoritos.",
+      });
+    }
+    setFavoriteIds(newFavoriteIds);
+    // Actualizar el store simulado
+    favoriteExerciseIdsStore = newFavoriteIds;
+  };
+
+  const favoriteExercises = exercises.filter(ex => favoriteIds.has(ex.id));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -45,7 +74,11 @@ export default function FavoritosPage() {
                           Ver Ficha
                       </Link>
                    </Button>
-                   <Heart className="w-6 h-6 text-destructive fill-destructive cursor-pointer" />
+                   <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise.id)}>
+                        <Heart className={cn("w-6 h-6 text-destructive/50 transition-colors", {
+                            "fill-destructive text-destructive": favoriteIds.has(exercise.id)
+                        })} />
+                    </Button>
                 </div>
               </CardContent>
             </Card>

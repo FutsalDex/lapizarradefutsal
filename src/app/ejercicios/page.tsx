@@ -11,8 +11,13 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Search, Eye, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 12;
+
+// Simulación de un estado de favoritos compartido (en una app real sería un context o una store)
+let favoriteExerciseIdsStore = new Set(['1', '6']);
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +25,27 @@ export default function EjerciciosPage() {
   const [faseFilter, setFaseFilter] = useState('Todos');
   const [edadFilter, setEdadFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
-  
+  const [favoriteIds, setFavoriteIds] = useState(favoriteExerciseIdsStore);
+  const { toast } = useToast();
+
+  const handleFavoriteToggle = (exerciseId: string) => {
+    const newFavoriteIds = new Set(favoriteIds);
+    if (newFavoriteIds.has(exerciseId)) {
+      newFavoriteIds.delete(exerciseId);
+      toast({
+        description: "Ejercicio eliminado de favoritos.",
+      });
+    } else {
+      newFavoriteIds.add(exerciseId);
+      toast({
+        description: "Ejercicio añadido a favoritos.",
+      });
+    }
+    setFavoriteIds(newFavoriteIds);
+    // Actualizar el store simulado
+    favoriteExerciseIdsStore = newFavoriteIds;
+  };
+
   const allCategories = [
     "Finalización", "Técnica individual y combinada", "Pase y control",
     "Transiciones (ofensivas y defensivas)", "Coordinación, agilidad y velocidad",
@@ -175,7 +200,11 @@ export default function EjerciciosPage() {
                         Ver Ficha
                     </Link>
                  </Button>
-                 <Heart className="w-6 h-6 text-destructive/50 hover:text-destructive hover:fill-destructive transition-colors cursor-pointer" />
+                 <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise.id)}>
+                    <Heart className={cn("w-6 h-6 text-destructive/50 transition-colors", {
+                        "fill-destructive text-destructive": favoriteIds.has(exercise.id)
+                    })} />
+                 </Button>
               </div>
             </CardContent>
           </Card>
@@ -204,4 +233,3 @@ export default function EjerciciosPage() {
     </div>
   );
 }
-
