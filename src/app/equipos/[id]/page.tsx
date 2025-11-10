@@ -19,12 +19,6 @@ export default function EquipoPanelPage() {
           href: `/equipos/${params.id}/plantilla`,
         },
         {
-          icon: <ClipboardList className="w-8 h-8 text-primary" />,
-          title: 'Cuerpo Técnico',
-          description: 'Invita y gestiona a tus colaboradores.',
-          href: `/equipos/${params.id}/tecnicos`,
-        },
-        {
           icon: <Trophy className="w-8 h-8 text-primary" />,
           title: 'Mis Partidos',
           description: 'Planifica y revisa los resultados de los partidos.',
