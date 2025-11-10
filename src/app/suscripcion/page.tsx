@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, Book, ArrowRight, CheckCircle, Send, UserPlus, Mail, Euro, FileUp, Users, CalendarCheck, PlusCircle, Copy } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Star, Gift, ArrowRight, Send, UserPlus, Mail, Euro, CalendarCheck } from 'lucide-react';
 import { doc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
@@ -17,23 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
     subscription?: 'Básico' | 'Pro' | 'Invitado';
-    createdAt?: { toDate: () => Date };
     points?: number;
-    subscriptionStartDate?: { toDate: () => Date };
     subscriptionEndDate?: { toDate: () => Date };
 }
-
-interface UserExercise {
-    id: string;
-}
-
-interface Invitation {
-    id: string;
-    inviterId: string;
-    inviteeEmail: string;
-    status: 'pending' | 'completed' | 'rejected';
-}
-
 
 const StatCard = ({ title, value, icon: Icon, subtext }: { title: string; value: string | number; icon: React.ElementType; subtext?: string; }) => (
     <Card>
@@ -64,30 +49,6 @@ export default function SuscripcionPage() {
     
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
     
-    const userExercisesQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !userProfile?.subscriptionStartDate) return null;
-        const startDate = userProfile.subscriptionStartDate.toDate();
-        return query(
-            collection(firestore, 'userExercises'), 
-            where('userId', '==', user.uid),
-            where('createdAt', '>=', startDate)
-        );
-    }, [firestore, user, userProfile?.subscriptionStartDate]);
-    
-    const userInvitationsQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, 'invitations'), 
-            where('inviterId', '==', user.uid), 
-            where('status', '==', 'completed')
-        );
-    }, [firestore, user]);
-
-
-    const { data: userExercises, isLoading: isLoadingExercises } = useCollection<UserExercise>(userExercisesQuery);
-    const { data: completedInvitations, isLoading: isLoadingInvitations } = useCollection<Invitation>(userInvitationsQuery);
-
-
     const userSubscription = {
         plan: userProfile?.subscription || 'Invitado',
         points: userProfile?.points || 0,
@@ -95,22 +56,7 @@ export default function SuscripcionPage() {
     };
     
     const isSubscribed = userSubscription.plan === 'Básico' || userSubscription.plan === 'Pro';
-
-    const renewalSavings = useMemo(() => {
-        const points = userSubscription.points;
-        let discount = 0;
-        if (userSubscription.plan === 'Básico') {
-            discount = points * 0.02;
-        } else if (userSubscription.plan === 'Pro') {
-            discount = points * 0.04;
-        }
-        return discount.toFixed(2);
-    }, [userSubscription.points, userSubscription.plan]);
     
-    const uploadedExercisesCount = userExercises?.length ?? 0;
-    const invitedFriendsCount = completedInvitations?.length ?? 0;
-    const pointsFromFriends = invitedFriendsCount * 25;
-
     const handleSendInvite = async () => {
         if (!user || !inviteEmail) {
             toast({ variant: 'destructive', title: 'Error', description: 'Introduce un correo válido.' });
@@ -158,19 +104,15 @@ export default function SuscripcionPage() {
         }
     };
 
-    const hasReachedInvitationLimit = invitedFriendsCount >= 10;
 
-    if (isUserLoading || isLoadingProfile || isLoadingExercises || isLoadingInvitations) {
+    if (isUserLoading || isLoadingProfile) {
         return (
             <div className="container mx-auto px-4 py-8 max-w-6xl space-y-8">
                 <Skeleton className="h-10 w-1/3" />
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
                 </div>
-                <div className="grid md:grid-cols-2 gap-8">
-                    <Skeleton className="h-64 w-full" />
-                    <Skeleton className="h-64 w-full" />
-                </div>
+                <Skeleton className="h-64 w-full" />
             </div>
         );
     }
@@ -190,47 +132,29 @@ export default function SuscripcionPage() {
     return (
         <div className="container mx-auto px-4 py-8 max-w-6xl">
             <div className="mb-12 text-center">
-                 <h1 className="text-4xl font-bold font-headline text-primary">Programa de Fidelización</h1>
-                <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.</p>
+                 <h1 className="text-4xl font-bold font-headline text-primary">Suscripción y Puntos</h1>
+                <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">Consulta el estado de tu suscripción y cómo puedes ganar puntos para renovarla.</p>
             </div>
 
             <div className="mb-12">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     <StatCard 
-                        title="Ejercicios subidos" 
-                        value={uploadedExercisesCount} 
-                        icon={FileUp} 
-                        subtext={`${uploadedExercisesCount * 10} puntos ganados este año`}
-                    />
-                     <StatCard 
-                        title="Amigos suscritos" 
-                        value={invitedFriendsCount} 
-                        icon={Users}
-                        subtext={`${pointsFromFriends} puntos ganados este año`}
-                    />
-                    <StatCard 
-                        title="Puntos acumulados" 
-                        value={userSubscription.points} 
-                        icon={Star}
-                        subtext="¡Sigue sumando!" 
-                    />
-                    <StatCard 
-                        title="Ahorro en renovación" 
-                        value={`${renewalSavings} €`}
-                        icon={Euro}
-                        subtext={`Basado en el plan ${userSubscription.plan}`}
-                    />
-                     <StatCard 
                         title="Mi Plan" 
                         value={userSubscription.plan}
                         icon={Star}
                         subtext={userSubscription.endDate ? `Vence el ${format(userSubscription.endDate, 'dd/MM/yyyy')}` : 'Sin suscripción activa'}
                     />
-                    <StatCard 
+                     <StatCard 
                         title="Próxima Renovación" 
                         value={userSubscription.endDate ? format(userSubscription.endDate, 'dd/MM/yyyy') : 'N/A'}
                         icon={CalendarCheck}
                         subtext={userSubscription.plan}
+                    />
+                    <StatCard 
+                        title="Puntos acumulados" 
+                        value={userSubscription.points} 
+                        icon={Gift}
+                        subtext="Gana más invitando o aportando" 
                     />
                 </div>
             </div>
@@ -243,7 +167,7 @@ export default function SuscripcionPage() {
                             Invita a tus Amigos
                         </CardTitle>
                         <CardDescription>
-                            Gana 25 puntos si se suscriben a un plan de pago. Introduce su email para generar un mensaje de WhatsApp con el enlace de invitación.
+                            Gana 25 puntos si un amigo que invitas se suscribe a un plan de pago. Introduce su email para generar un mensaje de WhatsApp con el enlace de invitación.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -253,23 +177,16 @@ export default function SuscripcionPage() {
                                 placeholder="Email del amigo"
                                 value={inviteEmail}
                                 onChange={(e) => setInviteEmail(e.target.value)}
-                                disabled={!isSubscribed || isInviting || hasReachedInvitationLimit}
+                                disabled={!isSubscribed || isInviting}
                                 className="w-full"
                             />
                             <Button 
                                 onClick={handleSendInvite} 
-                                disabled={!isSubscribed || isInviting || !inviteEmail || hasReachedInvitationLimit}
+                                disabled={!isSubscribed || isInviting || !inviteEmail}
                                 className="w-full sm:w-auto"
                             >
                                 {isInviting ? 'Generando...' : 'Invitar por WhatsApp'}
                             </Button>
-                        </div>
-                        <div className="text-sm text-muted-foreground max-w-md">
-                            <p>Invitaciones enviadas este año: {invitedFriendsCount} de 10</p>
-                            <Progress value={(invitedFriendsCount / 10) * 100} className="w-full mt-1" />
-                            {hasReachedInvitationLimit && (
-                                <p className="text-destructive font-semibold mt-2">Has alcanzado el límite de invitaciones para este año.</p>
-                            )}
                         </div>
                         {!isSubscribed && (
                             <p className="text-center text-xs text-muted-foreground mt-2">
@@ -277,6 +194,25 @@ export default function SuscripcionPage() {
                             </p>
                         )}
                     </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Book className="h-5 w-5" />
+                            Aporta Ejercicios a la Comunidad
+                        </CardTitle>
+                        <CardDescription>
+                           Gana 10 puntos por cada ejercicio que aportes a la biblioteca pública. ¡Tu conocimiento tiene premio!
+                        </CardDescription>
+                    </CardHeader>
+                     <CardFooter>
+                       <Button asChild>
+                            <Link href="/equipo/mis-ejercicios">
+                                <ArrowRight className="mr-2 h-4 w-4"/>
+                                Ir a Mis Ejercicios
+                            </Link>
+                        </Button>
+                    </CardFooter>
                 </Card>
 
             </div>
