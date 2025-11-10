@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { useCollection, useDoc, useFirestore } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ interface Match {
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
   squad?: string[];
-  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
+  playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> }; // Legacy support
 }
 
 type StatCategory = keyof PlayerStats;
@@ -135,17 +135,17 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
     ];
     
     const totals = useMemo(() => {
-        return filteredAndSortedStats.reduce((acc, player) => {
-            (Object.keys(player) as Array<keyof typeof player>).forEach(key => {
-                if (typeof player[key] === 'number' && key !== 'number') {
-                    (acc as any)[key] = ((acc as any)[key] || 0) + player[key];
-                }
-            });
-            return acc;
-        }, {
+        const initialTotals: Partial<PlayerStats> = {
             minutesPlayed: 0, pj: 0, goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
             recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, fouls: 0, yellowCards: 0, redCards: 0
-        });
+        };
+
+        return filteredAndSortedStats.reduce((acc, player) => {
+            (Object.keys(initialTotals) as Array<keyof typeof initialTotals>).forEach(key => {
+                (acc as any)[key] = ((acc as any)[key] || 0) + (player[key] || 0);
+            });
+            return acc;
+        }, initialTotals);
     }, [filteredAndSortedStats]);
 
     return (
@@ -201,7 +201,7 @@ const PlayerStatsTable = ({ aggregatedStats, searchTerm }: { aggregatedStats: (P
                          <TableFooter>
                             <TableRow className="font-bold bg-muted/50">
                                 <TableCell colSpan={2}>Total</TableCell>
-                                <TableCell className="text-center">{formatStatTime(totals.minutesPlayed)}</TableCell>
+                                <TableCell className="text-center">{formatStatTime(totals.minutesPlayed || 0)}</TableCell>
                                 <TableCell className="text-center">{totals.pj}</TableCell>
                                 <TableCell className="text-center">{totals.goals}</TableCell>
                                 <TableCell className="text-center">{totals.assists}</TableCell>
@@ -234,23 +234,31 @@ export default function PlayerStatsPage() {
     const params = useParams();
     const teamId = typeof params.teamId === 'string' ? params.teamId : '';
     const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
 
     const [filter, setFilter] = useState<'Todos' | 'Liga' | 'Copa' | 'Torneo' | 'Amistoso'>('Todos');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const teamRef = useMemoFirebase(() => doc(firestore, 'teams', teamId), [firestore, teamId]);
+    const teamRef = useMemoFirebase(() => {
+      if (!firestore || !teamId || !user) return null;
+      return doc(firestore, 'teams', teamId);
+    }, [firestore, teamId, user]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
     
-    const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
+    const playersRef = useMemoFirebase(() => {
+      if (!firestore || !teamId || !user) return null;
+      return collection(firestore, `teams/${teamId}/players`);
+    }, [firestore, teamId, user]);
     const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
 
     const matchesQuery = useMemoFirebase(() => {
+        if (!firestore || !teamId || !user) return null;
         return query(
             collection(firestore, 'matches'),
             where('teamId', '==', teamId),
             where('isFinished', '==', true)
         );
-    }, [firestore, teamId]);
+    }, [firestore, teamId, user]);
     const { data: finishedMatches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
     
     const filteredMatches = useMemo(() => {
@@ -355,7 +363,7 @@ export default function PlayerStatsPage() {
 }, [aggregatedStats, players]);
 
 
-    const isLoading = isLoadingTeam || isLoadingPlayers || isLoadingMatches;
+    const isLoading = isUserLoading || isLoadingTeam || isLoadingPlayers || isLoadingMatches;
 
     if (isLoading) {
         return (
@@ -370,7 +378,16 @@ export default function PlayerStatsPage() {
         );
     }
     
-     if (!team && !isLoading) {
+    if (!user) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
+                <p className="text-muted-foreground">Debes iniciar sesión para ver las estadísticas.</p>
+            </div>
+        );
+    }
+
+    if (!team && !isLoading) {
         return null;
     }
 

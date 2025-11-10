@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { useCollection, useDoc, useFirestore } from '@/firebase';
+import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,7 @@ interface Match {
   isFinished: boolean;
   matchType: 'Amistoso' | 'Liga' | 'Copa' | 'Torneo';
   playerStats?: { ['1H']?: { [playerId: string]: Partial<PlayerStats> }, ['2H']?: { [playerId: string]: Partial<PlayerStats> } };
-  opponentStats?: { ['1H']?: Partial<OpponentStats>, ['2H']?: Partial<OpponentStats> };
+  opponentStats?: { ['1H']?: Partial<OpponentStats>, ['2H']?: Partial<OpponentStats> } | Partial<OpponentStats>; // Legacy support
 }
 
 type MatchResult = 'win' | 'loss' | 'draw';
@@ -90,23 +89,24 @@ export default function TeamOverallStatsPage() {
     const params = useParams();
     const teamId = typeof params.teamId === 'string' ? params.teamId : '';
     const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
 
     const [filter, setFilter] = useState<'Todos' | 'Liga' | 'Copa' | 'Torneo' | 'Amistoso'>('Todos');
 
     const teamRef = useMemoFirebase(() => {
-        if (!firestore || !teamId) return null;
+        if (!firestore || !teamId || !user) return null;
         return doc(firestore, 'teams', teamId);
-    }, [firestore, teamId]);
+    }, [firestore, teamId, user]);
     const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
     const matchesQuery = useMemoFirebase(() => {
-        if (!firestore || !teamId) return null;
+        if (!firestore || !teamId || !user) return null;
         return query(
             collection(firestore, 'matches'),
             where('teamId', '==', teamId),
             where('isFinished', '==', true)
         );
-    }, [firestore, teamId]);
+    }, [firestore, teamId, user]);
 
     const { data: finishedMatches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
@@ -139,9 +139,8 @@ export default function TeamOverallStatsPage() {
         const performance = filteredMatches.reduce((acc, match) => {
             const isLocal = match.localTeam === team.name;
 
-            // Match result
-            const userScore = isLocal ? (match.localScore || 0) : (match.visitorScore || 0);
-            const opponentScore = isLocal ? (match.visitorScore || 0) : (match.localScore || 0);
+            const userScore = isLocal ? (match.localScore ?? 0) : (match.visitorScore ?? 0);
+            const opponentScore = isLocal ? (match.visitorScore ?? 0) : (match.localScore ?? 0);
 
             if (userScore > opponentScore) wins++;
             else if (userScore < opponentScore) losses++;
@@ -153,7 +152,7 @@ export default function TeamOverallStatsPage() {
             // Handle legacy flat structure
             if (!match.playerStats?.['1H'] && !match.playerStats?.['2H']) {
                 const legacyStats = _.values(match.playerStats || {});
-                playerStats1H.push(...legacyStats);
+                playerStats1H.push(...legacyStats.map(stat => ({...stat})));
             }
             
             acc.shotsOnTarget += _.sumBy(playerStats1H, 'shotsOnTarget') + _.sumBy(playerStats2H, 'shotsOnTarget');
@@ -164,18 +163,16 @@ export default function TeamOverallStatsPage() {
             acc.yellowCards += _.sumBy(playerStats1H, 'yellowCards') + _.sumBy(playerStats2H, 'yellowCards');
             acc.redCards += _.sumBy(playerStats1H, 'redCards') + _.sumBy(playerStats2H, 'redCards');
             
-            // Opponent stats
             const opponentStats1H = match.opponentStats?.['1H'] || {};
             const opponentStats2H = match.opponentStats?.['2H'] || {};
             if (!match.opponentStats?.['1H'] && !match.opponentStats?.['2H']) {
-                Object.assign(opponentStats1H, match.opponentStats);
+                Object.assign(opponentStats1H, (match.opponentStats as Partial<OpponentStats>) || {});
             }
 
             acc.foulsReceived += (opponentStats1H.fouls || 0) + (opponentStats2H.fouls || 0);
 
-            // Goal stats
-            const teamGoals1H = _.sumBy(playerStats1H, 'goals');
-            const teamGoals2H = _.sumBy(playerStats2H, 'goals');
+            const teamGoals1H = _.sumBy(playerStats1H, 'goals') || 0;
+            const teamGoals2H = _.sumBy(playerStats2H, 'goals') || 0;
             const opponentGoals1H = opponentStats1H.goals || 0;
             const opponentGoals2H = opponentStats2H.goals || 0;
 
@@ -200,7 +197,7 @@ export default function TeamOverallStatsPage() {
 
     }, [team, filteredMatches]);
 
-    const isLoading = isLoadingTeam || isLoadingMatches;
+    const isLoading = isUserLoading || isLoadingTeam || isLoadingMatches;
     
     if (isLoading) {
         return (
@@ -224,6 +221,15 @@ export default function TeamOverallStatsPage() {
                         <Skeleton className="h-24 w-full" />
                     </CardContent>
                 </Card>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
+                <p className="text-muted-foreground">Debes iniciar sesión para ver las estadísticas.</p>
             </div>
         );
     }
