@@ -76,21 +76,27 @@ const formatStatTime = (totalSeconds: number) => {
 };
 
 const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
-    const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
+    const initialTotals = {
+        minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
+        shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
+        goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
+    };
+    
+    if (!match || !squadPlayers || !squadPlayers.length) return { aggregated: [], totals: initialTotals };
 
-    if (!match || !squadPlayers.length) return { aggregated: [], totals: {} };
+    const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
 
     squadPlayers.forEach(player => {
         statsMap.set(player.id, {
             name: player.name, number: player.number,
-            minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-            shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
-            saves: 0, goalsConceded: 0, unoVsUno: 0,
+            minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
+            shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
+            goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
         });
     });
     
     const isModern = match.playerStats && (match.playerStats['1H'] || match.playerStats['2H']);
-
+    
     if (isModern) {
         (['1H', '2H'] as Period[]).forEach(period => {
             const periodStats = match.playerStats?.[period as Period];
@@ -145,18 +151,12 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
     
     const aggregated = Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
-    const totals: Omit<PlayerStats, 'id' | 'name' | 'number'> = aggregated.reduce((acc, player) => {
-        (Object.keys(player) as Array<keyof typeof player>).forEach(key => {
-            if (typeof player[key] === 'number' && key !== 'number') {
-                (acc as any)[key] = ((acc as any)[key] || 0) + (player[key] as number);
-            }
+    const totals: PlayerStats = aggregated.reduce((acc, player) => {
+        (Object.keys(acc) as Array<keyof PlayerStats>).forEach(key => {
+            acc[key]! += player[key] || 0;
         });
         return acc;
-    }, {
-        minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
-        shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
-        goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
-    });
+    }, { ...initialTotals });
 
     return { aggregated, totals };
 };
@@ -204,6 +204,16 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
     if (isLoadingPlayers) {
         return <Skeleton className="h-40 w-full" />;
     }
+    
+    if (!aggregated || aggregated.length === 0) {
+        return (
+            <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                    No hay jugadores convocados o datos de estadísticas para este partido.
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
@@ -233,7 +243,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {(aggregated && aggregated.length > 0) ? aggregated.map(player => (
+                            {aggregated.map(player => (
                                 <TableRow key={player.number}>
                                     <TableCell className="font-medium">{player.number}</TableCell>
                                     <TableCell>{player.name}</TableCell>
@@ -251,11 +261,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                                     <TableCell>{player.yellowCards || 0}</TableCell>
                                     <TableCell>{player.redCards || 0}</TableCell>
                                 </TableRow>
-                            )) : (
-                                <TableRow>
-                                    <TableCell colSpan={15} className="text-center h-24">No hay datos de jugadores para este partido.</TableCell>
-                                </TableRow>
-                            )}
+                            ))}
                         </TableBody>
                          <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
@@ -390,3 +396,4 @@ export default function MatchDetailsPage() {
     </div>
   );
 }
+
