@@ -75,6 +75,10 @@ interface Match {
   fouls?: { [key in Period]?: { local: number; visitor: number } };
   timeouts?: { [key in Period]?: { local: number; visitor: number } };
   events?: MatchEvent[];
+  // Legacy fields
+  localPlayers?: any[];
+  visitorPlayers?: any[];
+  userTeam?: 'local' | 'visitor';
 }
 
 
@@ -100,14 +104,43 @@ function migrateLegacyMatchData(matchData: Match): Match {
     const needsPlayerStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
     const needsOpponentStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
     
+    // Migrate flat playerStats to 1H
     if (needsPlayerStatsMigration(migratedData.playerStats)) {
-        const legacyPlayerStats = migratedData.playerStats;
+        const legacyPlayerStats = migratedData.playerStats as { [playerId: string]: Partial<PlayerStats> };
         migratedData.playerStats = {
-            '1H': legacyPlayerStats as { [playerId: string]: Partial<PlayerStats> },
+            '1H': legacyPlayerStats,
             '2H': {}
         };
+         Object.keys(legacyPlayerStats).forEach(playerId => {
+            migratedData.playerStats!['2H']![playerId] = {};
+        });
         wasMigrated = true;
+    } else if (matchData.localPlayers && matchData.userTeam) { // Migrate from localPlayers/visitorPlayers
+        const playerList = matchData.userTeam === 'local' ? matchData.localPlayers : matchData.visitorPlayers;
+        if (playerList && Array.isArray(playerList)) {
+            const playerStats1H: { [playerId: string]: Partial<PlayerStats> } = {};
+            playerList.forEach(p => {
+                playerStats1H[p.id] = {
+                    goals: p.goals || 0,
+                    assists: p.assists || 0,
+                    yellowCards: p.amarillas || 0,
+                    redCards: p.rojas || 0,
+                    fouls: p.faltas || 0,
+                    shotsOnTarget: p.tirosPuerta || 0,
+                    shotsOffTarget: p.tirosFuera || 0,
+                    recoveries: p.recuperaciones || 0,
+                    turnovers: p.perdidas || 0,
+                    saves: p.paradas || 0,
+                    goalsConceded: p.gRec || 0,
+                    minutesPlayed: p.timeOnCourt || 0,
+                    unoVsUno: p.vs1 || 0,
+                }
+            });
+            migratedData.playerStats = { '1H': playerStats1H, '2H': {} };
+            wasMigrated = true;
+        }
     }
+
 
     if (needsOpponentStatsMigration(migratedData.opponentStats)) {
         const legacyOpponentStats = migratedData.opponentStats;
@@ -124,8 +157,8 @@ function migrateLegacyMatchData(matchData: Match): Match {
     if (!migratedData.playerStats['2H']) migratedData.playerStats['2H'] = {};
     
     if (!migratedData.opponentStats) migratedData.opponentStats = { '1H': {}, '2H': {} };
-    if (!migratedData.opponentStats['1H']) migratedData.opponentStats['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
-    if (!migratedData.opponentStats['2H']) migratedData.opponentStats['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['1H']) (migratedData.opponentStats as any)['1H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
+    if (!migratedData.opponentStats['2H']) (migratedData.opponentStats as any)['2H'] = { goals: 0, fouls: 0, shotsOnTarget: 0, shotsOffTarget: 0, shotsBlocked: 0, recoveries: 0, turnovers: 0 };
     
     if (!migratedData.timeouts) migratedData.timeouts = { '1H': {local: 0, visitor: 0}, '2H': {local: 0, visitor: 0} };
     if (!migratedData.timeouts['1H']) migratedData.timeouts['1H'] = {local: 0, visitor: 0};
@@ -266,19 +299,21 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         _.set(updatedStats, `${period}.${playerId}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { playerStats: updatedStats };
-        const isLocalTeam = match.localTeam === teamName;
+        const isMyTeamLocal = match.localTeam === teamName;
         
         if (stat === 'goals' && isMyTeam) {
-             const currentLocalScore = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0) + _.get(updatedStats, `2H.${p.id}.goals`, 0));
-             const currentVisitorScore = (_.get(match.opponentStats, '1H.goals', 0) + _.get(match.opponentStats, '2H.goals', 0));
-             
-             if(isLocalTeam) {
-                 batchUpdate.localScore = currentLocalScore;
-                 batchUpdate.visitorScore = currentVisitorScore;
-             } else {
-                 batchUpdate.localScore = currentVisitorScore;
-                 batchUpdate.visitorScore = currentLocalScore;
-             }
+            const teamGoals1H = _.sumBy(players, p => _.get(updatedStats, `1H.${p.id}.goals`, 0));
+            const teamGoals2H = _.sumBy(players, p => _.get(updatedStats, `2H.${p.id}.goals`, 0));
+            const opponentGoals1H = _.get(match.opponentStats, '1H.goals', 0);
+            const opponentGoals2H = _.get(match.opponentStats, '2H.goals', 0);
+
+            if(isMyTeamLocal) {
+                batchUpdate.localScore = teamGoals1H + teamGoals2H;
+                batchUpdate.visitorScore = opponentGoals1H + opponentGoals2H;
+            } else {
+                batchUpdate.localScore = opponentGoals1H + opponentGoals2H;
+                batchUpdate.visitorScore = teamGoals1H + teamGoals2H;
+            }
 
              // Add or remove goal event
              if (increment) {
@@ -286,7 +321,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                  const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
                  const newEvent: MatchEvent = {
                      type: 'goal',
-                     team: isLocalTeam ? 'local' : 'visitor',
+                     team: isMyTeamLocal ? 'local' : 'visitor',
                      period: period,
                      minute: eventMinute,
                      playerId: player.id,
@@ -298,7 +333,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
         
         if (stat === 'fouls') {
           const fouls = _.sumBy(Object.values(_.get(updatedStats, period, {})), 'fouls');
-          const isMyTeamLocal = match.localTeam === teamName;
+          
           const updatedFouls = _.cloneDeep(match.fouls || {});
           
           if(isMyTeamLocal) {
@@ -334,7 +369,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
             shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
             saves: 0, goalsConceded: 0, minutesPlayed: 0
         };
-        if (!players || !match.playerStats || !match.playerStats[period]) return initialTotals;
+        if (!players || !match.playerStats || !match.playerStats[period as Period]) return initialTotals;
         
         return players.reduce((acc, player) => {
             const stats = (match.playerStats as any)[period]?.[player.id] || {};
@@ -845,3 +880,276 @@ export default function MatchStatsPage() {
     </div>
   );
 }
+
+```
+- src/firebase/use-auth-user.ts:
+```ts
+
+'use client';
+import { useState, useEffect } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from './provider';
+
+// Return type for useUser() - specific to user auth state
+export interface UserHookResult {
+  user: User | null;
+  isUserLoading: boolean;
+  setUser: (user: User | null) => void;
+}
+
+const authState = {
+  user: null as User | null,
+  isUserLoading: true,
+  listeners: new Set<(result: UserHookResult) => void>(),
+};
+
+// Listen to auth state changes and notify all active hooks
+let unsubscribe: (() => void) | null = null;
+function ensureSubscription(auth: any) {
+  if (unsubscribe) return;
+
+  unsubscribe = onAuthStateChanged(
+    auth,
+    (firebaseUser) => {
+      authState.user = firebaseUser;
+      authState.isUserLoading = false;
+      authState.listeners.forEach((listener) =>
+        listener({ ...authState, setUser: (user) => (authState.user = user) })
+      );
+    },
+    (error) => {
+      console.error('useUser: onAuthStateChanged error:', error);
+      authState.user = null;
+      authState.isUserLoading = false;
+      authState.listeners.forEach((listener) =>
+        listener({ ...authState, setUser: (user) => (authState.user = user) })
+      );
+    }
+  );
+}
+
+/**
+ * Hook specifically for accessing and managing the authenticated user's state.
+ * This provides the User object, loading status, and subscribes to auth state changes.
+ * @returns {UserHookResult} Object with user, isUserLoading, and a setUser function.
+ */
+export const useUser = (): UserHookResult => {
+  const auth = useAuth();
+  const [state, setState] = useState<UserHookResult>({
+    user: authState.user,
+    isUserLoading: authState.isUserLoading,
+    setUser: (user: User | null) => {
+      authState.user = user;
+      // Notifying listeners here is tricky; might be better to manage this centrally
+    },
+  });
+
+  useEffect(() => {
+    ensureSubscription(auth);
+
+    const listener = (newState: UserHookResult) => {
+      setState(newState);
+    };
+
+    authState.listeners.add(listener);
+
+    // Initial sync
+    listener({
+      ...authState,
+      setUser: (user: User | null) => {
+        authState.user = user;
+        // Optionally, re-notify all listeners if state is changed programmatically
+        authState.listeners.forEach((l) => l({ ...authState, setUser: (u) => (authState.user = u) }));
+      },
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      authState.listeners.delete(listener);
+    };
+  }, [auth]);
+
+  return state;
+};
+
+```
+- src/middleware.ts:
+```ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next()
+  
+  if (process.env.NODE_ENV === 'development') {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: ['/api/:path*', '/'], // rutas donde aplicará el middleware
+}
+```
+- src/lib/data.ts:
+```ts
+
+import placeholderImages from './placeholder-images.json';
+
+const exerciseImages = placeholderImages.placeholderImages.filter(p => p.id.startsWith('exercise-'));
+
+export type Exercise = {
+  id: string;
+  number: string;
+  name: string; // This will be mapped from 'Ejercicio'
+  description: string; // Mapped from 'Descripción de la tarea'
+  category: string; // Mapped from 'Categoría'
+  fase: string; // Mapped from 'Fase'
+  edad: string[]; // Mapped from 'Edad'
+  objectives: string; // Mapped from 'Objetivos'
+  duration: string; // Mapped from 'Duración (min)'
+  numberOfPlayers: string; // Mapped from 'Número de jugadores'
+  variations: string; // Mapped from 'Variantes'
+  consejos: string; // Mapped from 'Consejos para el entrenador'
+  image: string; // Mapped from 'Imagen'
+  aiHint?: string;
+  visible: boolean;
+  userId?: string;
+  createdAt?: any;
+  'Espacio y materiales necesarios'?: string;
+};
+
+export function mapExercise(doc: any): Exercise {
+    const data = doc.data ? doc.data() : doc; // Handle both doc snapshot and plain objects
+    return {
+        id: doc.id,
+        number: data['Número'] || '',
+        name: data['Ejercicio'] || 'Ejercicio sin nombre',
+        description: data['Descripción de la tarea'] || '',
+        category: data['Categoría'] || 'Sin categoría',
+        fase: data['Fase'] || 'Fase no especificada',
+        edad: data['Edad'] || [],
+        objectives: data['Objetivos'] || '',
+        duration: data['Duración (min)'] || '0',
+        numberOfPlayers: data['Número de jugadores'] || '',
+        variations: data['Variantes'] || '',
+        consejos: data['Consejos para el entrenador'] || '',
+        image: data['Imagen'] || '',
+        aiHint: data['aiHint'] || '',
+        visible: data['Visible'] !== false,
+        'Espacio y materiales necesarios': data['Espacio y materiales necesarios'] || '',
+        ...data
+    };
+}
+
+
+export const sessions: Session[] = [
+    {
+        id: '1',
+        name: 'Sesión de Técnica y Posesión',
+        date: '2024-08-01',
+        exercises: [{id: '1', name: 'Rondo 4 vs 1'}],
+    },
+    {
+        id: '2',
+        name: 'Entrenamiento Físico y Transiciones',
+        date: '2024-08-03',
+        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
+    },
+    {
+        id: '3',
+        name: 'Preparación de Partido',
+        date: '2024-08-05',
+        exercises: [{id: '2', name: 'Finalización 2 vs 1'}],
+    }
+]
+
+export type Session = {
+    id: string;
+    name: string;
+    date: string;
+    exercises: Partial<Exercise>[]; // Can be partial if just storing references
+}
+
+
+export type Match = {
+    id: string;
+    opponent: string;
+    date: string;
+    result: 'Victoria' | 'Derrota' | 'Empate';
+    score: string;
+    stats: {
+        goals: number;
+        assists: number;
+        shots: number;
+        possession: number;
+    }
+}
+
+export const matches: Match[] = [
+    {
+        id: '1',
+        opponent: 'Titanes del Futsal',
+        date: '2024-07-28',
+        result: 'Victoria',
+        score: '5 - 3',
+        stats: {
+            goals: 5,
+            assists: 4,
+            shots: 15,
+            possession: 65,
+        }
+    },
+    {
+        id: '2',
+        opponent: 'Inter Sala',
+        date: '2024-07-21',
+        result: 'Derrota',
+        score: '2 - 4',
+        stats: {
+            goals: 2,
+            assists: 1,
+            shots: 8,
+            possession: 45,
+        }
+    },
+    {
+        id: '3',
+        opponent: 'Furia Roja FS',
+        date: '2024-07-14',
+        result: 'Empate',
+        score: '2 - 2',
+        stats: {
+            goals: 2,
+            assists: 2,
+            shots: 12,
+            possession: 55,
+        }
+    }
+]
+
+```
+- src/middleware.ts:
+```ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next()
+  
+  if (process.env.NODE_ENV === 'development') {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, x-goog-api-client, x-goog-request-params')
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: ['/api/:path*', '/'], // rutas donde aplicará el middleware
+}
+```
