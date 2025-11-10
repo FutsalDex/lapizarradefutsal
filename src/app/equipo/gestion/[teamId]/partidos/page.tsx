@@ -175,24 +175,26 @@ function MatchFormDialog({
   });
 
   useEffect(() => {
-    if (isEditMode && matchToEdit) {
-      form.reset({
-        localTeam: matchToEdit.localTeam,
-        visitorTeam: matchToEdit.visitorTeam,
-        date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
-        matchType: matchToEdit.matchType,
-        competition: matchToEdit.competition || '',
-        matchday: matchToEdit.matchday?.toString() || '',
-      });
-    } else {
-      form.reset({
-        localTeam: '',
-        visitorTeam: '',
-        date: undefined,
-        matchType: 'Amistoso',
-        competition: team.competition || '',
-        matchday: ''
-      });
+    if (isOpen) {
+      if (isEditMode && matchToEdit) {
+        form.reset({
+          localTeam: matchToEdit.localTeam,
+          visitorTeam: matchToEdit.visitorTeam,
+          date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
+          matchType: matchToEdit.matchType,
+          competition: matchToEdit.competition || '',
+          matchday: matchToEdit.matchday?.toString() || '',
+        });
+      } else {
+        form.reset({
+          localTeam: '',
+          visitorTeam: '',
+          date: undefined,
+          matchType: 'Amistoso',
+          competition: team.competition || '',
+          matchday: ''
+        });
+      }
     }
   }, [isOpen, isEditMode, matchToEdit, form, team.competition]);
 
@@ -220,11 +222,12 @@ function MatchFormDialog({
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
+        const updateData: Partial<Match> = { ...matchData };
         // Remove matchday if it's empty, to avoid storing undefined
-        if (!matchData.matchday) {
-            delete (matchData as any).matchday;
+        if (!updateData.matchday) {
+            delete (updateData as any).matchday;
         }
-        await updateDoc(matchRef, matchData);
+        await updateDoc(matchRef, updateData);
          toast({
             title: 'Partido actualizado',
             description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido modificado.`,
@@ -666,20 +669,20 @@ export default function MatchesPage() {
   const [key, setKey] = useState(0);
 
   const teamRef = useMemoFirebase(() => {
-    if (!firestore || !teamId) return null;
+    if (!firestore || !teamId || !user) return null;
     return doc(firestore, 'teams', teamId);
-  }, [firestore, teamId]);
+  }, [firestore, teamId, user]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
 
   const matchesQuery = useMemoFirebase(() => {
-    if (!firestore || !team?.id) return null;
+    if (!firestore || !team?.id || !user) return null;
     return query(
         collection(firestore, `matches`), 
         where('teamId', '==', team.id), 
         orderBy('date', 'asc')
     );
-  }, [firestore, team?.id, key]);
+  }, [firestore, team?.id, user, key]);
 
   const { data: matches, isLoading: isLoadingMatches } = useCollection<Match>(matchesQuery);
 
@@ -703,7 +706,7 @@ export default function MatchesPage() {
   const handleRefresh = () => {
     setKey(k => k + 1);
   };
-  
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
