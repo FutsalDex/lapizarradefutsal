@@ -24,6 +24,26 @@ const SubirEjercicioForm = ({ onCancel }: { onCancel: () => void }) => {
         { id: "juvenil", label: "Juvenil (16-18 años)"},
         { id: "senior", label: "Senior (+18 años)"},
     ];
+
+    const categorias = [
+        "Finalización",
+        "Técnica individual y combinada",
+        "Pase y control",
+        "Transiciones (ofensivas y defensivas)",
+        "Coordinación, agilidad y velocidad",
+        "Defensa (individual, colectiva y táctica)",
+        "Conducción y regate",
+        "Toma de decisiones y visión de juego",
+        "Posesión y circulación del balón",
+        "Superioridades e inferioridades numéricas",
+        "Portero y trabajo específico",
+        "Balón parado y remates",
+        "Contraataques y ataque rápido",
+        "Desmarques y movilidad",
+        "Juego reducido y condicionado",
+        "Calentamiento y activación",
+    ];
+
     return (
         <Card className="max-w-4xl mx-auto mt-8">
             <CardHeader>
@@ -78,11 +98,9 @@ const SubirEjercicioForm = ({ onCancel }: { onCancel: () => void }) => {
                                 <SelectValue placeholder="Seleccionar categoría" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Técnica">Técnica</SelectItem>
-                                <SelectItem value="Táctica">Táctica</SelectItem>
-                                <SelectItem value="Físico">Físico</SelectItem>
-                                <SelectItem value="Porteros">Porteros</SelectItem>
-                                <SelectItem value="Pase y control">Pase y control</SelectItem>
+                                {categorias.map(cat => (
+                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

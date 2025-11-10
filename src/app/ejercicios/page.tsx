@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -19,6 +20,22 @@ export default function EjerciciosPage() {
   const [faseFilter, setFaseFilter] = useState('Todos');
   const [edadFilter, setEdadFilter] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const allCategories = [
+    "Finalización", "Técnica individual y combinada", "Pase y control",
+    "Transiciones (ofensivas y defensivas)", "Coordinación, agilidad y velocidad",
+    "Defensa (individual, colectiva y táctica)", "Conducción y regate",
+    "Toma de decisiones y visión de juego", "Posesión y circulación del balón",
+    "Superioridades e inferioridades numéricas", "Portero y trabajo específico",
+    "Balón parado y remates", "Contraataques y ataque rápido", "Desmarques y movilidad",
+    "Juego reducido y condicionado", "Calentamiento y activación"
+  ];
+  
+  const allEdades = [
+      "Benjamín (8-9 años)", "Alevín (10-11 años)", "Infantil (12-13 años)",
+      "Cadete (14-15 años)", "Juvenil (16-18 años)", "Senior (+18 años)"
+  ];
+
 
   const filteredExercises = exercises.filter(exercise => {
     const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -28,7 +45,7 @@ export default function EjerciciosPage() {
     let matchesFase = true;
     if (faseFilter !== 'Todos') {
         if (faseFilter === 'Fase Inicial') {
-            matchesFase = exercise.fase === 'Calentamiento' || exercise.fase === 'Preparación Física';
+            matchesFase = exercise.fase === 'Calentamiento' || exercise.fase === 'Preparación Física' || exercise.fase === 'Calentamiento y activación';
         } else if (faseFilter === 'Fase Principal') {
             matchesFase = exercise.fase === 'Principal' || exercise.fase === 'Específico';
         } else if (faseFilter === 'Fase Final') {
@@ -37,9 +54,18 @@ export default function EjerciciosPage() {
             matchesFase = exercise.fase === faseFilter;
         }
     }
-
-    const matchesEdad = edadFilter === 'Todos' || exercise.edad.includes(edadFilter);
-    return matchesSearch && matchesCategory && matchesFase && matchesEdad;
+    
+    const matchesEdadRaw = edadFilter === 'Todos' || exercise.edad.split(', ').some(e => edadFilter.includes(e));
+    const matchesEdad = edadFilter === 'Todos' || allEdades.some(e => e.startsWith(edadFilter) && exercise.edad.includes(e.split(" ")[0]));
+    
+    // A simplified check for age filter
+    let simpleAgeMatch = true;
+    if (edadFilter !== 'Todos') {
+        const ageTerm = edadFilter.split(" ")[0];
+        simpleAgeMatch = exercise.edad.includes(ageTerm);
+    }
+    
+    return matchesSearch && matchesCategory && matchesFase && simpleAgeMatch;
   });
 
   const totalPages = Math.ceil(filteredExercises.length / ITEMS_PER_PAGE);
@@ -60,10 +86,7 @@ export default function EjerciciosPage() {
     }
   };
   
-    const allFases = ["Fase Inicial", "Fase Principal", "Fase Final"];
-    const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
-    const uniqueEdades = [...new Set(allEdades)].filter(Boolean);
-
+  const allFases = ["Fase Inicial", "Fase Principal", "Fase Final"];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -101,10 +124,7 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todos">Todas las Categorías</SelectItem>
-                <SelectItem value="Técnica">Técnica</SelectItem>
-                <SelectItem value="Táctica">Táctica</SelectItem>
-                <SelectItem value="Físico">Físico</SelectItem>
-                <SelectItem value="Porteros">Porteros</SelectItem>
+                {allCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select onValueChange={value => { setEdadFilter(value); setCurrentPage(1); }} defaultValue="Todos">
@@ -113,7 +133,7 @@ export default function EjerciciosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todas las Edades</SelectItem>
-                  {uniqueEdades.map(edad => <SelectItem key={edad} value={edad}>{edad}</SelectItem>)}
+                  {allEdades.map(edad => <SelectItem key={edad} value={edad}>{edad}</SelectItem>)}
                 </SelectContent>
             </Select>
         </div>
@@ -184,3 +204,4 @@ export default function EjerciciosPage() {
     </div>
   );
 }
+
