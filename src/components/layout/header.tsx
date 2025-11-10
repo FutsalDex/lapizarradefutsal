@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
-  SheetTitle,
   SheetTrigger,
   SheetClose,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
 import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Gift, Users, User, LogOut, LogIn } from "lucide-react";
@@ -38,7 +38,7 @@ const adminNavLinks = [
 export function Header() {
   const pathname = usePathname();
   // Simulación de estado de sesión
-  const isLoggedIn = false; 
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const isAdmin = isLoggedIn; // Un admin debe estar logueado
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
@@ -111,7 +111,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
+              <SheetTitle className="sr-only">Menú</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium mt-8">
                 {[...visibleNavLinks, ...(isAdmin ? visibleAdminNavLinks : [])].map((link) => (
                   <Link
