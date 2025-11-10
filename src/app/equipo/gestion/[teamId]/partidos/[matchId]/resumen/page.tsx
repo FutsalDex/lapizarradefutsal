@@ -75,7 +75,7 @@ const formatStatTime = (totalSeconds: number) => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: string) => {
+const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
     const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
 
     if (!match || !squadPlayers.length) return { aggregated: [], totals: {} };
@@ -84,8 +84,8 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
         statsMap.set(player.id, {
             name: player.name, number: player.number,
             minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-            saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-            recoveries: 0, turnovers: 0,
+            shotsOnTarget: 0, shotsOffTarget: 0, recoveries: 0, turnovers: 0,
+            saves: 0, goalsConceded: 0, unoVsUno: 0,
         });
     });
 
@@ -120,8 +120,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
             }
         }
     } else if (match.localPlayers && match.userTeam) { // Handle even older legacy format
-         const isMyTeamLocal = match.localTeam === teamName;
-        const legacyPlayerList = isMyTeamLocal ? match.localPlayers : match.visitorPlayers;
+        const legacyPlayerList = match.localPlayers;
         if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
             legacyPlayerList.forEach((legacyPlayer) => {
                 if (legacyPlayer.id && statsMap.has(legacyPlayer.id)) {
@@ -146,17 +145,17 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
     
     const aggregated = Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
-    const totals = aggregated.reduce((acc, player) => {
-        Object.keys(player).forEach(key => {
-            if (typeof (player as any)[key] === 'number' && key !== 'number') {
-                (acc as any)[key] = ((acc as any)[key] || 0) + (player as any)[key];
+    const totals: Omit<PlayerStats, 'id' | 'name' | 'number'> = aggregated.reduce((acc, player) => {
+        (Object.keys(player) as Array<keyof typeof player>).forEach(key => {
+            if (typeof player[key] === 'number' && key !== 'number') {
+                (acc as any)[key] = ((acc as any)[key] || 0) + (player[key] as number);
             }
         });
         return acc;
     }, {
-        minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-        saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-        recoveries: 0, turnovers: 0,
+        minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
+        shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
+        goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
     });
 
     return { aggregated, totals };
@@ -200,7 +199,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
         return allPlayers.filter(p => squadIds.has(p.id));
     }, [allPlayers, match.squad]);
     
-    const { aggregated, totals } = useMemo(() => aggregateStats(squadPlayers, match, teamName), [squadPlayers, match, teamName]);
+    const { aggregated, totals } = useMemo(() => aggregateStats(squadPlayers, match), [squadPlayers, match]);
 
     if (isLoadingPlayers) {
         return <Skeleton className="h-40 w-full" />;
@@ -218,9 +217,9 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                             <TableRow>
                                 <TableHead className="w-[50px]">#</TableHead>
                                 <TableHead>Nombre</TableHead>
-                                <TableHead>Min</TableHead>
+                                <TableHead>Min.</TableHead>
                                 <TableHead>G</TableHead>
-                                <TableHead>A</TableHead>
+                                <TableHead>As</TableHead>
                                 <TableHead>Faltas</TableHead>
                                 <TableHead>T.P.</TableHead>
                                 <TableHead>T.F.</TableHead>
@@ -358,7 +357,7 @@ export default function MatchDetailsPage() {
             </CardHeader>
        </Card>
 
-        <Tabs defaultValue="chronology" className="w-full">
+        <Tabs defaultValue="stats" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="chronology">Cronología de Goles</TabsTrigger>
                 <TabsTrigger value="stats">Estadísticas de Jugadores</TabsTrigger>
