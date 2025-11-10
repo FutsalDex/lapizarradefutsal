@@ -659,7 +659,7 @@ export default function MatchesPage() {
   const params = useParams();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const [filter, setFilter] = useState('Todos');
   const [isFormOpen, setFormOpen] = useState(false);
   const [matchToEdit, setMatchToEdit] = useState<Match | undefined>(undefined);
@@ -693,7 +693,7 @@ export default function MatchesPage() {
   const isMember = user && team && team.memberIds?.includes(user.uid);
   const canView = isOwner || isMember;
   
-  const isLoading = isLoadingTeam || isLoadingMatches;
+  const isLoading = isUserLoading || isLoadingTeam || isLoadingMatches;
   
   const handleOpenForm = (match?: Match) => {
     setMatchToEdit(match);
@@ -703,8 +703,7 @@ export default function MatchesPage() {
   const handleRefresh = () => {
     setKey(k => k + 1);
   };
-
-
+  
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -719,6 +718,21 @@ export default function MatchesPage() {
         </div>
       </div>
     );
+  }
+  
+  if (!user) {
+    return (
+        <div className="container mx-auto px-4 py-8 text-center">
+           <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+           <p className="text-muted-foreground mb-4">Debes iniciar sesión para ver los partidos de un equipo.</p>
+           <Button asChild variant="outline">
+             <Link href="/acceso">
+               <ArrowLeft className="mr-2 h-4 w-4" />
+               Acceder
+             </Link>
+           </Button>
+        </div>
+      );
   }
 
   if (!team) {
