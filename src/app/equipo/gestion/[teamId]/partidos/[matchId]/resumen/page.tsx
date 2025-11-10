@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, collection } from 'firebase/firestore';
+import { doc, collection, getDocs, query, where } from 'firebase/firestore';
 import { useDoc, useFirestore, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
@@ -88,9 +88,9 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
             saves: 0, goalsConceded: 0, unoVsUno: 0,
         });
     });
-
-    const isModern = match.playerStats && (match.playerStats['1H'] || match.playerStats['2H']);
     
+    const isModern = match.playerStats && (match.playerStats['1H'] || match.playerStats['2H']);
+
     if (isModern) {
         (['1H', '2H'] as Period[]).forEach(period => {
             const periodStats = match.playerStats?.[period as Period];
@@ -107,7 +107,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
                 }
             }
         });
-    } else if (match.playerStats && !isModern) { // Legacy format in playerStats
+    } else if (match.playerStats && !isModern) { // Legacy flat format in playerStats
         const legacyPlayerStats = match.playerStats;
         for (const playerId in legacyPlayerStats) {
              if (statsMap.has(playerId)) {
@@ -119,7 +119,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
                 });
             }
         }
-    } else if (match.localPlayers && match.userTeam) { // Handle even older legacy format
+    } else if (match.localPlayers && match.userTeam) { // Even older legacy format
         const legacyPlayerList = match.localPlayers;
         if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
             legacyPlayerList.forEach((legacyPlayer) => {
@@ -257,7 +257,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                                 </TableRow>
                             )}
                         </TableBody>
-                        <TableFooter>
+                         <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell colSpan={3}>Total Equipo</TableCell>
                                 <TableCell>{totals.goals}</TableCell>
@@ -325,6 +325,8 @@ export default function MatchDetailsPage() {
   if (!match || !team) {
     return <div className="container mx-auto px-4 py-8 text-center">No se encontraron datos del partido o del equipo.</div>;
   }
+
+  const isMyTeamLocal = match.localTeam === team.name;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
