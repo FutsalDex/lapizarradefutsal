@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Briefcase, Trash2, Users, PlusCircle, Save } from "lucide-react";
+import { ArrowLeft, Briefcase, Trash2, Users, PlusCircle, Save, Edit } from "lucide-react";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
 
@@ -24,9 +24,23 @@ type Player = {
     posicion: string;
 };
 
+const initialStaff = [
+    { id: 1, name: 'Francisco', role: 'Entrenador', email: 'futsaldex@gmail.com' },
+    { id: 2, name: 'Juan Pérez', role: 'Delegado', email: 'juan.perez@example.com' }
+];
+
+type StaffMember = {
+    id: number;
+    name: string;
+    role: string;
+    email: string;
+};
+
+
 export default function PlantillaPage() {
     const params = useParams();
     const [players, setPlayers] = useState<Player[]>(initialPlayers);
+    const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
 
     const handleAddPlayer = () => {
         if (players.length < 20) {
@@ -44,6 +58,20 @@ export default function PlantillaPage() {
         const newPlayers = [...players];
         newPlayers[index][field] = value;
         setPlayers(newPlayers);
+    };
+
+    const handleAddStaffMember = () => {
+        setStaff([...staff, { id: Date.now(), name: '', role: 'Asistente', email: '' }]);
+    };
+
+    const handleRemoveStaffMember = (id: number) => {
+        setStaff(staff.filter(member => member.id !== id));
+    };
+
+    const handleStaffChange = (id: number, field: keyof Omit<StaffMember, 'id'>, value: string) => {
+        setStaff(staff.map(member => 
+            member.id === id ? { ...member, [field]: value } : member
+        ));
     };
 
   return (
@@ -90,6 +118,84 @@ export default function PlantillaPage() {
                 </div>
             </CardContent>
         </Card>
+
+         <Card>
+            <CardHeader>
+                <CardTitle>Staff Técnico</CardTitle>
+                <CardDescription>Gestiona a los miembros del cuerpo técnico.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead className="w-[180px]">Rol</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead className="w-[120px] text-right">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {staff.map((member) => (
+                                <TableRow key={member.id}>
+                                    <TableCell>
+                                        <Input 
+                                            value={member.name}
+                                            onChange={(e) => handleStaffChange(member.id, 'name', e.target.value)}
+                                            placeholder="Nombre"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={member.role}
+                                            onValueChange={(value) => handleStaffChange(member.id, 'role', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Rol"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Entrenador">Entrenador</SelectItem>
+                                                <SelectItem value="Segundo Entrenador">Segundo Entrenador</SelectItem>
+                                                <SelectItem value="Delegado">Delegado</SelectItem>
+                                                <SelectItem value="Asistente">Asistente</SelectItem>
+                                                <SelectItem value="Fisioterapeuta">Fisioterapeuta</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input 
+                                            type="email"
+                                            value={member.email}
+                                            onChange={(e) => handleStaffChange(member.id, 'email', e.target.value)}
+                                            placeholder="Email"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                         <Button variant="ghost" size="icon">
+                                            <Edit className="w-5 h-5 text-muted-foreground" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStaffMember(member.id)}>
+                                            <Trash2 className="w-5 h-5 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleAddStaffMember}>
+                    <PlusCircle className="mr-2" />
+                    Añadir Miembro
+                </Button>
+                <Button>
+                    <Save className="mr-2" />
+                    Guardar Staff
+                </Button>
+            </CardFooter>
+        </Card>
+
 
         <Card>
             <CardHeader>
