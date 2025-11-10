@@ -37,8 +37,8 @@ const adminNavLinks = [
 
 export function Header() {
   const pathname = usePathname();
-  // Simulación de estado de sesión
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  // Simulación de estado de sesión. Puesto a 'true' para desarrollo.
+  const [isLoggedIn, setIsLoggedIn] = useState(true); 
   const isAdmin = isLoggedIn; // Un admin debe estar logueado
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
@@ -133,7 +133,7 @@ export function Header() {
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                   {isLoggedIn ? (
                      <Button variant="outline" asChild>
-                        <Link href="#" onClick={handleLinkClick}>
+                        <Link href="#" onClick={() => { setIsLoggedIn(false); handleLinkClick(); }}>
                             <LogOut className="mr-2 h-4 w-4" />
                             Cerrar Sesión
                         </Link>
@@ -141,7 +141,7 @@ export function Header() {
                   ) : (
                     <>
                         <Button asChild>
-                            <Link href="/login" onClick={handleLinkClick}>
+                            <Link href="/login" onClick={() => { setIsLoggedIn(true); handleLinkClick(); }}>
                                 <LogIn className="mr-2 h-4 w-4" />
                                 Iniciar Sesión
                             </Link>
@@ -215,7 +215,7 @@ export function Header() {
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsLoggedIn(false)}>
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Cerrar Sesión</span>
                         </DropdownMenuItem>
