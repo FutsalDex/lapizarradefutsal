@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { exercises, Exercise } from '@/lib/data';
+import { exercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Eye, Heart } from 'lucide-react';
@@ -11,16 +11,14 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
-// Simulación de un estado de favoritos compartido (en una app real sería un context o una store)
-let favoriteExerciseIdsStore = new Set(['1', '6']);
-
 export default function FavoritosPage() {
-  const [favoriteIds, setFavoriteIds] = useState(favoriteExerciseIdsStore);
+  const [favoriteIds, setFavoriteIds] = useState(new Set(favoriteExerciseIdsStore));
   const { toast } = useToast();
 
+  // This effect will run when the component mounts and also if the user navigates
+  // back to this page, ensuring the favorite list is up to date.
   useEffect(() => {
-    // Sincronizar con el store simulado al montar el componente
-    setFavoriteIds(favoriteExerciseIdsStore);
+    setFavoriteIds(new Set(favoriteExerciseIdsStore));
   }, []);
 
   const handleFavoriteToggle = (exerciseId: string) => {
@@ -38,7 +36,8 @@ export default function FavoritosPage() {
     }
     setFavoriteIds(newFavoriteIds);
     // Actualizar el store simulado
-    favoriteExerciseIdsStore = newFavoriteIds;
+    favoriteExerciseIdsStore.clear();
+    newFavoriteIds.forEach(id => favoriteExerciseIdsStore.add(id));
   };
 
   const favoriteExercises = exercises.filter(ex => favoriteIds.has(ex.id));

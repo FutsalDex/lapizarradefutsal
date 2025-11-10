@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { exercises, Exercise } from '@/lib/data';
+import { exercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 const ITEMS_PER_PAGE = 12;
-
-// Simulación de un estado de favoritos compartido (en una app real sería un context o una store)
-let favoriteExerciseIdsStore = new Set(['1', '6']);
 
 export default function EjerciciosPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,7 +40,8 @@ export default function EjerciciosPage() {
     }
     setFavoriteIds(newFavoriteIds);
     // Actualizar el store simulado
-    favoriteExerciseIdsStore = newFavoriteIds;
+    favoriteExerciseIdsStore.clear();
+    newFavoriteIds.forEach(id => favoriteExerciseIdsStore.add(id));
   };
 
   const allCategories = [

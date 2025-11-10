@@ -21,6 +21,9 @@ export type Exercise = {
   intensity?: 'Baja' | 'Media' | 'Alta';
 };
 
+// Simulación de un estado de favoritos compartido (en una app real sería un context o una store)
+export let favoriteExerciseIdsStore = new Set(['1', '6']);
+
 export const exercises: Exercise[] = [
   {
     id: '1',
