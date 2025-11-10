@@ -6,7 +6,7 @@ import { matches as initialMatches, Match } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Trash2 } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
@@ -76,6 +76,7 @@ export default function PartidosPage() {
         localTeam: '',
         visitorTeam: '',
         date: undefined as Date | undefined,
+        time: '',
         type: 'Amistoso',
         competition: '',
         round: ''
@@ -128,6 +129,7 @@ export default function PartidosPage() {
             localTeam,
             visitorTeam,
             date: new Date(match.date),
+            time: format(new Date(match.date), "HH:mm"),
             type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? match.competition : 'Liga',
             competition: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? '' : match.competition,
             round: '1', // Placeholder
@@ -156,7 +158,7 @@ export default function PartidosPage() {
         };
         setMatches(prev => [newMatchData, ...prev]);
         setIsAddDialogOpen(false);
-        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, type: 'Amistoso', competition: '', round: '' });
+        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Amistoso', competition: '', round: '' });
     };
     
     const handleSaveChanges = () => {
@@ -271,30 +273,39 @@ export default function PartidosPage() {
                             <Button variant="outline" onClick={() => handleNewMatchChange('visitorTeam', teamName)}>Mi Equipo</Button>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Fecha del partido</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !newMatch.date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {newMatch.date ? format(newMatch.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={newMatch.date}
-                                    onSelect={(date) => handleNewMatchChange('date', date)}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Fecha del partido</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !newMatch.date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {newMatch.date ? format(newMatch.date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={newMatch.date}
+                                        onSelect={(date) => handleNewMatchChange('date', date)}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="time-add">Hora</Label>
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input id="time-add" type="time" className="pl-10" value={newMatch.time} onChange={(e) => handleNewMatchChange('time', e.target.value)} />
+                            </div>
+                        </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="type-add">Tipo</Label>
@@ -456,30 +467,39 @@ export default function PartidosPage() {
                             <Button variant="outline" onClick={() => handleEditFormChange('visitorTeam', teamName)}>Mi Equipo</Button>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Fecha del partido</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !editingMatch.date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {editingMatch.date ? format(editingMatch.date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={editingMatch.date}
-                                    onSelect={(date) => handleEditFormChange('date', date)}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Fecha del partido</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !editingMatch.date && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {editingMatch.date ? format(editingMatch.date, "PPP", { locale: es }) : <span>Selecciona una fecha</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={editingMatch.date}
+                                        onSelect={(date) => handleEditFormChange('date', date)}
+                                        initialFocus
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="time-edit">Hora</Label>
+                             <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input id="time-edit" type="time" className="pl-10" value={editingMatch.time} onChange={(e) => handleEditFormChange('time', e.target.value)} />
+                            </div>
+                        </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="type">Tipo</Label>
