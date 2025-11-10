@@ -49,7 +49,7 @@ interface Match {
   date: any; // Firestore timestamp or string
   squad?: string[];
   events?: MatchEvent[];
-  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } };
+  playerStats?: { [key in Period]?: { [playerId: string]: Partial<PlayerStats> } } | { [playerId: string]: Partial<PlayerStats> };
   
   // Legacy fields for backwards compatibility
   localPlayers?: any[];
@@ -93,7 +93,7 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
     
     if (isModern) {
         (['1H', '2H'] as Period[]).forEach(period => {
-            const periodStats = match.playerStats?.[period];
+            const periodStats = match.playerStats?.[period as Period];
             if (!periodStats) return;
 
             for (const playerId in periodStats) {
@@ -107,8 +107,20 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
                 }
             }
         });
-    } else {
-        const isMyTeamLocal = match.localTeam === teamName;
+    } else if (match.playerStats && !isModern) { // Legacy format in playerStats
+        const legacyPlayerStats = match.playerStats;
+        for (const playerId in legacyPlayerStats) {
+             if (statsMap.has(playerId)) {
+                const existingStats = statsMap.get(playerId)!;
+                const playerLegacyStats = legacyPlayerStats[playerId] as Partial<PlayerStats>;
+                Object.keys(playerLegacyStats).forEach(key => {
+                    const statKey = key as keyof PlayerStats;
+                    (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerLegacyStats[statKey] || 0);
+                });
+            }
+        }
+    } else if (match.localPlayers && match.userTeam) { // Handle even older legacy format
+         const isMyTeamLocal = match.localTeam === teamName;
         const legacyPlayerList = isMyTeamLocal ? match.localPlayers : match.visitorPlayers;
         if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
             legacyPlayerList.forEach((legacyPlayer) => {
@@ -135,17 +147,16 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
     const aggregated = Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
     const totals = aggregated.reduce((acc, player) => {
-        acc.goals += player.goals || 0;
-        acc.assists += player.assists || 0;
-        acc.yellowCards += player.yellowCards || 0;
-        acc.redCards += player.redCards || 0;
-        acc.fouls += player.fouls || 0;
-        acc.saves += player.saves || 0;
-        acc.goalsConceded += player.goalsConceded || 0;
-        acc.unoVsUno += player.unoVsUno || 0;
+        Object.keys(player).forEach(key => {
+            if (typeof (player as any)[key] === 'number' && key !== 'number') {
+                (acc as any)[key] = ((acc as any)[key] || 0) + (player as any)[key];
+            }
+        });
         return acc;
     }, {
-        goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, saves: 0, goalsConceded: 0, unoVsUno: 0
+        minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
+        saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
+        recoveries: 0, turnovers: 0,
     });
 
     return { aggregated, totals };
@@ -207,15 +218,19 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                             <TableRow>
                                 <TableHead className="w-[50px]">#</TableHead>
                                 <TableHead>Nombre</TableHead>
-                                <TableHead>Min.</TableHead>
+                                <TableHead>Min</TableHead>
                                 <TableHead>G</TableHead>
-                                <TableHead>As</TableHead>
-                                <TableHead>TA</TableHead>
-                                <TableHead>TR</TableHead>
-                                <TableHead>F</TableHead>
+                                <TableHead>A</TableHead>
+                                <TableHead>Faltas</TableHead>
+                                <TableHead>T.P.</TableHead>
+                                <TableHead>T.F.</TableHead>
+                                <TableHead>Rec.</TableHead>
+                                <TableHead>Perd.</TableHead>
                                 <TableHead>Par.</TableHead>
                                 <TableHead>GC</TableHead>
                                 <TableHead>1vs1</TableHead>
+                                <TableHead>TA</TableHead>
+                                <TableHead>TR</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -226,16 +241,20 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                                     <TableCell>{formatStatTime(player.minutesPlayed || 0)}</TableCell>
                                     <TableCell>{player.goals || 0}</TableCell>
                                     <TableCell>{player.assists || 0}</TableCell>
-                                    <TableCell>{player.yellowCards || 0}</TableCell>
-                                    <TableCell>{player.redCards || 0}</TableCell>
                                     <TableCell>{player.fouls || 0}</TableCell>
+                                    <TableCell>{player.shotsOnTarget || 0}</TableCell>
+                                    <TableCell>{player.shotsOffTarget || 0}</TableCell>
+                                    <TableCell>{player.recoveries || 0}</TableCell>
+                                    <TableCell>{player.turnovers || 0}</TableCell>
                                     <TableCell>{player.saves || 0}</TableCell>
                                     <TableCell>{player.goalsConceded || 0}</TableCell>
                                     <TableCell>{player.unoVsUno || 0}</TableCell>
+                                    <TableCell>{player.yellowCards || 0}</TableCell>
+                                    <TableCell>{player.redCards || 0}</TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                    <TableCell colSpan={11} className="text-center h-24">No hay datos de jugadores para este partido.</TableCell>
+                                    <TableCell colSpan={15} className="text-center h-24">No hay datos de jugadores para este partido.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -244,12 +263,16 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
                                 <TableCell colSpan={3}>Total Equipo</TableCell>
                                 <TableCell>{totals.goals}</TableCell>
                                 <TableCell>{totals.assists}</TableCell>
-                                <TableCell>{totals.yellowCards}</TableCell>
-                                <TableCell>{totals.redCards}</TableCell>
                                 <TableCell>{totals.fouls}</TableCell>
+                                <TableCell>{totals.shotsOnTarget}</TableCell>
+                                <TableCell>{totals.shotsOffTarget}</TableCell>
+                                <TableCell>{totals.recoveries}</TableCell>
+                                <TableCell>{totals.turnovers}</TableCell>
                                 <TableCell>{totals.saves}</TableCell>
                                 <TableCell>{totals.goalsConceded}</TableCell>
                                 <TableCell>{totals.unoVsUno}</TableCell>
+                                <TableCell>{totals.yellowCards}</TableCell>
+                                <TableCell>{totals.redCards}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
