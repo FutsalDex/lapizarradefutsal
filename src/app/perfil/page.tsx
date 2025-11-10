@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,57 +17,42 @@ export default function PerfilPage() {
         <p className="text-lg text-muted-foreground mt-2">Gestiona tu información personal y la configuración de tu cuenta.</p>
       </div>
 
-      <Tabs defaultValue="personal" className="max-w-4xl mx-auto">
+      <Tabs defaultValue="personal" className="max-w-2xl mx-auto">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="personal">Datos Personales</TabsTrigger>
           <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
         </TabsList>
         <TabsContent value="personal">
           <Card>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-1 flex flex-col items-center space-y-4">
-                  <h3 className="font-semibold text-lg text-foreground">Foto de Perfil</h3>
-                  <Avatar className="h-32 w-32">
-                    <AvatarImage src="https://picsum.photos/seed/avatar/200/200" alt="Avatar" />
-                    <AvatarFallback>
-                        <User className="w-16 h-16"/>
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button variant="outline">
-                    <Camera className="mr-2 h-4 w-4" />
-                    Cambiar Foto
-                  </Button>
-                </div>
-                <div className="md:col-span-2 space-y-6">
-                    <h3 className="font-semibold text-lg text-foreground">Información de la Cuenta</h3>
-                     <p className="text-sm text-muted-foreground">Estos datos son visibles para otros miembros de tus equipos.</p>
-                  <div className="space-y-2">
-                    <Label htmlFor="nombre">Nombre</Label>
-                    <Input id="nombre" defaultValue="Francisco" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" defaultValue="futsaldex@gmail.com" disabled />
-                    <p className="text-xs text-muted-foreground">No puedes cambiar tu dirección de correo electrónico.</p>
-                  </div>
-                   <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="suscripcion">Suscripción</Label>
-                            <Input id="suscripcion" defaultValue="Pro" disabled />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="fin-suscripcion">Fin de la Suscripción</Label>
-                            <Input id="fin-suscripcion" defaultValue="1 de octubre de 2026" disabled />
-                        </div>
-                   </div>
-                  <div className="flex justify-end">
-                    <Button>
-                      <Save className="mr-2 h-4 w-4" />
-                      Guardar Cambios
-                    </Button>
-                  </div>
-                </div>
+            <CardHeader>
+                <CardTitle>Información de la Cuenta</CardTitle>
+                <CardDescription>Estos datos son visibles para otros miembros de tus equipos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="nombre">Nombre</Label>
+                <Input id="nombre" defaultValue="Francisco" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" defaultValue="futsaldex@gmail.com" disabled />
+                <p className="text-xs text-muted-foreground">No puedes cambiar tu dirección de correo electrónico.</p>
+              </div>
+               <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="suscripcion">Suscripción</Label>
+                        <Input id="suscripcion" defaultValue="Pro" disabled />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="fin-suscripcion">Fin de la Suscripción</Label>
+                        <Input id="fin-suscripcion" defaultValue="1 de octubre de 2026" disabled />
+                    </div>
+               </div>
+              <div className="flex justify-end">
+                <Button>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar Cambios
+                </Button>
               </div>
             </CardContent>
           </Card>
