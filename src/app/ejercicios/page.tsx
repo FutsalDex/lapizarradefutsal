@@ -24,7 +24,20 @@ export default function EjerciciosPage() {
     const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'Todos' || exercise.category === categoryFilter;
-    const matchesFase = faseFilter === 'Todos' || exercise.fase.includes(faseFilter);
+    
+    let matchesFase = true;
+    if (faseFilter !== 'Todos') {
+        if (faseFilter === 'Fase Inicial') {
+            matchesFase = exercise.fase === 'Calentamiento' || exercise.fase === 'Preparación Física';
+        } else if (faseFilter === 'Fase Principal') {
+            matchesFase = exercise.fase === 'Principal' || exercise.fase === 'Específico';
+        } else if (faseFilter === 'Fase Final') {
+            matchesFase = exercise.fase === 'Vuelta a la Calma';
+        } else {
+            matchesFase = exercise.fase === faseFilter;
+        }
+    }
+
     const matchesEdad = edadFilter === 'Todos' || exercise.edad.includes(edadFilter);
     return matchesSearch && matchesCategory && matchesFase && matchesEdad;
   });
@@ -47,7 +60,7 @@ export default function EjerciciosPage() {
     }
   };
   
-    const allFases = [...new Set(exercises.map(e => e.fase))];
+    const allFases = ["Fase Inicial", "Fase Principal", "Fase Final"];
     const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
     const uniqueEdades = [...new Set(allEdades)].filter(Boolean);
 
