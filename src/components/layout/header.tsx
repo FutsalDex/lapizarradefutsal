@@ -143,11 +143,9 @@ export function Header() {
               </nav>
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                   {isLoggedIn ? (
-                     <Button variant="outline" asChild onClick={handleLogout}>
-                        <Link href="#">
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Cerrar Sesión
-                        </Link>
+                     <Button variant="outline" onClick={handleLogout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Cerrar Sesión
                     </Button>
                   ) : (
                     <>

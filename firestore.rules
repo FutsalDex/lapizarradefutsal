@@ -13,9 +13,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn()
-          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+      // El usuario es admin si su email es futsaldex@gmail.com O si su rol en la BD es 'Admin'
+      return isSignedIn() && (request.auth.token.email == 'futsaldex@gmail.com'
+          || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'));
     }
 
     // 👤 Usuarios
@@ -33,7 +34,8 @@ service cloud.firestore {
     // 🏋️ Ejercicios
     match /exercises/{exerciseId} {
       allow read: if isSignedIn();
-      allow create: if isOwner(request.resource.data.userId);
+      // Se asume que el ejercicio tiene un campo 'userId' con el uid del autor
+      allow create: if request.resource.data.userId == request.auth.uid;
       allow update, delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
@@ -56,7 +58,7 @@ service cloud.firestore {
       }
     }
 
-    // 📅 Colecciones generales
+    // 📅 Colecciones generales (acceso general para usuarios autenticados, puede requerir refinar)
     match /matches/{matchId} {
       allow read, write: if isSignedIn();
     }
