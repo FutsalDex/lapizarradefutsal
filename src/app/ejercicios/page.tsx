@@ -132,7 +132,7 @@ export default function EjerciciosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todas las Fases</SelectItem>
-                  {allFases.map(fase => <SelectItem key={fase} value={fase}>{fase}</SelectItem>)}
+                  {allFases.map((fase, index) => <SelectItem key={`${fase}-${index}`} value={fase}>{fase}</SelectItem>)}
                 </SelectContent>
             </Select>
             <Select onValueChange={value => { setCategoryFilter(value); setCurrentPage(1); }} defaultValue="Todos">
@@ -141,7 +141,7 @@ export default function EjerciciosPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Todos">Todas las Categorías</SelectItem>
-                {allCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                {allCategories.map((cat, index) => <SelectItem key={`${cat}-${index}`} value={cat}>{cat}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select onValueChange={value => { setEdadFilter(value); setCurrentPage(1); }} defaultValue="Todos">
@@ -150,7 +150,7 @@ export default function EjerciciosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Todos">Todas las Edades</SelectItem>
-                  {allEdades.map(edad => <SelectItem key={edad} value={edad}>{edad}</SelectItem>)}
+                  {allEdades.map((edad, index) => <SelectItem key={`${edad}-${index}`} value={edad}>{edad}</SelectItem>)}
                 </SelectContent>
             </Select>
         </div>
@@ -249,5 +249,3 @@ export default function EjerciciosPage() {
     </div>
   );
 }
-
-    
