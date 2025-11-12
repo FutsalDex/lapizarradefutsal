@@ -1,8 +1,7 @@
-
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -22,6 +21,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useState } from "react";
+import { auth } from "@/firebase/config";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { signOut } from "firebase/auth";
 
 
 const navLinks = [
@@ -37,9 +39,12 @@ const adminNavLinks = [
 
 export function Header() {
   const pathname = usePathname();
-  // Simulación de estado de sesión. Puesto a 'true' para desarrollo.
-  const [isLoggedIn, setIsLoggedIn] = useState(true); 
-  const isAdmin = isLoggedIn; // Un admin debe estar logueado
+  const router = useRouter();
+  const [user, loading] = useAuthState(auth);
+  const isLoggedIn = !!user;
+  
+  // Asumimos que el usuario es admin si tiene un email específico para desarrollo
+  const isAdmin = isLoggedIn && user.email === 'futsaldex@gmail.com'; 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
   const pendingInvitations = 2;
@@ -51,6 +56,12 @@ export function Header() {
   const handleLinkClick = () => {
     setIsSheetOpen(false);
   };
+  
+  const handleLogout = async () => {
+    await signOut(auth);
+    handleLinkClick();
+    router.push('/');
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground">
@@ -111,7 +122,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetTitle className="sr-only">Menú</SheetTitle>
+              <SheetTitle className="hidden">Menú</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium mt-8">
                 {[...visibleNavLinks, ...(isAdmin ? visibleAdminNavLinks : [])].map((link) => (
                   <Link
@@ -132,8 +143,8 @@ export function Header() {
               </nav>
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2">
                   {isLoggedIn ? (
-                     <Button variant="outline" asChild>
-                        <Link href="#" onClick={() => { setIsLoggedIn(false); handleLinkClick(); }}>
+                     <Button variant="outline" asChild onClick={handleLogout}>
+                        <Link href="#">
                             <LogOut className="mr-2 h-4 w-4" />
                             Cerrar Sesión
                         </Link>
@@ -141,7 +152,7 @@ export function Header() {
                   ) : (
                     <>
                         <Button asChild>
-                            <Link href="/login" onClick={() => { setIsLoggedIn(true); handleLinkClick(); }}>
+                            <Link href="/login" onClick={handleLinkClick}>
                                 <LogIn className="mr-2 h-4 w-4" />
                                 Iniciar Sesión
                             </Link>
@@ -195,9 +206,9 @@ export function Header() {
                     <DropdownMenuContent className="w-56" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none text-foreground">Francisco</p>
+                            <p className="text-sm font-medium leading-none text-foreground">{user.displayName || 'Usuario'}</p>
                             <p className="text-xs leading-none text-muted-foreground">
-                            futsaldex@gmail.com
+                            {user.email}
                             </p>
                         </div>
                         </DropdownMenuLabel>
@@ -215,7 +226,7 @@ export function Header() {
                             </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsLoggedIn(false)}>
+                        <DropdownMenuItem onClick={handleLogout}>
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Cerrar Sesión</span>
                         </DropdownMenuItem>

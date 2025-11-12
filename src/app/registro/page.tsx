@@ -1,6 +1,8 @@
 
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,9 +14,87 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { Chrome } from "lucide-react";
+import { Chrome, Loader2 } from "lucide-react";
+import { auth, db } from "@/firebase/config";
+import { 
+  createUserWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  updateProfile
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RegisterPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Las contraseñas no coinciden.",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      const displayName = email.split('@')[0];
+      await updateProfile(user, { displayName });
+
+      await setDoc(doc(db, "users", user.uid), {
+        displayName: displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      });
+
+      router.push("/panel");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error al registrarse",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      await setDoc(doc(db, "users", user.uid), {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      }, { merge: true }); // Use merge to avoid overwriting existing data if user logs in again
+      
+      router.push("/panel");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error con Google",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-background p-4">
       <Card className="mx-auto max-w-sm w-full">
@@ -25,7 +105,7 @@ export default function RegisterPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
+          <form onSubmit={handleRegister} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -33,24 +113,41 @@ export default function RegisterPage() {
                 type="email"
                 placeholder="m@ejemplo.com"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="confirm-password">Confirmar Contraseña</Label>
-              <Input id="confirm-password" type="password" required />
+              <Input 
+                id="confirm-password" 
+                type="password" 
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+              />
             </div>
-            <Button type="submit" className="w-full">
-              Crear cuenta
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : 'Crear cuenta'}
             </Button>
-            <Button variant="outline" className="w-full">
+          </form>
+          <Button variant="outline" className="w-full mt-4" onClick={handleGoogleSignIn} disabled={loading}>
                <Chrome className="mr-2 h-4 w-4" />
               Registrarse con Google
-            </Button>
-          </div>
+          </Button>
           <div className="mt-4 text-center text-sm">
             ¿Ya tienes una cuenta?{" "}
             <Link href="/login" className="underline">
