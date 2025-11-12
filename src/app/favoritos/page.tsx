@@ -3,22 +3,34 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { exercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
+import { exercises as staticExercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Eye, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useCollection } from 'react-firebase-hooks/firestore';
+import { collection } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function FavoritosPage() {
   const [favoriteIds, setFavoriteIds] = useState(new Set(favoriteExerciseIdsStore));
   const { toast } = useToast();
+  
+  const [exercisesSnapshot, loading] = useCollection(collection(db, 'exercises'));
+  const exercises = exercisesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exercise)) || [];
 
   // This effect will run when the component mounts and also if the user navigates
   // back to this page, ensuring the favorite list is up to date.
   useEffect(() => {
-    setFavoriteIds(new Set(favoriteExerciseIdsStore));
+    const updateFavorites = () => setFavoriteIds(new Set(favoriteExerciseIdsStore));
+    updateFavorites();
+
+    // Optional: Add a listener if the store can be updated from other tabs (not implemented here)
+    window.addEventListener('storage', updateFavorites);
+    return () => window.removeEventListener('storage', updateFavorites);
   }, []);
 
   const handleFavoriteToggle = (exerciseId: string) => {
@@ -49,23 +61,40 @@ export default function FavoritosPage() {
         <p className="text-lg text-muted-foreground mt-2">Aquí encontrarás los ejercicios que has guardado para un acceso rápido.</p>
       </div>
 
-      {favoriteExercises.length > 0 ? (
+      {loading && (
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <Card key={index} className="overflow-hidden flex flex-col">
+              <Skeleton className="w-full aspect-video"/>
+              <CardContent className="p-6 flex-grow flex flex-col">
+                <Skeleton className="h-6 w-3/4 mb-4" />
+                <div className="mt-auto pt-4 flex justify-between items-center">
+                  <Skeleton className="h-9 w-28" />
+                  <Skeleton className="h-10 w-10" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!loading && favoriteExercises.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {favoriteExercises.map((exercise) => (
             <Card key={exercise.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader className="p-0">
                 <div className="relative aspect-video w-full bg-primary/80">
                   <Image
-                    src={exercise.tacticsUrl}
-                    alt={`Táctica para ${exercise.title}`}
+                    src={exercise.Imagen}
+                    alt={`Táctica para ${exercise.Ejercicio}`}
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-contain p-4"
+                    className="object-cover"
                   />
                 </div>
               </CardHeader>
               <CardContent className="p-6 flex-grow flex flex-col">
-                <CardTitle className="font-headline text-xl truncate" title={exercise.title}>{exercise.title}</CardTitle>
+                <CardTitle className="font-headline text-xl truncate" title={exercise.Ejercicio}>{exercise.Ejercicio}</CardTitle>
                 <div className="mt-auto pt-4 flex justify-between items-center">
                    <Button variant="outline" size="sm" asChild>
                       <Link href={`/ejercicios/${exercise.id}`}>
@@ -83,7 +112,9 @@ export default function FavoritosPage() {
             </Card>
           ))}
         </div>
-      ) : (
+      ) : null}
+
+      {!loading && favoriteExercises.length === 0 && (
          <div className="text-center py-16 text-muted-foreground">
             <p>Aún no has guardado ningún ejercicio como favorito.</p>
             <Button asChild className="mt-4">
@@ -94,3 +125,5 @@ export default function FavoritosPage() {
     </div>
   );
 }
+
+    

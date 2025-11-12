@@ -2,8 +2,11 @@
 "use client";
 
 import { useState } from 'react';
+import { useCollection } from 'react-firebase-hooks/firestore';
+import { collection, query } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { exercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
+import { Exercise, favoriteExerciseIdsStore } from '@/lib/data';
 import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -13,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ITEMS_PER_PAGE = 12;
 
@@ -24,6 +28,12 @@ export default function EjerciciosPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [favoriteIds, setFavoriteIds] = useState(favoriteExerciseIdsStore);
   const { toast } = useToast();
+
+  const [exercisesSnapshot, loading, error] = useCollection(
+    query(collection(db, 'exercises'))
+  );
+
+  const exercises = exercisesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Exercise)) || [];
 
   const handleFavoriteToggle = (exerciseId: string) => {
     const newFavoriteIds = new Set(favoriteIds);
@@ -44,15 +54,7 @@ export default function EjerciciosPage() {
     newFavoriteIds.forEach(id => favoriteExerciseIdsStore.add(id));
   };
 
-  const allCategories = [
-    "Finalización", "Técnica individual y combinada", "Pase y control",
-    "Transiciones (ofensivas y defensivas)", "Coordinación, agilidad y velocidad",
-    "Defensa (individual, colectiva y táctica)", "Conducción y regate",
-    "Toma de decisiones y visión de juego", "Posesión y circulación del balón",
-    "Superioridades e inferioridades numéricas", "Portero y trabajo específico",
-    "Balón parado y remates", "Contraataques y ataque rápido", "Desmarques y movilidad",
-    "Juego reducido y condicionado", "Calentamiento y activación"
-  ];
+  const allCategories = [...new Set(exercises.map(ex => ex['Categoría']))].sort();
   
   const allEdades = [
       "Benjamín", "Alevín", "Infantil",
@@ -62,7 +64,7 @@ export default function EjerciciosPage() {
 
   const filteredExercises = exercises.filter(exercise => {
     const matchesSearch = exercise['Ejercicio'].toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          exercise['Descripción de la tarea'].toLowerCase().includes(searchTerm.toLowerCase());
+                          (exercise['Descripción de la tarea'] && exercise['Descripción de la tarea'].toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'Todos' || exercise['Categoría'] === categoryFilter;
     
     let matchesFase = true;
@@ -78,7 +80,7 @@ export default function EjerciciosPage() {
         }
     }
     
-    const matchesEdad = edadFilter === 'Todos' || exercise['Edad'].includes(edadFilter);
+    const matchesEdad = edadFilter === 'Todos' || (Array.isArray(exercise['Edad']) && exercise['Edad'].includes(edadFilter));
     
     return matchesSearch && matchesCategory && matchesFase && matchesEdad;
   });
@@ -157,51 +159,75 @@ export default function EjerciciosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {paginatedExercises.map((exercise) => (
-          <Card key={exercise.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
-            <CardHeader className="p-0">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={exercise['Imagen']}
-                  alt={exercise['Ejercicio']}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
-                  data-ai-hint={exercise.imageHint}
-                />
-                 <Badge variant="secondary" className="absolute top-2 right-2">{exercise['Categoría']}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 flex-grow flex flex-col">
-              <CardTitle className="font-headline text-xl truncate mb-2" title={exercise['Ejercicio']}>{exercise['Ejercicio']}</CardTitle>
-              
-              <div className="space-y-1 text-sm text-muted-foreground mb-4">
-                <p><span className="font-semibold text-foreground">Fase:</span> {exercise['Fase']}</p>
-                <p><span className="font-semibold text-foreground">Edad:</span> {exercise['Edad'].join(', ')}</p>
-                <p><span className="font-semibold text-foreground">Duración:</span> {exercise['Duración (min)']} min</p>
-                 <p className="line-clamp-2"><span className="font-semibold text-foreground">Descripción:</span> {exercise['Descripción de la tarea']}</p>
-              </div>
+      {loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: ITEMS_PER_PAGE }).map((_, index) => (
+            <Card key={index} className="flex flex-col">
+              <Skeleton className="h-48 w-full" />
+              <CardContent className="p-6 flex-grow flex flex-col">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-4" />
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-4 w-full" />
+                <div className="mt-auto pt-4 flex justify-between items-center">
+                  <Skeleton className="h-9 w-28" />
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-              <div className="mt-auto pt-4 flex justify-between items-center">
-                 <Button variant="outline" size="sm" asChild>
-                    <Link href={`/ejercicios/${exercise.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver Ficha
-                    </Link>
-                 </Button>
-                 <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise.id)}>
-                    <Heart className={cn("w-6 h-6 text-destructive/50 transition-colors", {
-                        "fill-destructive text-destructive": favoriteIds.has(exercise.id)
-                    })} />
-                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {paginatedExercises.map((exercise) => (
+            <Card key={exercise.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
+              <CardHeader className="p-0">
+                <div className="relative h-48 w-full">
+                  <Image
+                    src={exercise['Imagen']}
+                    alt={exercise['Ejercicio']}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                    data-ai-hint={exercise.imageHint}
+                  />
+                   <Badge variant="secondary" className="absolute top-2 right-2">{exercise['Categoría']}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 flex-grow flex flex-col">
+                <CardTitle className="font-headline text-xl truncate mb-2" title={exercise['Ejercicio']}>{exercise['Ejercicio']}</CardTitle>
+                
+                <div className="space-y-1 text-sm text-muted-foreground mb-4">
+                  <p><span className="font-semibold text-foreground">Fase:</span> {exercise['Fase']}</p>
+                  <p><span className="font-semibold text-foreground">Edad:</span> {Array.isArray(exercise['Edad']) ? exercise['Edad'].join(', ') : ''}</p>
+                  <p><span className="font-semibold text-foreground">Duración:</span> {exercise['Duración (min)']} min</p>
+                   <p className="line-clamp-2"><span className="font-semibold text-foreground">Descripción:</span> {exercise['Descripción de la tarea']}</p>
+                </div>
 
-      {filteredExercises.length === 0 && (
+                <div className="mt-auto pt-4 flex justify-between items-center">
+                   <Button variant="outline" size="sm" asChild>
+                      <Link href={`/ejercicios/${exercise.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver Ficha
+                      </Link>
+                   </Button>
+                   <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise.id)}>
+                      <Heart className={cn("w-6 h-6 text-destructive/50 transition-colors", {
+                          "fill-destructive text-destructive": favoriteIds.has(exercise.id)
+                      })} />
+                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {error && <p className="text-center text-destructive py-8">Error: {error.message}</p>}
+
+      {!loading && filteredExercises.length === 0 && (
         <div className="text-center py-16 text-muted-foreground">
             <p>No se encontraron ejercicios con los filtros seleccionados.</p>
         </div>
@@ -223,3 +249,5 @@ export default function EjerciciosPage() {
     </div>
   );
 }
+
+    
