@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, Clock, ClipboardList, Target, Info, Lightbulb, GitBranch, Layers, Package } from 'lucide-react';
+import { ArrowLeft, Users, Clock, ClipboardList, Target, Info, Lightbulb, GitBranch, Layers, Package, Tag, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useDocument } from 'react-firebase-hooks/firestore';
 import { doc } from 'firebase/firestore';
@@ -91,7 +91,6 @@ export default function EjercicioDetallePage() {
   }
 
   const exercise = { id: snapshot.id, ...snapshot.data() } as Exercise;
-  const tags = [exercise['Categoría'], ...(exercise['Edad'] || [])].filter(Boolean);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -142,9 +141,6 @@ export default function EjercicioDetallePage() {
                         <Package className="w-5 h-5 mt-1 text-muted-foreground" />
                         <div><span className="font-semibold">Materiales:</span> {exercise['Espacio y materiales necesarios']}</div>
                     </div>
-                     <div className="flex items-start gap-3">
-                        <Badge variant="outline">{exercise['Fase']}</Badge>
-                    </div>
                 </CardContent>
             </Card>
         </div>
@@ -154,9 +150,14 @@ export default function EjercicioDetallePage() {
                 {exercise['Ejercicio']}
                 </h1>
                 <div className="flex flex-wrap gap-2 mt-4">
-                {tags.map(tag => (
-                    <Badge key={tag} variant="secondary">{tag}</Badge>
-                ))}
+                    <Badge variant="secondary" className="flex items-center gap-1.5">
+                        <Tag className="w-4 h-4"/>
+                        {exercise['Categoría']}
+                    </Badge>
+                     <Badge variant="outline" className="flex items-center gap-1.5">
+                        <Workflow className="w-4 h-4"/>
+                        Fase: {exercise['Fase']}
+                    </Badge>
                 </div>
             </div>
             
