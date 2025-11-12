@@ -9,7 +9,7 @@ import { ArrowLeft, Download, Users, Clock, Target } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-const PhaseSection = ({ title, exercises }: { title: string; exercises: Exercise[] }) => (
+const PhaseSection = ({ title, exercises }: { title: string; exercises: any[] }) => (
   <div className="space-y-6">
     <h2 className="text-2xl font-bold font-headline text-primary">{title}</h2>
     {exercises.map((exercise, index) => (
@@ -17,26 +17,26 @@ const PhaseSection = ({ title, exercises }: { title: string; exercises: Exercise
         <div className="grid grid-cols-1 md:grid-cols-3">
           <div className="md:col-span-1 relative min-h-[200px] bg-primary/80">
             <Image
-              src={exercise.tacticsUrl}
-              alt={`Táctica para ${exercise.title}`}
+              src={exercise['Imagen']}
+              alt={`Táctica para ${exercise['Ejercicio']}`}
               fill
               className="object-contain p-4"
             />
           </div>
           <div className="md:col-span-2">
             <CardHeader>
-              <CardTitle>{exercise.title}</CardTitle>
+              <CardTitle>{exercise['Ejercicio']}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">{exercise.description}</p>
+              <p className="text-muted-foreground">{exercise['Descripción de la tarea']}</p>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span><span className="font-semibold">Duración:</span> {exercise.duration}</span>
+                  <span><span className="font-semibold">Duración:</span> {exercise['Duración (min)']} min</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
-                  <span><span className="font-semibold">Jugadores:</span> {exercise.players}</span>
+                  <span><span className="font-semibold">Jugadores:</span> {exercise['Número de jugadores']}</span>
                 </div>
               </div>
               <div>
@@ -44,7 +44,7 @@ const PhaseSection = ({ title, exercises }: { title: string; exercises: Exercise
                     <Target className="w-4 h-4 text-primary" />
                     <h4 className="font-semibold">Objetivos del Ejercicio</h4>
                 </div>
-                <p className="text-sm text-muted-foreground">{exercise.objectives}</p>
+                <p className="text-sm text-muted-foreground">{exercise['Objetivos']}</p>
               </div>
             </CardContent>
           </div>
@@ -73,9 +73,9 @@ export default function SesionDetallePage() {
     );
   }
 
-  const warmupExercises = session.exercises.filter(e => e.fase === 'Calentamiento' || e.fase === 'Preparación Física');
-  const mainExercises = session.exercises.filter(e => e.fase === 'Principal' || e.fase === 'Específico');
-  const cooldownExercises = session.exercises.filter(e => e.fase === 'Vuelta a la Calma');
+  const warmupExercises = session.exercises.filter(e => e['Fase'] === 'Calentamiento' || e['Fase'] === 'Preparación Física');
+  const mainExercises = session.exercises.filter(e => e['Fase'] === 'Principal' || e['Fase'] === 'Específico');
+  const cooldownExercises = session.exercises.filter(e => e['Fase'] === 'Vuelta a la Calma');
 
   return (
     <div className="container mx-auto px-4 py-8">

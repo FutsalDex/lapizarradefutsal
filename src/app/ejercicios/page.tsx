@@ -55,40 +55,32 @@ export default function EjerciciosPage() {
   ];
   
   const allEdades = [
-      "Benjamín (8-9 años)", "Alevín (10-11 años)", "Infantil (12-13 años)",
-      "Cadete (14-15 años)", "Juvenil (16-18 años)", "Senior (+18 años)"
+      "Benjamín", "Alevín", "Infantil",
+      "Cadete", "Juvenil", "Senior"
   ];
 
 
   const filteredExercises = exercises.filter(exercise => {
-    const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          exercise.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'Todos' || exercise.category === categoryFilter;
+    const matchesSearch = exercise['Ejercicio'].toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          exercise['Descripción de la tarea'].toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = categoryFilter === 'Todos' || exercise['Categoría'] === categoryFilter;
     
     let matchesFase = true;
     if (faseFilter !== 'Todos') {
         if (faseFilter === 'Fase Inicial') {
-            matchesFase = exercise.fase === 'Calentamiento' || exercise.fase === 'Preparación Física' || exercise.fase === 'Calentamiento y activación';
+            matchesFase = exercise['Fase'] === 'Calentamiento' || exercise['Fase'] === 'Preparación Física';
         } else if (faseFilter === 'Fase Principal') {
-            matchesFase = exercise.fase === 'Principal' || exercise.fase === 'Específico';
+            matchesFase = exercise['Fase'] === 'Principal' || exercise['Fase'] === 'Específico';
         } else if (faseFilter === 'Fase Final') {
-            matchesFase = exercise.fase === 'Vuelta a la Calma';
+            matchesFase = exercise['Fase'] === 'Vuelta a la Calma';
         } else {
-            matchesFase = exercise.fase === faseFilter;
+            matchesFase = exercise['Fase'] === faseFilter;
         }
     }
     
-    const matchesEdadRaw = edadFilter === 'Todos' || exercise.edad.split(', ').some(e => edadFilter.includes(e));
-    const matchesEdad = edadFilter === 'Todos' || allEdades.some(e => e.startsWith(edadFilter) && exercise.edad.includes(e.split(" ")[0]));
+    const matchesEdad = edadFilter === 'Todos' || exercise['Edad'].includes(edadFilter);
     
-    // A simplified check for age filter
-    let simpleAgeMatch = true;
-    if (edadFilter !== 'Todos') {
-        const ageTerm = edadFilter.split(" ")[0];
-        simpleAgeMatch = exercise.edad.includes(ageTerm);
-    }
-    
-    return matchesSearch && matchesCategory && matchesFase && simpleAgeMatch;
+    return matchesSearch && matchesCategory && matchesFase && matchesEdad;
   });
 
   const totalPages = Math.ceil(filteredExercises.length / ITEMS_PER_PAGE);
@@ -171,24 +163,24 @@ export default function EjerciciosPage() {
             <CardHeader className="p-0">
               <div className="relative h-48 w-full">
                 <Image
-                  src={exercise.imageUrl}
-                  alt={exercise.title}
+                  src={exercise['Imagen']}
+                  alt={exercise['Ejercicio']}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover"
                   data-ai-hint={exercise.imageHint}
                 />
-                 <Badge variant="secondary" className="absolute top-2 right-2">{exercise.category}</Badge>
+                 <Badge variant="secondary" className="absolute top-2 right-2">{exercise['Categoría']}</Badge>
               </div>
             </CardHeader>
             <CardContent className="p-6 flex-grow flex flex-col">
-              <CardTitle className="font-headline text-xl truncate mb-2" title={exercise.title}>{exercise.title}</CardTitle>
+              <CardTitle className="font-headline text-xl truncate mb-2" title={exercise['Ejercicio']}>{exercise['Ejercicio']}</CardTitle>
               
               <div className="space-y-1 text-sm text-muted-foreground mb-4">
-                <p><span className="font-semibold text-foreground">Fase:</span> {exercise.fase}</p>
-                <p><span className="font-semibold text-foreground">Edad:</span> {exercise.edad}</p>
-                <p><span className="font-semibold text-foreground">Duración:</span> {exercise.duration}</p>
-                 <p className="line-clamp-2"><span className="font-semibold text-foreground">Descripción:</span> {exercise.description}</p>
+                <p><span className="font-semibold text-foreground">Fase:</span> {exercise['Fase']}</p>
+                <p><span className="font-semibold text-foreground">Edad:</span> {exercise['Edad'].join(', ')}</p>
+                <p><span className="font-semibold text-foreground">Duración:</span> {exercise['Duración (min)']} min</p>
+                 <p className="line-clamp-2"><span className="font-semibold text-foreground">Descripción:</span> {exercise['Descripción de la tarea']}</p>
               </div>
 
               <div className="mt-auto pt-4 flex justify-between items-center">

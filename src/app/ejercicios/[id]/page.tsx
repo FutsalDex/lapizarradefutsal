@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams } from 'next/navigation';
@@ -11,7 +12,7 @@ import Link from 'next/link';
 
 export default function EjercicioDetallePage() {
   const params = useParams();
-  const exercise = exercises.find(ex => ex.id === params.id);
+  const exercise = exercises.find(ex => ex.id === params.id); // This will need to be replaced with a Firestore fetch.
 
   if (!exercise) {
     return (
@@ -27,7 +28,7 @@ export default function EjercicioDetallePage() {
     );
   }
   
-  const tags = [exercise.category, ...exercise.edad.split(', ').filter(e => e)];
+  const tags = [exercise['Categoría'], ...exercise['Edad']];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -46,8 +47,8 @@ export default function EjercicioDetallePage() {
              <CardContent className="p-0">
                 <div className="relative aspect-video">
                   <Image 
-                    src={exercise.tacticsUrl}
-                    alt={`Táctica para ${exercise.title}`}
+                    src={exercise['Imagen']}
+                    alt={`Táctica para ${exercise['Ejercicio']}`}
                     fill
                     className="object-cover"
                   />
@@ -58,7 +59,7 @@ export default function EjercicioDetallePage() {
         <div className="lg:col-span-2 space-y-6">
             <div>
                 <h1 className="font-headline text-3xl md:text-4xl font-bold text-foreground">
-                {exercise.title}
+                {exercise['Ejercicio']}
                 </h1>
                 <div className="flex flex-wrap gap-2 mt-4">
                 {tags.map(tag => (
@@ -75,7 +76,7 @@ export default function EjercicioDetallePage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">{exercise.description}</p>
+                    <p className="text-muted-foreground">{exercise['Descripción de la tarea']}</p>
                 </CardContent>
             </Card>
 
@@ -87,7 +88,7 @@ export default function EjercicioDetallePage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">{exercise.objectives}</p>
+                    <p className="text-muted-foreground">{exercise['Objetivos']}</p>
                 </CardContent>
             </Card>
 
@@ -102,11 +103,11 @@ export default function EjercicioDetallePage() {
                     <CardContent className="space-y-3">
                         <div className="flex items-center gap-3">
                             <Users className="w-5 h-5 text-muted-foreground" />
-                            <span><span className="font-semibold">Jugadores:</span> {exercise.players}</span>
+                            <span><span className="font-semibold">Jugadores:</span> {exercise['Número de jugadores']}</span>
                         </div>
                          <div className="flex items-center gap-3">
                             <Clock className="w-5 h-5 text-muted-foreground" />
-                            <span><span className="font-semibold">Duración:</span> {exercise.duration}</span>
+                            <span><span className="font-semibold">Duración:</span> {exercise['Duración (min)']} min</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -118,7 +119,7 @@ export default function EjercicioDetallePage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">{exercise.tips}</p>
+                        <p className="text-muted-foreground">{exercise['Consejos para el entrenador']}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -131,7 +132,7 @@ export default function EjercicioDetallePage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-muted-foreground">{exercise.variants}</p>
+                    <p className="text-muted-foreground">{exercise['Variantes']}</p>
                 </CardContent>
             </Card>
 

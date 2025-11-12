@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -58,8 +59,8 @@ export default function CrearSesionPage() {
     });
   };
   
-    const allCategories = [...new Set(exercises.map(e => e.category))];
-    const allEdades = [...new Set(exercises.flatMap(e => e.edad.split(', ')))];
+    const allCategories = [...new Set(exercises.map(e => e['Categoría']))];
+    const allEdades = [...new Set(exercises.flatMap(e => e['Edad']))];
     const uniqueEdades = [...new Set(allEdades)].filter(Boolean);
 
   const ExercisePicker = ({ phase }: { phase: SessionPhase }) => {
@@ -68,9 +69,9 @@ export default function CrearSesionPage() {
     const [edadFilter, setEdadFilter] = useState('Todos');
 
     const filteredExercises = exercises.filter(exercise => {
-      const matchesSearch = exercise.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'Todos' || exercise.category === categoryFilter;
-      const matchesEdad = edadFilter === 'Todos' || exercise.edad.includes(edadFilter);
+      const matchesSearch = exercise['Ejercicio'].toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'Todos' || exercise['Categoría'] === categoryFilter;
+      const matchesEdad = edadFilter === 'Todos' || exercise['Edad'].includes(edadFilter);
       return matchesSearch && matchesCategory && matchesEdad;
     });
 
@@ -126,10 +127,10 @@ export default function CrearSesionPage() {
                 >
                   <CardContent className="p-0 flex flex-col flex-grow">
                     <div className="relative aspect-video w-full bg-primary/80">
-                      <Image src={exercise.tacticsUrl} alt={exercise.title} layout="fill" objectFit="contain" className="p-2" />
+                      <Image src={exercise['Imagen']} alt={exercise['Ejercicio']} layout="fill" objectFit="contain" className="p-2" />
                     </div>
                     <div className="p-2 text-center border-t bg-card">
-                        <p className="text-xs font-semibold truncate">{exercise.title}</p>
+                        <p className="text-xs font-semibold truncate">{exercise['Ejercicio']}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -158,10 +159,10 @@ export default function CrearSesionPage() {
                 {exercisesForPhase.map((ex, index) => (
                      <Card key={ex.id} className="overflow-hidden group relative">
                         <div className="relative aspect-video w-full bg-primary/80">
-                         <Image src={ex.tacticsUrl} alt={ex.title} layout="fill" objectFit="contain" className="p-2" />
+                         <Image src={ex['Imagen']} alt={ex['Ejercicio']} layout="fill" objectFit="contain" className="p-2" />
                         </div>
                         <div className="p-2 text-center border-t bg-card">
-                             <p className="text-xs font-semibold truncate">{ex.title}</p>
+                             <p className="text-xs font-semibold truncate">{ex['Ejercicio']}</p>
                         </div>
                         <Button
                             variant="destructive"
