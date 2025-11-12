@@ -6,12 +6,12 @@ import { getStorage } from "firebase/storage";
 
 // 🔹 Configuración del proyecto "lapizarra-95eqd"
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
+  apiKey: "AIzaSyA2XHO-VnkYuAwx3-cQ8xrWb3gzdzvTSow",
   authDomain: "lapizarra-95eqd.firebaseapp.com",
   projectId: "lapizarra-95eqd",
   storageBucket: "lapizarra-95eqd.appspot.com",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID",
+  messagingSenderId: "303306895935",
+  appId: "1:303306895935:web:463b38b92cc31842ccfe8a"
 };
 
 // Inicializa Firebase solo una vez

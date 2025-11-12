@@ -23,6 +23,11 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
       allow update, delete: if isOwner(userId) || isAdmin();
+
+      // Favoritos de un usuario
+      match /favorites/{favoriteId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // 🏋️ Ejercicios
