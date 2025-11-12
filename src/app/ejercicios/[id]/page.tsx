@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, Clock, ClipboardList, Target, Info, Lightbulb, GitBranch } from 'lucide-react';
+import { ArrowLeft, Users, Clock, ClipboardList, Target, Info, Lightbulb, GitBranch, Layers, Package } from 'lucide-react';
 import Link from 'next/link';
 import { useDocument } from 'react-firebase-hooks/firestore';
 import { doc } from 'firebase/firestore';
@@ -27,9 +27,20 @@ export default function EjercicioDetallePage() {
                 <Skeleton className="h-10 w-64" />
             </div>
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
                     <Card className="overflow-hidden sticky top-24">
                         <Skeleton className="aspect-video w-full" />
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                             <Skeleton className="h-6 w-1/3" />
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                             <Skeleton className="h-4 w-full" />
+                             <Skeleton className="h-4 w-5/6" />
+                             <Skeleton className="h-4 w-full" />
+                             <Skeleton className="h-4 w-4/6" />
+                        </CardContent>
                     </Card>
                 </div>
                 <div className="lg:col-span-2 space-y-6">
@@ -94,7 +105,7 @@ export default function EjercicioDetallePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
            <Card className="overflow-hidden sticky top-24">
              <CardContent className="p-0">
                 <div className="relative aspect-video">
@@ -107,6 +118,35 @@ export default function EjercicioDetallePage() {
                 </div>
              </CardContent>
            </Card>
+           <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl font-headline">
+                        <Info className="w-5 h-5 text-primary" />
+                        Detalles
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                    <div className="flex items-start gap-3">
+                        <Users className="w-5 h-5 mt-1 text-muted-foreground" />
+                        <div><span className="font-semibold">Jugadores:</span> {exercise['Número de jugadores']}</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <Clock className="w-5 h-5 mt-1 text-muted-foreground" />
+                        <div><span className="font-semibold">Duración:</span> {exercise['Duración (min)']} min</div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <Layers className="w-5 h-5 mt-1 text-muted-foreground" />
+                        <div><span className="font-semibold">Edad:</span> {Array.isArray(exercise['Edad']) ? exercise['Edad'].join(', ') : 'No especificada'}</div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Package className="w-5 h-5 mt-1 text-muted-foreground" />
+                        <div><span className="font-semibold">Materiales:</span> {exercise['Espacio y materiales necesarios']}</div>
+                    </div>
+                     <div className="flex items-start gap-3">
+                        <Badge variant="outline">{exercise['Fase']}</Badge>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
         <div className="lg:col-span-2 space-y-6">
             <div>
@@ -144,37 +184,17 @@ export default function EjercicioDetallePage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl font-headline">
-                            <Info className="w-5 h-5 text-primary" />
-                            Detalles
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <div className="flex items-center gap-3">
-                            <Users className="w-5 h-5 text-muted-foreground" />
-                            <span><span className="font-semibold">Jugadores:</span> {exercise['Número de jugadores']}</span>
-                        </div>
-                         <div className="flex items-center gap-3">
-                            <Clock className="w-5 h-5 text-muted-foreground" />
-                            <span><span className="font-semibold">Duración:</span> {exercise['Duración (min)']} min</span>
-                        </div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-xl font-headline">
-                           <Lightbulb className="w-5 h-5 text-primary" />
-                            Consejos
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">{exercise['Consejos para el entrenador']}</p>
-                    </CardContent>
-                </Card>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl font-headline">
+                        <Lightbulb className="w-5 h-5 text-primary" />
+                        Consejos
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">{exercise['Consejos para el entrenador']}</p>
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
@@ -187,7 +207,6 @@ export default function EjercicioDetallePage() {
                     <p className="text-muted-foreground">{exercise['Variantes']}</p>
                 </CardContent>
             </Card>
-
         </div>
       </div>
     </div>
