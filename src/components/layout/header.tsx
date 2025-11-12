@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -50,7 +51,7 @@ export function Header() {
   const pendingInvitations = 2;
   const pendingUsers = 5;
   
-  const visibleNavLinks = navLinks.filter(link => !link.auth || isLoggedIn);
+  const visibleNavLinks = navLinks; // Todos los enlaces son visibles para todos
   const visibleAdminNavLinks = adminNavLinks.filter(link => !link.auth || isAdmin);
 
   const handleLinkClick = () => {
@@ -122,7 +123,7 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right">
-              <SheetTitle className="hidden">Menú</SheetTitle>
+              <SheetTitle className="sr-only">Menú</SheetTitle>
               <nav className="grid gap-6 text-lg font-medium mt-8">
                 {[...visibleNavLinks, ...(isAdmin ? visibleAdminNavLinks : [])].map((link) => (
                   <Link
