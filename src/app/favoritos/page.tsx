@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { exercises as staticExercises, Exercise, favoriteExerciseIdsStore } from '@/lib/data';
+import { Exercise, favoriteExerciseIdsStore } from '@/lib/data';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Eye, Heart } from 'lucide-react';
@@ -62,8 +62,8 @@ export default function FavoritosPage() {
       </div>
 
       {loading && (
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {Array.from({ length: 2 }).map((_, index) => (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {Array.from({ length: 3 }).map((_, index) => (
             <Card key={index} className="overflow-hidden flex flex-col">
               <Skeleton className="w-full aspect-video"/>
               <CardContent className="p-6 flex-grow flex flex-col">
@@ -79,7 +79,7 @@ export default function FavoritosPage() {
       )}
 
       {!loading && favoriteExercises.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {favoriteExercises.map((exercise) => (
             <Card key={exercise.id} className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col">
               <CardHeader className="p-0">
@@ -88,7 +88,7 @@ export default function FavoritosPage() {
                     src={exercise.Imagen}
                     alt={`Táctica para ${exercise.Ejercicio}`}
                     fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     className="object-cover"
                   />
                 </div>
@@ -125,5 +125,3 @@ export default function FavoritosPage() {
     </div>
   );
 }
-
-    
