@@ -120,7 +120,8 @@ export default function AsistenciaPage() {
     <div className="container mx-auto px-4 py-8">
       <style>{`
         .day-with-record {
-          background-color: hsl(var(--primary) / 0.2);
+          border-color: hsl(var(--primary));
+          border-width: 2px;
         }
       `}</style>
       <div className="flex justify-between items-start mb-8">
@@ -172,7 +173,7 @@ export default function AsistenciaPage() {
                                     selected={date}
                                     onSelect={setDate}
                                     initialFocus
-                                    month={new Date('2025-10-01T00:00:00')}
+                                    locale={es}
                                     modifiers={{ 'with-record': recordedDates }}
                                     modifiersClassNames={{ 'with-record': 'day-with-record' }}
                                 />
