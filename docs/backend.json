@@ -6,39 +6,100 @@
       "description": "Represents a user's public profile information.",
       "type": "object",
       "properties": {
-        "displayName": {
-          "type": "string",
-          "description": "The user's display name."
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "The user's primary email address."
-        },
-        "photoURL": {
-          "type": "string",
-          "format": "uri",
-          "description": "URL of the user's profile picture."
-        }
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "email": { "type": "string", "format": "email", "description": "The user's primary email address." },
+        "photoURL": { "type": "string", "format": "uri", "description": "URL of the user's profile picture." },
+        "role": { "type": "string", "description": "User role, e.g., 'Admin', 'Subscribed'." },
+        "subscription": { "type": "string", "description": "Subscription plan, e.g., 'Pro', 'Basic'." },
+        "subscriptionStartDate": { "type": "string", "format": "date-time" },
+        "subscriptionEndDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "favorites": { "type": "array", "items": { "type": "string" }, "description": "Array of favorite exercise IDs." }
       },
       "required": ["displayName", "email"]
     },
-    "FavoriteExercise": {
-      "title": "Favorite Exercise",
-      "description": "Represents a user's favorited exercise.",
+    "Exercise": {
+      "title": "Exercise",
+      "description": "Represents a single training exercise.",
       "type": "object",
       "properties": {
-        "exerciseId": {
-          "type": "string",
-          "description": "The ID of the favorited exercise."
-        },
-        "favoritedAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the user favorited the exercise."
-        }
+        "Número": { "type": "number" },
+        "Ejercicio": { "type": "string", "description": "Title of the exercise." },
+        "Descripción de la tarea": { "type": "string" },
+        "Objetivos": { "type": "string" },
+        "Fase": { "type": "string" },
+        "Categoría": { "type": "string" },
+        "Edad": { "type": "array", "items": { "type": "string" } },
+        "Número de jugadores": { "type": "number" },
+        "Duración (min)": { "type": "number" },
+        "Espacio y materiales necesarios": { "type": "string" },
+        "Variantes": { "type": "string" },
+        "Consejos para el entrenador": { "type": "string" },
+        "Imagen": { "type": "string", "format": "uri" },
+        "Visible": { "type": "boolean" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["exerciseId", "favoritedAt"]
+      "required": ["Ejercicio", "Descripción de la tarea", "Categoría", "Fase"]
+    },
+    "Team": {
+        "title": "Team",
+        "type": "object",
+        "properties": {
+            "name": { "type": "string" },
+            "club": { "type": "string" },
+            "competition": { "type": "string" },
+            "ownerId": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["name", "club", "ownerId"]
+    },
+    "Session": {
+        "title": "Session",
+        "type": "object",
+        "properties": {
+            "date": { "type": "string", "format": "date-time" },
+            "microcycle": { "type": "string" },
+            "sessionNumber": { "type": "number" },
+            "players": { "type": "array", "items": { "type": "string" } },
+            "space": { "type": "string" },
+            "objectives": { "type": "string" },
+            "userId": { "type": "string" },
+            "initialExercises": { "type": "array", "items": { "type": "string" } },
+            "mainExercises": { "type": "array", "items": { "type": "string" } },
+            "finalExercises": { "type": "array", "items": { "type": "string" } },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Match": {
+        "title": "Match",
+        "type": "object",
+        "properties": {
+            "localTeam": { "type": "string" },
+            "visitorTeam": { "type": "string" },
+            "date": { "type": "string", "format": "date-time" },
+            "competition": { "type": "string" },
+            "matchday": { "type": "string" },
+            "localScore": { "type": "number" },
+            "visitorScore": { "type": "number" },
+            "status": { "type": "string" },
+            "isFinished": { "type": "boolean" },
+            "userId": { "type": "string" },
+            "teamId": { "type": "string" }
+        }
+    },
+    "Invitation": {
+        "title": "Invitation",
+        "type": "object",
+        "properties": {
+            "inviterId": { "type": "string" },
+            "inviterEmail": { "type": "string", "format": "email" },
+            "inviteeEmail": { "type": "string", "format": "email" },
+            "status": { "type": "string", "enum": ["pending", "completed"] },
+            "createdAt": { "type": "string", "format": "date-time" },
+            "completedAt": { "type": "string", "format": "date-time" }
+        }
     }
   },
   "auth": {
@@ -46,16 +107,32 @@
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/UserProfile"
-      },
+      "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores public profile information for each user."
     },
     "/users/{userId}/favorites/{favoriteId}": {
-      "schema": {
-        "$ref": "#/entities/FavoriteExercise"
-      },
+      "schema": { "type": "object", "properties": { "exerciseId": { "type": "string" }, "favoritedAt": { "type": "string", "format": "date-time" } }, "required": ["exerciseId", "favoritedAt"] },
       "description": "A subcollection storing the exercises a user has favorited."
+    },
+    "/exercises/{exerciseId}": {
+        "schema": { "$ref": "#/entities/Exercise" },
+        "description": "Stores all available exercises."
+    },
+    "/teams/{teamId}": {
+        "schema": { "$ref": "#/entities/Team" },
+        "description": "Stores team information."
+    },
+    "/sessions/{sessionId}": {
+        "schema": { "$ref": "#/entities/Session" },
+        "description": "Stores training session plans."
+    },
+    "/matches/{matchId}": {
+        "schema": { "$ref": "#/entities/Match" },
+        "description": "Stores match data and results."
+    },
+    "/invitations/{invitationId}": {
+        "schema": { "$ref": "#/entities/Invitation" },
+        "description": "Tracks user invitations for the loyalty program."
     }
   }
 }

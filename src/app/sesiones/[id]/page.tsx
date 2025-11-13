@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { sessions, exercises, Exercise, Session } from '@/lib/data';
+import { sessions } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Download, Users, Clock, Target } from 'lucide-react';
@@ -73,9 +73,9 @@ export default function SesionDetallePage() {
     );
   }
 
-  const warmupExercises = session.exercises.filter(e => e['Fase'] === 'Calentamiento' || e['Fase'] === 'Preparación Física');
-  const mainExercises = session.exercises.filter(e => e['Fase'] === 'Principal' || e['Fase'] === 'Específico');
-  const cooldownExercises = session.exercises.filter(e => e['Fase'] === 'Vuelta a la Calma');
+  const warmupExercises = session.initialExercises || [];
+  const mainExercises = session.mainExercises || [];
+  const cooldownExercises = session.finalExercises || [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -135,9 +135,9 @@ export default function SesionDetallePage() {
         </Card>
 
         <div className="space-y-8">
-            <PhaseSection title="Fase Inicial (Calentamiento)" exercises={warmupExercises} />
-            <PhaseSection title="Fase Principal" exercises={mainExercises} />
-            <PhaseSection title="Fase Final (Vuelta a la Calma)" exercises={cooldownExercises} />
+            {warmupExercises.length > 0 && <PhaseSection title="Fase Inicial (Calentamiento)" exercises={warmupExercises} />}
+            {mainExercises.length > 0 && <PhaseSection title="Fase Principal" exercises={mainExercises} />}
+            {cooldownExercises.length > 0 && <PhaseSection title="Fase Final (Vuelta a la Calma)" exercises={cooldownExercises} />}
         </div>
 
       </div>

@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { matches, Match } from '@/lib/data';
+import { matches } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
