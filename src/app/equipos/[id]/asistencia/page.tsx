@@ -24,7 +24,7 @@ import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type AttendanceStatus = 'presente' | 'ausente' | 'justificado' | 'lesionado';
+type AttendanceStatus = 'presente' | 'ausente' | 'justificado' | 'lesionado' | undefined;
 
 type Player = {
   id: string;
@@ -35,11 +35,6 @@ type Player = {
 type PlayerAttendance = Player & {
   status: AttendanceStatus;
 };
-
-const attendanceHistory = [
-    // Data is now fetched from Firestore
-];
-
 
 export default function AsistenciaPage() {
   const params = useParams();
@@ -83,7 +78,7 @@ export default function AsistenciaPage() {
     }
 
     const newAttendance: PlayerAttendance[] = allPlayers.map(player => {
-        const status = attendanceRecord?.playerStatus?.[player.id] || 'presente';
+        const status = attendanceRecord?.playerStatus?.[player.id] || undefined;
         return { ...player, status };
     });
 
@@ -131,10 +126,10 @@ export default function AsistenciaPage() {
   };
   
   const clearRecords = () => {
-    setAttendance(prev => prev.map(p => ({ ...p, status: 'presente' })));
+    setAttendance(prev => prev.map(p => ({ ...p, status: undefined })));
      toast({
         title: "Registros limpiados",
-        description: "Se ha restablecido la asistencia de todos los jugadores a 'Presente'.",
+        description: "Se ha restablecido la asistencia de todos los jugadores.",
     });
   }
 
@@ -145,9 +140,20 @@ export default function AsistenciaPage() {
       }
 
       const playerStatus = attendance.reduce((acc, player) => {
-          acc[player.id] = player.status;
+          if(player.status) {
+            acc[player.id] = player.status;
+          }
           return acc;
       }, {} as Record<string, AttendanceStatus>);
+      
+      if (Object.keys(playerStatus).length !== attendance.length) {
+          toast({
+              variant: 'destructive',
+              title: 'Campos incompletos',
+              description: 'Por favor, marca el estado de todos los jugadores antes de guardar.',
+          });
+          return;
+      }
 
       const docRef = doc(db, 'teams', teamId, 'attendance', formattedDate);
 
