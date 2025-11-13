@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useCollection, useDocumentData } from "react-firebase-hooks/firestore";
-import { collection, doc, addDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, writeBatch } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -48,22 +48,22 @@ export default function PlantillaPage() {
     const [staffSnapshot, loadingStaff] = useCollection(collection(db, "teams", teamId, "staff"));
     const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)) || [];
 
-    const [players, setPlayers] = useState<Player[]>(initialPlayers);
-    const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [staff, setStaff] = useState<StaffMember[]>([]);
     const [isSavingPlayers, setIsSavingPlayers] = useState(false);
     const [isSavingStaff, setIsSavingStaff] = useState(false);
 
     useEffect(() => {
-        if (!loadingPlayers) {
-            setPlayers(initialPlayers);
+        if (!loadingPlayers && playersSnapshot) {
+            setPlayers(playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
         }
-    }, [playersSnapshot]);
+    }, [playersSnapshot, loadingPlayers]);
 
     useEffect(() => {
-        if (!loadingStaff) {
-            setStaff(initialStaff);
+        if (!loadingStaff && staffSnapshot) {
+            setStaff(staffSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)));
         }
-    }, [staffSnapshot]);
+    }, [staffSnapshot, loadingStaff]);
 
 
     const handleAddPlayer = () => {
@@ -101,7 +101,7 @@ export default function PlantillaPage() {
 
             // Delete players that are no longer in the local state but exist in Firestore
             initialPlayers.forEach(initialPlayer => {
-                if (!players.find(p => p.id === initialPlayer.id)) {
+                if (initialPlayer.id && !players.find(p => p.id === initialPlayer.id)) {
                     batch.delete(doc(playersCollection, initialPlayer.id));
                 }
             });
@@ -150,7 +150,7 @@ export default function PlantillaPage() {
 
             // Delete staff that are no longer in local state
             initialStaff.forEach(initialMember => {
-                if (!staff.find(s => s.id === initialMember.id)) {
+                if (initialMember.id && !staff.find(s => s.id === initialMember.id)) {
                     batch.delete(doc(staffCollection, initialMember.id));
                 }
             });
@@ -205,15 +205,21 @@ export default function PlantillaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <Label>Club</Label>
-                        <Input value={team?.club || ''} disabled />
+                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                            {team?.club || ''}
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Equipo</Label>
-                        <Input value={team?.name || ''} disabled />
+                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                           {team?.name || ''}
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Competición</Label>
-                        <Input value={team?.competition || ''} disabled />
+                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                            {team?.competition || ''}
+                        </div>
                     </div>
                 </div>
             )}

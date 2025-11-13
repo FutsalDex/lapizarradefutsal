@@ -29,7 +29,8 @@ service cloud.firestore {
     function isTeamMember(teamId) {
         return isSignedIn() &&
                exists(/databases/$(database)/documents/teams/$(teamId)) && 
-               request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+               (request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds ||
+                get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid);
     }
 
     // 👤 Usuarios
