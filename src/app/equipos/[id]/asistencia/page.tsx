@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,89 +9,88 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { ArrowLeft, Calendar as CalendarIcon, Save, Trash2, RotateCcw, CalendarCheck2, History } from 'lucide-react';
+import { ArrowLeft, Calendar as CalendarIcon, Save, Trash2, RotateCcw, CalendarCheck2, History, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
+import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
+import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type AttendanceStatus = 'presente' | 'ausente' | 'justificado' | 'lesionado';
 
-type PlayerAttendance = {
-  id: number;
-  dorsal: string;
-  nombre: string;
-  status: AttendanceStatus;
+type Player = {
+  id: string;
+  number: string;
+  name: string;
 };
 
-const initialPlayers = [
-    { id: 1, dorsal: '1', nombre: 'Manel', status: 'presente' as AttendanceStatus },
-    { id: 2, dorsal: '2', nombre: 'Marc Montoro', status: 'presente' as AttendanceStatus },
-    { id: 5, dorsal: '5', nombre: 'Dani', status: 'presente' as AttendanceStatus },
-    { id: 6, dorsal: '6', nombre: 'Adam', status: 'presente' as AttendanceStatus },
-    { id: 7, dorsal: '7', nombre: 'Hugo', status: 'presente' as AttendanceStatus },
-    { id: 8, dorsal: '8', nombre: 'Victor', status: 'presente' as AttendanceStatus },
-    { id: 9, dorsal: '9', nombre: 'Marc Romera', status: 'presente' as AttendanceStatus },
-    { id: 10, dorsal: '10', nombre: 'Iker Rando', status: 'presente' as AttendanceStatus },
-    { id: 11, dorsal: '11', nombre: 'Roger', status: 'presente' as AttendanceStatus },
-    { id: 12, dorsal: '12', nombre: 'Marc Muñoz', status: 'presente' as AttendanceStatus },
-    { id: 15, dorsal: '15', nombre: 'Lucas', status: 'presente' as AttendanceStatus },
-    { id: 16, dorsal: '16', nombre: 'Salva', status: 'presente' as AttendanceStatus },
-];
+type PlayerAttendance = Player & {
+  status: AttendanceStatus;
+};
 
 const attendanceHistory = [
     { dorsal: '1', nombre: 'Manel', p: 18, a: 0, j: 0, l: 0, total: 18 },
     { dorsal: '2', nombre: 'Marc Montoro', p: 14, a: 0, j: 3, l: 1, total: 18 },
-    { dorsal: '5', nombre: 'Dani', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '6', nombre: 'Adam', p: 17, a: 0, j: 1, l: 0, total: 18 },
-    { dorsal: '7', nombre: 'Hugo', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '8', nombre: 'Victor', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '9', nombre: 'Marc Romera', p: 16, a: 0, j: 2, l: 0, total: 18 },
-    { dorsal: '10', nombre: 'Iker Rando', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '11', nombre: 'Roger', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '12', nombre: 'Marc Muñoz', p: 17, a: 0, j: 1, l: 0, total: 18 },
-    { dorsal: '15', nombre: 'Lucas', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '16', nombre: 'Salva', p: 17, a: 0, j: 1, l: 0, total: 18 },
+    //... more history data if available
 ];
 
-const recordedDates = [
-    new Date("2025-09-02"),
-    new Date("2025-09-04"),
-    new Date("2025-09-09"),
-    new Date("2025-09-16"),
-    new Date("2025-09-18"),
-    new Date("2025-09-23"),
-    new Date("2025-09-25"),
-    new Date("2025-09-30"),
-    new Date("2025-10-02"),
-    new Date("2025-10-05"),
-    new Date("2025-10-07"),
-    new Date("2025-10-09"),
-    new Date("2025-10-14"),
-    new Date("2025-10-16"),
-    new Date("2025-10-21"),
-    new Date("2025-10-23"),
-    new Date("2025-10-28"),
-    new Date("2025-10-30"),
-    new Date("2025-11-04"),
-    new Date("2025-11-06"),
-    new Date("2025-11-09"),
-];
 
 export default function AsistenciaPage() {
   const params = useParams();
+  const teamId = params.id as string;
   const { toast } = useToast();
   const teamName = "Juvenil B";
-  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-09T00:00:00'));
-  const [attendance, setAttendance] = useState<PlayerAttendance[]>(initialPlayers);
 
-  const handleStatusChange = (playerId: number, status: AttendanceStatus) => {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const [playersSnapshot, loadingPlayers, errorPlayers] = useCollection(
+    collection(db, 'teams', teamId, 'players')
+  );
+
+  const [attendanceSnapshot, loadingAttendanceDates] = useCollection(
+    collection(db, 'teams', teamId, 'attendance')
+  );
+
+  const formattedDate = date ? format(date, 'yyyy-MM-dd') : '';
+  const [attendanceRecord, loadingAttendanceRecord] = useDocumentData(
+      formattedDate ? doc(db, 'teams', teamId, 'attendance', formattedDate) : null
+  );
+  
+  const [attendance, setAttendance] = useState<PlayerAttendance[]>([]);
+
+  const recordedDates = attendanceSnapshot?.docs.map(doc => parseISO(doc.id)) || [];
+
+  useEffect(() => {
+    if (loadingPlayers || !playersSnapshot) return;
+
+    const allPlayers = playersSnapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() } as Player))
+      .sort((a,b) => Number(a.number) - Number(b.number));
+
+    if (loadingAttendanceRecord) {
+        setAttendance([]); // Clear while loading new date data
+        return;
+    }
+
+    const newAttendance: PlayerAttendance[] = allPlayers.map(player => {
+        const status = attendanceRecord?.playerStatus?.[player.id] || 'presente';
+        return { ...player, status };
+    });
+
+    setAttendance(newAttendance);
+
+  }, [playersSnapshot, attendanceRecord, loadingPlayers, loadingAttendanceRecord]);
+
+
+  const handleStatusChange = (playerId: string, status: AttendanceStatus) => {
     setAttendance(prev =>
       prev.map(player =>
         player.id === playerId ? { ...player, status } : player
@@ -100,29 +99,54 @@ export default function AsistenciaPage() {
   };
   
   const clearRecords = () => {
-    setAttendance(initialPlayers.map(p => ({ ...p, status: 'presente' })));
+    setAttendance(prev => prev.map(p => ({ ...p, status: 'presente' })));
      toast({
         title: "Registros limpiados",
         description: "Se ha restablecido la asistencia de todos los jugadores a 'Presente'.",
     });
   }
 
-  const saveAttendance = () => {
-      toast({
-          title: "Asistencia Guardada",
-          description: `Se ha guardado la asistencia para el día ${format(date!, 'PPP', { locale: es })}.`,
-      });
+  const saveAttendance = async () => {
+      if (!date) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Por favor, selecciona una fecha.' });
+          return;
+      }
+
+      const playerStatus = attendance.reduce((acc, player) => {
+          acc[player.id] = player.status;
+          return acc;
+      }, {} as Record<string, AttendanceStatus>);
+
+      const docRef = doc(db, 'teams', teamId, 'attendance', formattedDate);
+
+      try {
+          await setDoc(docRef, { date: formattedDate, teamId, userId: '', playerStatus });
+          toast({
+              title: "Asistencia Guardada",
+              description: `Se ha guardado la asistencia para el día ${format(date, 'PPP', { locale: es })}.`,
+          });
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Error al guardar', description: error.message });
+      }
   }
 
-  const deleteRecord = () => {
-      toast({
-          variant: "destructive",
-          title: "Registro Eliminado",
-          description: `Se ha eliminado el registro de asistencia para el día ${format(date!, 'PPP', { locale: es })}.`,
-      });
-      // Here you would typically call an API to delete the record.
-      // For now, we just show a toast.
+  const deleteRecord = async () => {
+      if (!date) return;
+      
+      const docRef = doc(db, 'teams', teamId, 'attendance', formattedDate);
+      try {
+        await deleteDoc(docRef);
+        toast({
+            variant: "destructive",
+            title: "Registro Eliminado",
+            description: `Se ha eliminado el registro de asistencia para el día ${format(date, 'PPP', { locale: es })}.`,
+        });
+      } catch (error: any) {
+           toast({ variant: 'destructive', title: 'Error al eliminar', description: error.message });
+      }
   }
+  
+  const isLoading = loadingPlayers || loadingAttendanceDates;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -146,7 +170,7 @@ export default function AsistenciaPage() {
             </div>
         </div>
         <Button variant="outline" asChild>
-            <Link href={`/equipos/${params.id}`}>
+            <Link href={`/equipos/${teamId}`}>
                 <ArrowLeft className="mr-2" />
                 Volver al Panel del Equipo
             </Link>
@@ -201,36 +225,47 @@ export default function AsistenciaPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {attendance.map(player => (
-                                <TableRow key={player.id}>
-                                    <TableCell className="font-medium">{player.dorsal}</TableCell>
-                                    <TableCell>{player.nombre}</TableCell>
-                                    <TableCell className="text-right">
-                                        <RadioGroup
-                                            value={player.status}
-                                            className="flex justify-end gap-4"
-                                            onValueChange={(value) => handleStatusChange(player.id, value as AttendanceStatus)}
-                                        >
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="presente" id={`presente-${player.id}`} />
-                                                <Label htmlFor={`presente-${player.id}`}>Presente</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="ausente" id={`ausente-${player.id}`} />
-                                                <Label htmlFor={`ausente-${player.id}`}>Ausente</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="justificado" id={`justificado-${player.id}`} />
-                                                <Label htmlFor={`justificado-${player.id}`}>Justificado</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="lesionado" id={`lesionado-${player.id}`} />
-                                                <Label htmlFor={`lesionado-${player.id}`}>Lesionado</Label>
-                                            </div>
-                                        </RadioGroup>
-                                    </TableCell>
-                                </TableRow>
-                                ))}
+                                {isLoading || loadingAttendanceRecord ? (
+                                    Array.from({ length: 12 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-10" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    attendance.map(player => (
+                                    <TableRow key={player.id}>
+                                        <TableCell className="font-medium">{player.number}</TableCell>
+                                        <TableCell>{player.name}</TableCell>
+                                        <TableCell className="text-right">
+                                            <RadioGroup
+                                                value={player.status}
+                                                className="flex justify-end gap-4"
+                                                onValueChange={(value) => handleStatusChange(player.id, value as AttendanceStatus)}
+                                            >
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="presente" id={`presente-${player.id}`} />
+                                                    <Label htmlFor={`presente-${player.id}`}>Presente</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="ausente" id={`ausente-${player.id}`} />
+                                                    <Label htmlFor={`ausente-${player.id}`}>Ausente</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="justificado" id={`justificado-${player.id}`} />
+                                                    <Label htmlFor={`justificado-${player.id}`}>Justificado</Label>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <RadioGroupItem value="lesionado" id={`lesionado-${player.id}`} />
+                                                    <Label htmlFor={`lesionado-${player.id}`}>Lesionado</Label>
+                                                </div>
+                                            </RadioGroup>
+                                        </TableCell>
+                                    </TableRow>
+                                    ))
+                                )}
+                                 {errorPlayers && <TableRow><TableCell colSpan={3} className="text-destructive text-center">Error al cargar jugadores: {errorPlayers.message}</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </div>
@@ -241,7 +276,7 @@ export default function AsistenciaPage() {
                     </Button>
                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive">
+                            <Button variant="destructive" disabled={!attendanceRecord}>
                                 <Trash2 className="mr-2" /> Eliminar Registro
                             </Button>
                         </AlertDialogTrigger>
@@ -331,3 +366,5 @@ export default function AsistenciaPage() {
     </div>
   );
 }
+
+    
