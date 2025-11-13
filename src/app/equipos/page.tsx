@@ -161,7 +161,7 @@ export default function EquiposPage() {
       </div>
 
       <div className="flex items-center gap-4 mb-8">
-        <div className="bg-muted p-3 rounded-full">
+        <div className="bg-primary/10 p-3 rounded-full">
             <Shield className="w-8 h-8 text-primary" />
         </div>
         <div>
@@ -189,7 +189,7 @@ export default function EquiposPage() {
                 )}
 
                 {!(loadingUser || loadingTeams) && teams.length > 0 ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         {teams.map(team => (
                              <div key={team.id} className="border rounded-lg p-4 flex items-center justify-between">
                                 <div>
@@ -202,6 +202,9 @@ export default function EquiposPage() {
                                     <Settings className="mr-2" />
                                     Gestionar
                                     </Link>
+                                </Button>
+                                <Button variant="ghost" size="icon">
+                                    <Edit className="w-4 h-4 text-muted-foreground" />
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
