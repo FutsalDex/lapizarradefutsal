@@ -155,6 +155,11 @@ export default function PartidosPage() {
             score: '0 - 0',
             result: 'Empate',
             competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
+            localTeam: newMatch.localTeam,
+            visitorTeam: newMatch.visitorTeam,
+            localScore: 0,
+            visitorScore: 0,
+            status: 'scheduled',
         };
         setMatches(prev => [newMatchData, ...prev]);
         setIsAddDialogOpen(false);

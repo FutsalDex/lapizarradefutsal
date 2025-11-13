@@ -71,7 +71,7 @@ export default function CrearSesionPage() {
     const filteredExercises = exercises.filter(exercise => {
       const matchesSearch = exercise['Ejercicio'].toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todos' || exercise['Categoría'] === categoryFilter;
-      const matchesEdad = edadFilter === 'Todos' || exercise['Edad'].includes(edadFilter);
+      const matchesEdad = edadFilter === 'Todos' || (Array.isArray(exercise['Edad']) && exercise['Edad'].includes(edadFilter));
       return matchesSearch && matchesCategory && matchesEdad;
     });
 
