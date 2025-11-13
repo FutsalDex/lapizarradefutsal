@@ -61,25 +61,34 @@ const attendanceHistory = [
 ];
 
 const recordedDates = [
-    new Date(2025, 9, 30),
-    new Date(2025, 10, 2),
-    new Date(2025, 10, 4),
-    new Date(2025, 10, 5),
-    new Date(2025, 10, 6),
-    new Date(2025, 10, 7),
-    new Date(2025, 10, 9),
-    new Date(2025, 10, 14),
-    new Date(2025, 10, 16),
-    new Date(2025, 10, 21),
-    new Date(2025, 10, 23),
-    new Date(2025, 10, 28),
+    new Date("2025-09-02"),
+    new Date("2025-09-04"),
+    new Date("2025-09-09"),
+    new Date("2025-09-16"),
+    new Date("2025-09-18"),
+    new Date("2025-09-23"),
+    new Date("2025-09-25"),
+    new Date("2025-09-30"),
+    new Date("2025-10-02"),
+    new Date("2025-10-05"),
+    new Date("2025-10-07"),
+    new Date("2025-10-09"),
+    new Date("2025-10-14"),
+    new Date("2025-10-16"),
+    new Date("2025-10-21"),
+    new Date("2025-10-23"),
+    new Date("2025-10-28"),
+    new Date("2025-10-30"),
+    new Date("2025-11-04"),
+    new Date("2025-11-06"),
+    new Date("2025-11-09"),
 ];
 
 export default function AsistenciaPage() {
   const params = useParams();
   const { toast } = useToast();
   const teamName = "Juvenil B";
-  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-13T00:00:00'));
+  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-09T00:00:00'));
   const [attendance, setAttendance] = useState<PlayerAttendance[]>(initialPlayers);
 
   const handleStatusChange = (playerId: number, status: AttendanceStatus) => {
