@@ -61,19 +61,18 @@ const attendanceHistory = [
 ];
 
 const recordedDates = [
-  new Date(2025, 9, 30),
-  new Date(2025, 10, 2),
-  new Date(2025, 10, 4),
-  new Date(2025, 10, 5),
-  new Date(2025, 10, 6),
-  new Date(2025, 10, 7),
-  new Date(2025, 10, 9),
-  new Date(2025, 10, 14),
-  new Date(2025, 10, 16),
-  new Date(2025, 10, 21),
-  new Date(2025, 10, 23),
-  new Date(2025, 10, 28),
-  new Date(2025, 10, 30),
+    new Date(2025, 9, 30),
+    new Date(2025, 10, 2),
+    new Date(2025, 10, 4),
+    new Date(2025, 10, 5),
+    new Date(2025, 10, 6),
+    new Date(2025, 10, 7),
+    new Date(2025, 10, 9),
+    new Date(2025, 10, 14),
+    new Date(2025, 10, 16),
+    new Date(2025, 10, 21),
+    new Date(2025, 10, 23),
+    new Date(2025, 10, 28),
 ];
 
 export default function AsistenciaPage() {
@@ -120,8 +119,9 @@ export default function AsistenciaPage() {
     <div className="container mx-auto px-4 py-8">
       <style>{`
         .day-with-record {
+          background-color: hsl(var(--primary) / 0.2);
           border-color: hsl(var(--primary));
-          border-width: 2px;
+          border-width: 1px;
         }
       `}</style>
       <div className="flex justify-between items-start mb-8">
@@ -322,5 +322,3 @@ export default function AsistenciaPage() {
     </div>
   );
 }
-
-    
