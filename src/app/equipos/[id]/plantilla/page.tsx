@@ -42,28 +42,26 @@ export default function PlantillaPage() {
 
     // Fetch players subcollection
     const [playersSnapshot, loadingPlayers, errorPlayers] = useCollection(collection(db, "teams", teamId, "players"));
-    const initialPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)) || [];
-
+    
     // Fetch staff subcollection
     const [staffSnapshot, loadingStaff, errorStaff] = useCollection(collection(db, "teams", teamId, "staff"));
-    const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)) || [];
-
+    
     const [players, setPlayers] = useState<Player[]>([]);
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [isSavingPlayers, setIsSavingPlayers] = useState(false);
     const [isSavingStaff, setIsSavingStaff] = useState(false);
 
     useEffect(() => {
-        if (!loadingPlayers && playersSnapshot) {
+        if (playersSnapshot) {
             setPlayers(playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
         }
-    }, [playersSnapshot, loadingPlayers]);
+    }, [playersSnapshot]);
 
     useEffect(() => {
-        if (!loadingStaff && staffSnapshot) {
+        if (staffSnapshot) {
             setStaff(staffSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)));
         }
-    }, [staffSnapshot, loadingStaff]);
+    }, [staffSnapshot]);
 
 
     const handleAddPlayer = () => {
@@ -79,12 +77,8 @@ export default function PlantillaPage() {
     };
 
     const handleRemovePlayer = (index: number) => {
-        const playerToRemove = players[index];
         const newPlayers = players.filter((_, i) => i !== index);
         setPlayers(newPlayers);
-
-        // If the player has an ID, it means it's in the DB and should be deleted on save
-        // For now, we just remove from local state. The save function will handle the diff.
     };
 
     const handlePlayerChange = (index: number, field: keyof Player, value: string) => {
@@ -98,6 +92,7 @@ export default function PlantillaPage() {
         try {
             const batch = writeBatch(db);
             const playersCollectionRef = collection(db, "teams", teamId, "players");
+            const initialPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [];
 
             // Delete players that are no longer in the local state but exist in Firestore
             initialPlayers.forEach(initialPlayer => {
@@ -114,7 +109,9 @@ export default function PlantillaPage() {
                     batch.update(doc(playersCollectionRef, id), playerData);
                 } else {
                     // Add new player - let Firestore generate ID
-                    batch.set(doc(playersCollectionRef), playerData);
+                    if(playerData.nombre && playerData.dorsal){
+                        batch.set(doc(collection(db, "teams", teamId, "players")), playerData);
+                    }
                 }
             }
             
@@ -147,6 +144,7 @@ export default function PlantillaPage() {
         try {
             const batch = writeBatch(db);
             const staffCollectionRef = collection(db, "teams", teamId, "staff");
+            const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() })) || [];
 
             // Delete staff that are no longer in local state
             initialStaff.forEach(initialMember => {
@@ -161,7 +159,9 @@ export default function PlantillaPage() {
                 if (id) {
                     batch.update(doc(staffCollectionRef, id), staffData);
                 } else {
-                    batch.set(doc(staffCollectionRef), staffData);
+                     if(staffData.name && staffData.email && staffData.role){
+                        batch.set(doc(collection(db, "teams", teamId, "staff")), staffData);
+                    }
                 }
             }
 
@@ -384,3 +384,5 @@ export default function PlantillaPage() {
     </div>
   );
 }
+
+    
