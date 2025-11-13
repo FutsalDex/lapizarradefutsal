@@ -50,9 +50,58 @@
             "club": { "type": "string" },
             "competition": { "type": "string" },
             "ownerId": { "type": "string" },
+            "ownerRole": { "type": "string" },
+            "memberIds": { "type": "array", "items": { "type": "string" } },
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["name", "club", "ownerId"]
+    },
+    "Player": {
+      "title": "Player",
+      "type": "object",
+      "properties": {
+        "active": { "type": "boolean" },
+        "name": { "type": "string" },
+        "number": { "type": "number" },
+        "position": { "type": "string" },
+        "pj": { "type": "number" },
+        "goals": { "type": "number" },
+        "assists": { "type": "number" },
+        "faltas": { "type": "number" },
+        "recuperaciones": { "type": "number" },
+        "perdidas": { "type": "number" },
+        "minutosJugados": { "type": "number" },
+        "tirosPuerta": { "type": "number" },
+        "tirosFuera": { "type": "number" },
+        "gRec": { "type": "number" },
+        "ta": { "type": "number" },
+        "tr": { "type": "number" },
+        "smvp": { "type": "number" }
+      },
+      "required": ["name", "number", "position"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "path": { "type": "string" },
+        "role": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["email", "name", "role"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "teamId": { "type": "string" },
+        "userId": { "type": "string" },
+        "playerStatus": { "type": "object" }
+      },
+      "required": ["date", "teamId", "playerStatus"]
     },
     "Session": {
         "title": "Session",
@@ -121,6 +170,18 @@
     "/teams/{teamId}": {
         "schema": { "$ref": "#/entities/Team" },
         "description": "Stores team information."
+    },
+     "/teams/{teamId}/attendance/{date}": {
+      "schema": { "$ref": "#/entities/Attendance" },
+      "description": "Registers the attendance for a team on a specific date."
+    },
+    "/teams/{teamId}/players/{playerId}": {
+      "schema": { "$ref": "#/entities/Player" },
+      "description": "Contains the players of the team."
+    },
+    "/teams/{teamId}/staff/{staffId}": {
+      "schema": { "$ref": "#/entities/Staff" },
+      "description": "Members of the technical staff."
     },
     "/sessions/{sessionId}": {
         "schema": { "$ref": "#/entities/Session" },

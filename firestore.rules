@@ -20,6 +20,16 @@ service cloud.firestore {
               && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'));
     }
 
+    function isTeamOwner(teamId) {
+      return exists(/databases/$(database)/documents/teams/$(teamId))
+             && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    }
+
+    function isTeamMember(teamId) {
+        return exists(/databases/$(database)/documents/teams/$(teamId))
+               && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+    }
+
     // 👤 Usuarios
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
@@ -36,26 +46,26 @@ service cloud.firestore {
     match /exercises/{exerciseId} {
       allow read: if isSignedIn();
       // Se asume que el ejercicio tiene un campo 'userId' con el uid del autor
-      allow create: if request.resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isOwner(resource.data.userId) || isAdmin();
     }
 
     // 🏟️ Equipos
     match /teams/{teamId} {
-      allow read: if isSignedIn();
+      allow read: if isTeamMember(teamId) || isTeamOwner(teamId) || isAdmin();
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data.ownerId) || isAdmin();
+      allow update, delete: if isTeamOwner(teamId) || isAdmin();
 
-      match /players/{playerId} {
-        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
-                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
-                            || isAdmin());
+      match /attendance/{date} {
+        allow read, write: if isTeamOwner(teamId) || isAdmin();
       }
 
-      match /attendance/{attendanceId} {
-        allow read, write: if exists(/databases/$(database)/documents/teams/$(teamId))
-                            && (isOwner(get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId)
-                            || isAdmin());
+      match /players/{playerId} {
+        allow read, write: if isTeamOwner(teamId) || isAdmin();
+      }
+      
+      match /staff/{staffId} {
+         allow read, write: if isTeamOwner(teamId) || isAdmin();
       }
     }
 
@@ -68,15 +78,16 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
 
-    match /teamMembers/{memberId} {
+    match /invitations/{invitationId} {
       allow read, write: if isSignedIn();
+    }
+    
+    // teamMembers y referrals parecen obsoletas con la nueva estructura
+    match /teamMembers/{memberId} {
+      allow read, write: if false;
     }
 
     match /referrals/{referralId} {
-      allow read, write: if isSignedIn();
-    }
-
-    match /invitations/{invitationId} {
       allow read, write: if isSignedIn();
     }
   }
