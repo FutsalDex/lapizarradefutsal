@@ -48,8 +48,8 @@ export default function PlantillaPage() {
     const [staffSnapshot, loadingStaff] = useCollection(collection(db, "teams", teamId, "staff"));
     const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)) || [];
 
-    const [players, setPlayers] = useState<Player[]>([]);
-    const [staff, setStaff] = useState<StaffMember[]>([]);
+    const [players, setPlayers] = useState<Player[]>(initialPlayers);
+    const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
     const [isSavingPlayers, setIsSavingPlayers] = useState(false);
     const [isSavingStaff, setIsSavingStaff] = useState(false);
 
@@ -57,13 +57,13 @@ export default function PlantillaPage() {
         if (!loadingPlayers) {
             setPlayers(initialPlayers);
         }
-    }, [loadingPlayers, initialPlayers]);
+    }, [playersSnapshot]);
 
     useEffect(() => {
         if (!loadingStaff) {
             setStaff(initialStaff);
         }
-    }, [loadingStaff, initialStaff]);
+    }, [staffSnapshot]);
 
 
     const handleAddPlayer = () => {
