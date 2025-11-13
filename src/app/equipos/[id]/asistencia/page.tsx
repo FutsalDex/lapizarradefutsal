@@ -63,7 +63,9 @@ const attendanceHistory = [
 const recordedDates = [
   new Date(2025, 9, 30),
   new Date(2025, 10, 2),
+  new Date(2025, 10, 4),
   new Date(2025, 10, 5),
+  new Date(2025, 10, 6),
   new Date(2025, 10, 7),
   new Date(2025, 10, 9),
   new Date(2025, 10, 14),
@@ -78,7 +80,7 @@ export default function AsistenciaPage() {
   const params = useParams();
   const { toast } = useToast();
   const teamName = "Juvenil B";
-  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-05T00:00:00'));
+  const [date, setDate] = useState<Date | undefined>(new Date('2025-11-13T00:00:00'));
   const [attendance, setAttendance] = useState<PlayerAttendance[]>(initialPlayers);
 
   const handleStatusChange = (playerId: number, status: AttendanceStatus) => {
@@ -118,8 +120,7 @@ export default function AsistenciaPage() {
     <div className="container mx-auto px-4 py-8">
       <style>{`
         .day-with-record {
-          border: 2px solid hsl(var(--foreground));
-          border-radius: var(--radius);
+          background-color: hsl(var(--primary) / 0.2);
         }
       `}</style>
       <div className="flex justify-between items-start mb-8">
@@ -320,3 +321,5 @@ export default function AsistenciaPage() {
     </div>
   );
 }
+
+    
