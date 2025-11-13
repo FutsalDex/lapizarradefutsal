@@ -52,16 +52,16 @@ export default function PlantillaPage() {
     const [isSavingStaff, setIsSavingStaff] = useState(false);
 
     useEffect(() => {
-        if (playersSnapshot) {
+        if (!loadingPlayers && playersSnapshot) {
             setPlayers(playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)));
         }
-    }, [playersSnapshot]);
+    }, [playersSnapshot, loadingPlayers]);
 
     useEffect(() => {
-        if (staffSnapshot) {
+        if (!loadingStaff && staffSnapshot) {
             setStaff(staffSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)));
         }
-    }, [staffSnapshot]);
+    }, [staffSnapshot, loadingStaff]);
 
 
     const handleAddPlayer = () => {
@@ -205,19 +205,19 @@ export default function PlantillaPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <Label>Club</Label>
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold">
                             {team?.club || ''}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Equipo</Label>
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold">
                            {team?.name || ''}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Competición</Label>
-                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold">
                             {team?.competition || ''}
                         </div>
                     </div>
