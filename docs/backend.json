@@ -49,6 +49,7 @@
             "name": { "type": "string" },
             "club": { "type": "string" },
             "competition": { "type": "string" },
+            "season": { "type": "string" },
             "ownerId": { "type": "string" },
             "ownerRole": { "type": "string" },
             "memberIds": { "type": "array", "items": { "type": "string" } },

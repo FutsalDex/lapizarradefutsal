@@ -41,6 +41,7 @@ type Team = {
   name: string;
   club: string;
   competition?: string;
+  season?: string;
   ownerId: string;
 };
 
@@ -74,6 +75,7 @@ export default function EquiposPage() {
             name: newTeam.name,
             club: newTeam.club,
             competition: newTeam.competition,
+            season: newTeam.season,
             ownerId: user.uid,
             createdAt: new Date(),
         });
@@ -143,6 +145,10 @@ export default function EquiposPage() {
                         <Input id="club-name" placeholder="Ej: FS Ràpid Santa Coloma" value={newTeam.club} onChange={(e) => setNewTeam({...newTeam, club: e.target.value})} disabled={isSubmitting}/>
                     </div>
                      <div className="space-y-2">
+                        <Label htmlFor="season">Temporada</Label>
+                        <Input id="season" placeholder="Ej: 2024/2025" value={newTeam.season} onChange={(e) => setNewTeam({...newTeam, season: e.target.value})} disabled={isSubmitting}/>
+                    </div>
+                     <div className="space-y-2">
                         <Label htmlFor="competition">Competición</Label>
                         <Input id="competition" placeholder="Ej: Liga Nacional Juvenil" value={newTeam.competition} onChange={(e) => setNewTeam({...newTeam, competition: e.target.value})} disabled={isSubmitting}/>
                     </div>
@@ -194,7 +200,7 @@ export default function EquiposPage() {
                              <div key={team.id} className="border rounded-lg p-4 flex items-center justify-between">
                                 <div>
                                 <p className="font-bold text-lg">{team.name}</p>
-                                <p className="text-sm text-muted-foreground">{team.club}</p>
+                                <p className="text-sm text-muted-foreground">{team.club} - {team.season}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                 <Button size="sm" asChild>
