@@ -37,9 +37,7 @@ type PlayerAttendance = Player & {
 };
 
 const attendanceHistory = [
-    { dorsal: '1', nombre: 'Manel', p: 18, a: 0, j: 0, l: 0, total: 18 },
-    { dorsal: '2', nombre: 'Marc Montoro', p: 14, a: 0, j: 3, l: 1, total: 18 },
-    //... more history data if available
+    // Data is now fetched from Firestore
 ];
 
 
@@ -47,9 +45,12 @@ export default function AsistenciaPage() {
   const params = useParams();
   const teamId = params.id as string;
   const { toast } = useToast();
-  const teamName = "Juvenil B";
+  
+  const [teamSnapshot] = useDocumentData(doc(db, 'teams', teamId));
+  const teamName = teamSnapshot?.name || "Equipo";
 
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [playersSnapshot, loadingPlayers, errorPlayers] = useCollection(
     collection(db, 'teams', teamId, 'players')
@@ -65,6 +66,7 @@ export default function AsistenciaPage() {
   );
   
   const [attendance, setAttendance] = useState<PlayerAttendance[]>([]);
+  const [historicStats, setHistoricStats] = useState<any[]>([]);
 
   const recordedDates = attendanceSnapshot?.docs.map(doc => parseISO(doc.id)) || [];
 
@@ -88,6 +90,36 @@ export default function AsistenciaPage() {
     setAttendance(newAttendance);
 
   }, [playersSnapshot, attendanceRecord, loadingPlayers, loadingAttendanceRecord]);
+
+   useEffect(() => {
+        if (loadingPlayers || !playersSnapshot || loadingAttendanceDates || !attendanceSnapshot) return;
+
+        const allPlayers = playersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Player, 'id'>}));
+        const allAttendanceDocs = attendanceSnapshot.docs.map(doc => doc.data());
+
+        const stats = allPlayers.map(player => {
+            const playerStat = {
+                dorsal: player.number,
+                nombre: player.name,
+                p: 0, a: 0, j: 0, l: 0, total: 0
+            };
+            allAttendanceDocs.forEach(record => {
+                if (record.playerStatus && record.playerStatus[player.id]) {
+                    playerStat.total++;
+                    switch(record.playerStatus[player.id]) {
+                        case 'presente': playerStat.p++; break;
+                        case 'ausente': playerStat.a++; break;
+                        case 'justificado': playerStat.j++; break;
+                        case 'lesionado': playerStat.l++; break;
+                    }
+                }
+            });
+            return playerStat;
+        });
+
+        stats.sort((a, b) => Number(a.dorsal) - Number(b.dorsal));
+        setHistoricStats(stats);
+   }, [playersSnapshot, attendanceSnapshot, loadingPlayers, loadingAttendanceDates]);
 
 
   const handleStatusChange = (playerId: string, status: AttendanceStatus) => {
@@ -120,7 +152,7 @@ export default function AsistenciaPage() {
       const docRef = doc(db, 'teams', teamId, 'attendance', formattedDate);
 
       try {
-          await setDoc(docRef, { date: formattedDate, teamId, userId: '', playerStatus });
+          await setDoc(docRef, { date: formattedDate, teamId, playerStatus }, { merge: true });
           toast({
               title: "Asistencia Guardada",
               description: `Se ha guardado la asistencia para el día ${format(date, 'PPP', { locale: es })}.`,
@@ -187,7 +219,7 @@ export default function AsistenciaPage() {
                 <CardHeader>
                     <div className="flex items-center gap-4">
                         <Label htmlFor="training-date" className="text-sm font-medium">Fecha del entrenamiento:</Label>
-                        <Popover>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
@@ -204,7 +236,10 @@ export default function AsistenciaPage() {
                                 <Calendar
                                     mode="single"
                                     selected={date}
-                                    onSelect={setDate}
+                                    onSelect={(selectedDate) => {
+                                        setDate(selectedDate);
+                                        setIsCalendarOpen(false);
+                                    }}
                                     initialFocus
                                     locale={es}
                                     modifiers={{ 'with-record': recordedDates }}
@@ -325,26 +360,41 @@ export default function AsistenciaPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {attendanceHistory.map(player => {
-                                    const percentage = player.total > 0 ? Math.round((player.p / player.total) * 100) : 0;
-                                    return (
-                                        <TableRow key={player.dorsal}>
-                                            <TableCell className="font-medium">{player.dorsal}</TableCell>
-                                            <TableCell>{player.nombre}</TableCell>
-                                            <TableCell className="text-center">{player.p}</TableCell>
-                                            <TableCell className="text-center">{player.a}</TableCell>
-                                            <TableCell className="text-center">{player.j}</TableCell>
-                                            <TableCell className="text-center">{player.l}</TableCell>
-                                            <TableCell className="text-center font-bold">{player.total}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Progress value={percentage} className="w-2/3" />
-                                                    <span className="text-sm text-muted-foreground w-1/3 text-right">{percentage}%</span>
-                                                </div>
-                                            </TableCell>
+                                {isLoading ? (
+                                     Array.from({ length: 12 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-8" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                            <TableCell className="text-center"><Skeleton className="h-5 w-5 mx-auto" /></TableCell>
+                                            <TableCell><Skeleton className="h-5 w-full" /></TableCell>
                                         </TableRow>
-                                    )
-                                })}
+                                    ))
+                                ) : (
+                                    historicStats.map(player => {
+                                        const percentage = player.total > 0 ? Math.round((player.p / player.total) * 100) : 0;
+                                        return (
+                                            <TableRow key={player.dorsal}>
+                                                <TableCell className="font-medium">{player.dorsal}</TableCell>
+                                                <TableCell>{player.nombre}</TableCell>
+                                                <TableCell className="text-center">{player.p}</TableCell>
+                                                <TableCell className="text-center">{player.a}</TableCell>
+                                                <TableCell className="text-center">{player.j}</TableCell>
+                                                <TableCell className="text-center">{player.l}</TableCell>
+                                                <TableCell className="text-center font-bold">{player.total}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Progress value={percentage} className="w-2/3" />
+                                                        <span className="text-sm text-muted-foreground w-1/3 text-right">{percentage}%</span>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
+                                )}
                             </TableBody>
                         </Table>
                     </div>
