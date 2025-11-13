@@ -38,14 +38,14 @@ export default function PlantillaPage() {
     const { toast } = useToast();
 
     // Fetch team data
-    const [team, loadingTeam] = useDocumentData(doc(db, "teams", teamId));
+    const [team, loadingTeam, errorTeam] = useDocumentData(doc(db, "teams", teamId));
 
     // Fetch players subcollection
-    const [playersSnapshot, loadingPlayers] = useCollection(collection(db, "teams", teamId, "players"));
+    const [playersSnapshot, loadingPlayers, errorPlayers] = useCollection(collection(db, "teams", teamId, "players"));
     const initialPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)) || [];
 
     // Fetch staff subcollection
-    const [staffSnapshot, loadingStaff] = useCollection(collection(db, "teams", teamId, "staff"));
+    const [staffSnapshot, loadingStaff, errorStaff] = useCollection(collection(db, "teams", teamId, "staff"));
     const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)) || [];
 
     const [players, setPlayers] = useState<Player[]>([]);
@@ -97,12 +97,12 @@ export default function PlantillaPage() {
         setIsSavingPlayers(true);
         try {
             const batch = writeBatch(db);
-            const playersCollection = collection(db, "teams", teamId, "players");
+            const playersCollectionRef = collection(db, "teams", teamId, "players");
 
             // Delete players that are no longer in the local state but exist in Firestore
             initialPlayers.forEach(initialPlayer => {
                 if (initialPlayer.id && !players.find(p => p.id === initialPlayer.id)) {
-                    batch.delete(doc(playersCollection, initialPlayer.id));
+                    batch.delete(doc(playersCollectionRef, initialPlayer.id));
                 }
             });
 
@@ -111,10 +111,10 @@ export default function PlantillaPage() {
                 const { id, ...playerData } = player;
                 if (id) {
                     // Update existing player
-                    batch.update(doc(playersCollection, id), playerData);
+                    batch.update(doc(playersCollectionRef, id), playerData);
                 } else {
                     // Add new player - let Firestore generate ID
-                    batch.set(doc(collection(db, "teams", teamId, "players")), playerData);
+                    batch.set(doc(playersCollectionRef), playerData);
                 }
             }
             
@@ -146,12 +146,12 @@ export default function PlantillaPage() {
         setIsSavingStaff(true);
         try {
             const batch = writeBatch(db);
-            const staffCollection = collection(db, "teams", teamId, "staff");
+            const staffCollectionRef = collection(db, "teams", teamId, "staff");
 
             // Delete staff that are no longer in local state
             initialStaff.forEach(initialMember => {
                 if (initialMember.id && !staff.find(s => s.id === initialMember.id)) {
-                    batch.delete(doc(staffCollection, initialMember.id));
+                    batch.delete(doc(staffCollectionRef, initialMember.id));
                 }
             });
             
@@ -159,9 +159,9 @@ export default function PlantillaPage() {
             for (const member of staff) {
                 const { id, ...staffData } = member;
                 if (id) {
-                    batch.update(doc(staffCollection, id), staffData);
+                    batch.update(doc(staffCollectionRef, id), staffData);
                 } else {
-                    batch.set(doc(collection(db, "teams", teamId, "staff")), staffData);
+                    batch.set(doc(staffCollectionRef), staffData);
                 }
             }
 
@@ -201,28 +201,29 @@ export default function PlantillaPage() {
                 <CardDescription>Datos generales del equipo.</CardDescription>
             </CardHeader>
             <CardContent>
-            {loadingTeam ? <Skeleton className="h-24 w-full" /> : (
+            {loadingTeam ? <Skeleton className="h-10 w-full" /> : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <Label>Club</Label>
-                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
                             {team?.club || ''}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Equipo</Label>
-                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
                            {team?.name || ''}
                         </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Competición</Label>
-                        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <div className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm">
                             {team?.competition || ''}
                         </div>
                     </div>
                 </div>
             )}
+             {errorTeam && <p className="text-destructive mt-4">{errorTeam.message}</p>}
             </CardContent>
         </Card>
 
@@ -289,6 +290,7 @@ export default function PlantillaPage() {
                     </Table>
                 </div>
                 )}
+                 {errorStaff && <p className="text-destructive mt-4">{errorStaff.message}</p>}
             </CardContent>
             <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handleAddStaffMember}>
@@ -365,6 +367,7 @@ export default function PlantillaPage() {
                     </Table>
                 </div>
                 )}
+                 {errorPlayers && <div className="text-red-500 bg-red-100 p-4 rounded-md mt-4"><b>Error:</b> {errorPlayers.message}</div>}
             </CardContent>
             <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handleAddPlayer}>

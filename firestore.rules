@@ -29,8 +29,7 @@ service cloud.firestore {
     function isTeamMember(teamId) {
         return isSignedIn() &&
                exists(/databases/$(database)/documents/teams/$(teamId)) && 
-               (request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds ||
-                get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid);
+               (request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds || isTeamOwner(teamId));
     }
 
     // 👤 Usuarios
@@ -54,7 +53,7 @@ service cloud.firestore {
 
     // 🏟️ Equipos
     match /teams/{teamId} {
-      allow read: if isTeamMember(teamId) || isTeamOwner(teamId) || isAdmin();
+      allow read: if isTeamMember(teamId) || isAdmin();
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if isTeamOwner(teamId) || isAdmin();
       allow delete: if isTeamOwner(teamId) || isAdmin();
