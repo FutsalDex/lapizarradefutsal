@@ -53,7 +53,9 @@ export default function PlantillaPage() {
 
     useEffect(() => {
         if (!loadingPlayers && playersSnapshot) {
-            setPlayers(playersSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Player, 'id'>) })));
+            const playersData = playersSnapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as Omit<Player, 'id'>) }));
+            playersData.sort((a, b) => Number(a.number) - Number(b.number));
+            setPlayers(playersData);
         }
     }, [playersSnapshot, loadingPlayers]);
 
@@ -106,11 +108,11 @@ export default function PlantillaPage() {
                 const { id, ...playerData } = player;
                 if (id) {
                     // Update existing player
-                    batch.update(doc(playersCollectionRef, id), playerData as any);
+                    batch.update(doc(playersCollectionRef, id), { ...playerData, number: Number(playerData.number) });
                 } else {
                     // Add new player - let Firestore generate ID
                     if(playerData.name && playerData.number){
-                        batch.set(doc(collection(db, "teams", teamId, "players")), playerData);
+                        batch.set(doc(collection(db, "teams", teamId, "players")), { ...playerData, number: Number(playerData.number) });
                     }
                 }
             }
@@ -233,63 +235,63 @@ export default function PlantillaPage() {
                 <CardDescription>Gestiona a los miembros del cuerpo técnico.</CardDescription>
             </CardHeader>
             <CardContent>
+                {loadingStaff ? <Skeleton className="h-24 w-full" /> : (
                 <div className="overflow-x-auto">
-                    {loadingStaff ? <Skeleton className="h-24 w-full" /> : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nombre</TableHead>
-                                    <TableHead className="w-[180px]">Rol</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead className="w-[80px] text-right">Acciones</TableHead>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead className="w-[180px]">Rol</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead className="w-[80px] text-right">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {staff.map((member, index) => (
+                                <TableRow key={member.id || index}>
+                                    <TableCell>
+                                        <Input 
+                                            value={member.name}
+                                            onChange={(e) => handleStaffChange(index, 'name', e.target.value)}
+                                            placeholder="Nombre"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select
+                                            value={member.role}
+                                            onValueChange={(value) => handleStaffChange(index, 'role', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Rol"/>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Entrenador">Entrenador</SelectItem>
+                                                <SelectItem value="Segundo Entrenador">Segundo Entrenador</SelectItem>
+                                                <SelectItem value="Delegado">Delegado</SelectItem>
+                                                <SelectItem value="Asistente">Asistente</SelectItem>
+                                                <SelectItem value="Fisioterapeuta">Fisioterapeuta</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input 
+                                            type="email"
+                                            value={member.email}
+                                            onChange={(e) => handleStaffChange(index, 'email', e.target.value)}
+                                            placeholder="Email"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStaffMember(index)}>
+                                            <Trash2 className="w-5 h-5 text-destructive" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {staff.map((member, index) => (
-                                    <TableRow key={member.id || index}>
-                                        <TableCell>
-                                            <Input 
-                                                value={member.name}
-                                                onChange={(e) => handleStaffChange(index, 'name', e.target.value)}
-                                                placeholder="Nombre"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Select
-                                                value={member.role}
-                                                onValueChange={(value) => handleStaffChange(index, 'role', value)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Rol"/>
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Entrenador">Entrenador</SelectItem>
-                                                    <SelectItem value="Segundo Entrenador">Segundo Entrenador</SelectItem>
-                                                    <SelectItem value="Delegado">Delegado</SelectItem>
-                                                    <SelectItem value="Asistente">Asistente</SelectItem>
-                                                    <SelectItem value="Fisioterapeuta">Fisioterapeuta</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input 
-                                                type="email"
-                                                value={member.email}
-                                                onChange={(e) => handleStaffChange(index, 'email', e.target.value)}
-                                                placeholder="Email"
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveStaffMember(index)}>
-                                                <Trash2 className="w-5 h-5 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
+                )}
                  {errorStaff && <p className="text-destructive mt-4">{errorStaff.message}</p>}
             </CardContent>
             <CardFooter className="flex justify-between">
@@ -310,63 +312,64 @@ export default function PlantillaPage() {
                 <CardDescription>Introduce los datos de tus jugadores. Máximo 20. Todos los jugadores estarán disponibles para la convocatoria.</CardDescription>
             </CardHeader>
             <CardContent>
+                {loadingPlayers ? <Skeleton className="h-40 w-full" /> : (
                 <div className="overflow-x-auto">
-                    {loadingPlayers ? <Skeleton className="h-40 w-full" /> : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[100px]">Dorsal</TableHead>
-                                    <TableHead>Nombre</TableHead>
-                                    <TableHead className="w-[200px]">Posición</TableHead>
-                                    <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-[100px]">Dorsal</TableHead>
+                                <TableHead>Nombre</TableHead>
+                                <TableHead className="w-[200px]">Posición</TableHead>
+                                <TableHead className="w-[100px] text-right">Acciones</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {players.map((player, index) => (
+                                <TableRow key={player.id || index}>
+                                    <TableCell>
+                                        <Input 
+                                            value={player.number} 
+                                            onChange={(e) => handlePlayerChange(index, 'number', e.target.value)}
+                                            className="w-16 text-center" 
+                                            placeholder="#"
+                                            type="number"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input 
+                                            value={player.name} 
+                                            onChange={(e) => handlePlayerChange(index, 'name', e.target.value)}
+                                            placeholder="Nombre del jugador"
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select 
+                                            value={player.position}
+                                            onValueChange={(value) => handlePlayerChange(index, 'position', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleccionar" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Portero">Portero</SelectItem>
+                                                <SelectItem value="Cierre">Cierre</SelectItem>
+                                                <SelectItem value="Ala">Ala</SelectItem>
+                                                <SelectItem value="Pívot">Pívot</SelectItem>
+                                                <SelectItem value="Universal">Universal</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(index)}>
+                                            <Trash2 className="w-5 h-5 text-destructive" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {players.map((player, index) => (
-                                    <TableRow key={player.id || index}>
-                                        <TableCell>
-                                            <Input 
-                                                value={player.number} 
-                                                onChange={(e) => handlePlayerChange(index, 'number', e.target.value)}
-                                                className="w-16 text-center" 
-                                                placeholder="#"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input 
-                                                value={player.name} 
-                                                onChange={(e) => handlePlayerChange(index, 'name', e.target.value)}
-                                                placeholder="Nombre del jugador"
-                                            />
-                                        </TableCell>
-                                        <TableCell>
-                                            <Select 
-                                                value={player.position}
-                                                onValueChange={(value) => handlePlayerChange(index, 'position', value)}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seleccionar" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Portero">Portero</SelectItem>
-                                                    <SelectItem value="Cierre">Cierre</SelectItem>
-                                                    <SelectItem value="Ala">Ala</SelectItem>
-                                                    <SelectItem value="Pívot">Pívot</SelectItem>
-                                                    <SelectItem value="Universal">Universal</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemovePlayer(index)}>
-                                                <Trash2 className="w-5 h-5 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
+                )}
                  {errorPlayers && <div className="text-red-500 bg-red-100 p-4 rounded-md mt-4"><b>Error:</b> {errorPlayers.message}</div>}
             </CardContent>
             <CardFooter className="flex justify-between">
