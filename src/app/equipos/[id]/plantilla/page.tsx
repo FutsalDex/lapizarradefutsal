@@ -1,36 +1,31 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCollection, useDocumentData } from "react-firebase-hooks/firestore";
+import { collection, doc, addDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { db } from "@/firebase/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Briefcase, Trash2, Users, PlusCircle, Save, Edit } from "lucide-react";
+import { ArrowLeft, Trash2, Users, PlusCircle, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from 'next/navigation';
-
-const initialPlayers = [
-    { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
-    { dorsal: '9', nombre: 'Marc Romera', posicion: 'Ala' },
-    { dorsal: '12', nombre: 'Marc Muñoz', posicion: 'Ala' },
-];
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Player = {
+    id?: string;
     dorsal: string;
     nombre: string;
     posicion: string;
 };
 
-const initialStaff = [
-    { id: 1, name: 'Francisco', role: 'Entrenador', email: 'futsaldex@gmail.com' },
-    { id: 2, name: 'Juan Pérez', role: 'Delegado', email: 'juan.perez@example.com' }
-];
-
 type StaffMember = {
-    id: number;
+    id?: string;
     name: string;
     role: string;
     email: string;
@@ -39,39 +34,144 @@ type StaffMember = {
 
 export default function PlantillaPage() {
     const params = useParams();
-    const [players, setPlayers] = useState<Player[]>(initialPlayers);
-    const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
+    const teamId = params.id as string;
+    const { toast } = useToast();
+
+    // Fetch team data
+    const [team, loadingTeam] = useDocumentData(doc(db, "teams", teamId));
+
+    // Fetch players subcollection
+    const [playersSnapshot, loadingPlayers] = useCollection(collection(db, "teams", teamId, "players"));
+    const initialPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Player)) || [];
+
+    // Fetch staff subcollection
+    const [staffSnapshot, loadingStaff] = useCollection(collection(db, "teams", teamId, "staff"));
+    const initialStaff = staffSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as StaffMember)) || [];
+
+    const [players, setPlayers] = useState<Player[]>([]);
+    const [staff, setStaff] = useState<StaffMember[]>([]);
+    const [isSavingPlayers, setIsSavingPlayers] = useState(false);
+    const [isSavingStaff, setIsSavingStaff] = useState(false);
+
+    useEffect(() => {
+        if (!loadingPlayers) {
+            setPlayers(initialPlayers);
+        }
+    }, [loadingPlayers, initialPlayers]);
+
+    useEffect(() => {
+        if (!loadingStaff) {
+            setStaff(initialStaff);
+        }
+    }, [loadingStaff, initialStaff]);
+
 
     const handleAddPlayer = () => {
         if (players.length < 20) {
             setPlayers([...players, { dorsal: '', nombre: '', posicion: 'Ala' }]);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: "Límite alcanzado",
+                description: "No puedes añadir más de 20 jugadores."
+            });
         }
     };
 
     const handleRemovePlayer = (index: number) => {
-        const newPlayers = [...players];
-        newPlayers.splice(index, 1);
+        const playerToRemove = players[index];
+        const newPlayers = players.filter((_, i) => i !== index);
         setPlayers(newPlayers);
+
+        // If the player has an ID, it means it's in the DB and should be deleted on save
+        // For now, we just remove from local state. The save function will handle the diff.
     };
 
     const handlePlayerChange = (index: number, field: keyof Player, value: string) => {
         const newPlayers = [...players];
-        newPlayers[index][field] = value;
+        newPlayers[index] = { ...newPlayers[index], [field]: value };
         setPlayers(newPlayers);
     };
 
+    const handleSavePlayers = async () => {
+        setIsSavingPlayers(true);
+        try {
+            const batch = writeBatch(db);
+            const playersCollection = collection(db, "teams", teamId, "players");
+
+            // Delete players that are no longer in the local state but exist in Firestore
+            initialPlayers.forEach(initialPlayer => {
+                if (!players.find(p => p.id === initialPlayer.id)) {
+                    batch.delete(doc(playersCollection, initialPlayer.id));
+                }
+            });
+
+            // Add or update players
+            for (const player of players) {
+                const { id, ...playerData } = player;
+                if (id) {
+                    // Update existing player
+                    batch.update(doc(playersCollection, id), playerData);
+                } else {
+                    // Add new player - let Firestore generate ID
+                    batch.set(doc(collection(db, "teams", teamId, "players")), playerData);
+                }
+            }
+            
+            await batch.commit();
+            toast({ title: "Plantilla guardada", description: "Los cambios en la plantilla han sido guardados." });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        } finally {
+            setIsSavingPlayers(false);
+        }
+    };
+
+
     const handleAddStaffMember = () => {
-        setStaff([...staff, { id: Date.now(), name: '', role: 'Asistente', email: '' }]);
+        setStaff([...staff, { name: '', role: 'Asistente', email: '' }]);
     };
 
-    const handleRemoveStaffMember = (id: number) => {
-        setStaff(staff.filter(member => member.id !== id));
+    const handleRemoveStaffMember = (index: number) => {
+        setStaff(staff.filter((_, i) => i !== index));
     };
 
-    const handleStaffChange = (id: number, field: keyof Omit<StaffMember, 'id'>, value: string) => {
-        setStaff(staff.map(member => 
-            member.id === id ? { ...member, [field]: value } : member
-        ));
+    const handleStaffChange = (index: number, field: keyof Omit<StaffMember, 'id'>, value: string) => {
+        const newStaff = [...staff];
+        newStaff[index] = { ...newStaff[index], [field]: value };
+        setStaff(newStaff);
+    };
+
+    const handleSaveStaff = async () => {
+        setIsSavingStaff(true);
+        try {
+            const batch = writeBatch(db);
+            const staffCollection = collection(db, "teams", teamId, "staff");
+
+            // Delete staff that are no longer in local state
+            initialStaff.forEach(initialMember => {
+                if (!staff.find(s => s.id === initialMember.id)) {
+                    batch.delete(doc(staffCollection, initialMember.id));
+                }
+            });
+            
+            // Add or update staff
+            for (const member of staff) {
+                const { id, ...staffData } = member;
+                if (id) {
+                    batch.update(doc(staffCollection, id), staffData);
+                } else {
+                    batch.set(doc(collection(db, "teams", teamId, "staff")), staffData);
+                }
+            }
+
+            await batch.commit();
+            toast({ title: "Staff guardado", description: "Los cambios en el cuerpo técnico han sido guardados." });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        } finally {
+            setIsSavingStaff(false);
+        }
     };
 
   return (
@@ -94,28 +194,29 @@ export default function PlantillaPage() {
             </Button>
       </div>
       
-
       <div className="space-y-8">
         <Card>
             <CardHeader>
                 <CardTitle>Información del Equipo</CardTitle>
                 <CardDescription>Datos generales del equipo.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent>
+            {loadingTeam ? <Skeleton className="h-24 w-full" /> : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <Label>Club</Label>
-                        <Input value="FS Ràpid Santa Coloma" disabled />
+                        <Input value={team?.club || ''} disabled />
                     </div>
                     <div className="space-y-2">
                         <Label>Equipo</Label>
-                        <Input value="Juvenil B" disabled />
+                        <Input value={team?.name || ''} disabled />
                     </div>
                     <div className="space-y-2">
                         <Label>Competición</Label>
-                        <Input value="TERCERA DIVISION - GRUPO 5" disabled />
+                        <Input value={team?.competition || ''} disabled />
                     </div>
                 </div>
+            )}
             </CardContent>
         </Card>
 
@@ -125,6 +226,7 @@ export default function PlantillaPage() {
                 <CardDescription>Gestiona a los miembros del cuerpo técnico.</CardDescription>
             </CardHeader>
             <CardContent>
+                {loadingStaff ? <Skeleton className="h-24 w-full" /> : (
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
@@ -132,23 +234,23 @@ export default function PlantillaPage() {
                                 <TableHead>Nombre</TableHead>
                                 <TableHead className="w-[180px]">Rol</TableHead>
                                 <TableHead>Email</TableHead>
-                                <TableHead className="w-[120px] text-right">Acciones</TableHead>
+                                <TableHead className="w-[80px] text-right">Acciones</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {staff.map((member) => (
-                                <TableRow key={member.id}>
+                            {staff.map((member, index) => (
+                                <TableRow key={member.id || index}>
                                     <TableCell>
                                         <Input 
                                             value={member.name}
-                                            onChange={(e) => handleStaffChange(member.id, 'name', e.target.value)}
+                                            onChange={(e) => handleStaffChange(index, 'name', e.target.value)}
                                             placeholder="Nombre"
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <Select
                                             value={member.role}
-                                            onValueChange={(value) => handleStaffChange(member.id, 'role', value)}
+                                            onValueChange={(value) => handleStaffChange(index, 'role', value)}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Rol"/>
@@ -166,15 +268,12 @@ export default function PlantillaPage() {
                                         <Input 
                                             type="email"
                                             value={member.email}
-                                            onChange={(e) => handleStaffChange(member.id, 'email', e.target.value)}
+                                            onChange={(e) => handleStaffChange(index, 'email', e.target.value)}
                                             placeholder="Email"
                                         />
                                     </TableCell>
                                     <TableCell className="text-right">
-                                         <Button variant="ghost" size="icon">
-                                            <Edit className="w-5 h-5 text-muted-foreground" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStaffMember(member.id)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveStaffMember(index)}>
                                             <Trash2 className="w-5 h-5 text-destructive" />
                                         </Button>
                                     </TableCell>
@@ -183,19 +282,19 @@ export default function PlantillaPage() {
                         </TableBody>
                     </Table>
                 </div>
+                )}
             </CardContent>
             <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handleAddStaffMember}>
                     <PlusCircle className="mr-2" />
                     Añadir Miembro
                 </Button>
-                <Button>
-                    <Save className="mr-2" />
+                <Button onClick={handleSaveStaff} disabled={isSavingStaff}>
+                   {isSavingStaff ? <Loader2 className="mr-2 animate-spin"/> : <Save className="mr-2" />}
                     Guardar Staff
                 </Button>
             </CardFooter>
         </Card>
-
 
         <Card>
             <CardHeader>
@@ -203,6 +302,7 @@ export default function PlantillaPage() {
                 <CardDescription>Introduce los datos de tus jugadores. Máximo 20. Todos los jugadores estarán disponibles para la convocatoria.</CardDescription>
             </CardHeader>
             <CardContent>
+                {loadingPlayers ? <Skeleton className="h-40 w-full" /> : (
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
@@ -215,7 +315,7 @@ export default function PlantillaPage() {
                         </TableHeader>
                         <TableBody>
                             {players.map((player, index) => (
-                                <TableRow key={index}>
+                                <TableRow key={player.id || index}>
                                     <TableCell>
                                         <Input 
                                             value={player.dorsal} 
@@ -244,6 +344,7 @@ export default function PlantillaPage() {
                                                 <SelectItem value="Cierre">Cierre</SelectItem>
                                                 <SelectItem value="Ala">Ala</SelectItem>
                                                 <SelectItem value="Pívot">Pívot</SelectItem>
+                                                <SelectItem value="Universal">Universal</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
@@ -257,14 +358,15 @@ export default function PlantillaPage() {
                         </TableBody>
                     </Table>
                 </div>
+                )}
             </CardContent>
             <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handleAddPlayer}>
                     <PlusCircle className="mr-2" />
                     Añadir Jugador
                 </Button>
-                <Button>
-                    <Save className="mr-2" />
+                <Button onClick={handleSavePlayers} disabled={isSavingPlayers}>
+                    {isSavingPlayers ? <Loader2 className="mr-2 animate-spin"/> : <Save className="mr-2" />}
                     Guardar Plantilla
                 </Button>
             </CardFooter>

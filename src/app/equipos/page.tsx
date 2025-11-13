@@ -2,9 +2,13 @@
 "use client";
 
 import { useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { collection, query, where, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { auth, db } from "@/firebase/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Edit, PlusCircle, Settings, Shield, Trash2, Users, Save } from "lucide-react";
+import { ArrowLeft, Edit, PlusCircle, Settings, Shield, Trash2, Users, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import {
   Dialog,
@@ -29,39 +33,82 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Team = {
   id: string;
   name: string;
   club: string;
+  competition?: string;
+  ownerId: string;
 };
 
-const initialTeams: Team[] = [
-    { id: '1', name: 'Juvenil B', club: 'FS Ràpid Santa Coloma' }
-];
-
-
 export default function EquiposPage() {
-  const [teams, setTeams] = useState<Team[]>(initialTeams);
+  const [user, loadingUser] = useAuthState(auth);
+  const { toast } = useToast();
+
+  const teamsQuery = user ? query(collection(db, "teams"), where("ownerId", "==", user.uid)) : null;
+  const [teamsSnapshot, loadingTeams, errorTeams] = useCollection(teamsQuery);
+
+  const teams = teamsSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team)) || [];
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newTeam, setNewTeam] = useState({ name: '', club: '', season: '', competition: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleAddTeam = () => {
-    if (!newTeam.name || !newTeam.club) return;
+
+  const handleAddTeam = async () => {
+    if (!newTeam.name || !newTeam.club || !user) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "El nombre del equipo y el club son obligatorios.",
+        });
+        return;
+    }
     
-    const newTeamData: Team = {
-      id: String(Date.now()),
-      name: newTeam.name,
-      club: newTeam.club,
-    };
-    
-    setTeams(prev => [...prev, newTeamData]);
-    setIsAddDialogOpen(false);
-    setNewTeam({ name: '', club: '', season: '', competition: '' });
+    setIsSubmitting(true);
+    try {
+        await addDoc(collection(db, "teams"), {
+            name: newTeam.name,
+            club: newTeam.club,
+            competition: newTeam.competition,
+            ownerId: user.uid,
+            createdAt: new Date(),
+        });
+        toast({
+            title: "Equipo añadido",
+            description: `El equipo "${newTeam.name}" ha sido creado.`,
+        });
+        setIsAddDialogOpen(false);
+        setNewTeam({ name: '', club: '', season: '', competition: '' });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error al crear el equipo",
+            description: error.message,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteTeam = (teamId: string) => {
-    setTeams(prev => prev.filter(team => team.id !== teamId));
+  const handleDeleteTeam = async (teamId: string) => {
+    try {
+        await deleteDoc(doc(db, "teams", teamId));
+        toast({
+            variant: "destructive",
+            title: "Equipo eliminado",
+            description: "El equipo y sus datos asociados han sido eliminados.",
+        });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error al eliminar el equipo",
+            description: error.message,
+        });
+    }
   };
 
 
@@ -89,26 +136,25 @@ export default function EquiposPage() {
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label htmlFor="team-name">Nombre del Equipo</Label>
-                        <Input id="team-name" placeholder="Ej: Juvenil B" value={newTeam.name} onChange={(e) => setNewTeam({...newTeam, name: e.target.value})} />
+                        <Input id="team-name" placeholder="Ej: Juvenil B" value={newTeam.name} onChange={(e) => setNewTeam({...newTeam, name: e.target.value})} disabled={isSubmitting}/>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="club-name">Club</Label>
-                        <Input id="club-name" placeholder="Ej: FS Ràpid Santa Coloma" value={newTeam.club} onChange={(e) => setNewTeam({...newTeam, club: e.target.value})}/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="season">Temporada</Label>
-                        <Input id="season" placeholder="Ej: 2024/2025" value={newTeam.season} onChange={(e) => setNewTeam({...newTeam, season: e.target.value})}/>
+                        <Input id="club-name" placeholder="Ej: FS Ràpid Santa Coloma" value={newTeam.club} onChange={(e) => setNewTeam({...newTeam, club: e.target.value})} disabled={isSubmitting}/>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="competition">Competición</Label>
-                        <Input id="competition" placeholder="Ej: Liga Nacional Juvenil" value={newTeam.competition} onChange={(e) => setNewTeam({...newTeam, competition: e.target.value})}/>
+                        <Input id="competition" placeholder="Ej: Liga Nacional Juvenil" value={newTeam.competition} onChange={(e) => setNewTeam({...newTeam, competition: e.target.value})} disabled={isSubmitting}/>
                     </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button variant="outline">Cancelar</Button>
+                        <Button variant="outline" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
-                    <Button onClick={handleAddTeam}><Save className="mr-2"/>Guardar Equipo</Button>
+                    <Button onClick={handleAddTeam} disabled={isSubmitting}>
+                        {isSubmitting ? <Loader2 className="mr-2 animate-spin"/> : <Save className="mr-2"/>}
+                        Guardar Equipo
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -135,7 +181,14 @@ export default function EquiposPage() {
               <CardDescription>Lista de equipos que administras como propietario.</CardDescription>
             </CardHeader>
             <CardContent>
-                {teams.length > 0 ? (
+                {(loadingUser || loadingTeams) && (
+                    <div className="space-y-4">
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                )}
+
+                {!(loadingUser || loadingTeams) && teams.length > 0 ? (
                     <div className="space-y-4">
                         {teams.map(team => (
                              <div key={team.id} className="border rounded-lg p-4 flex items-center justify-between">
@@ -149,9 +202,6 @@ export default function EquiposPage() {
                                     <Settings className="mr-2" />
                                     Gestionar
                                     </Link>
-                                </Button>
-                                <Button variant="ghost" size="icon">
-                                    <Edit className="w-4 h-4" />
                                 </Button>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -176,10 +226,18 @@ export default function EquiposPage() {
                             </div>
                         ))}
                     </div>
-                ) : (
+                ) : null}
+
+                {!(loadingUser || loadingTeams) && teams.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                         <p>No has creado ningún equipo todavía.</p>
                         <p>Haz clic en "Añadir Equipo" para empezar.</p>
+                    </div>
+                )}
+
+                {errorTeams && (
+                    <div className="text-center py-8 text-destructive">
+                        <p>Error al cargar los equipos: {errorTeams.message}</p>
                     </div>
                 )}
             </CardContent>

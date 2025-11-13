@@ -14,20 +14,22 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // El usuario es admin si su email es futsaldex@gmail.com O si su rol en la BD es 'Admin'
-      return isSignedIn() && (request.auth.token.email == 'futsaldex@gmail.com'
-          || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'));
+      return isSignedIn() && 
+        (request.auth.token.email == 'futsaldex@gmail.com' || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'));
     }
 
     function isTeamOwner(teamId) {
-      return exists(/databases/$(database)/documents/teams/$(teamId))
-             && get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/teams/$(teamId)) &&
+             get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
     }
 
     function isTeamMember(teamId) {
-        return exists(/databases/$(database)/documents/teams/$(teamId))
-               && request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
+        return isSignedIn() &&
+               exists(/databases/$(database)/documents/teams/$(teamId)) && 
+               request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds;
     }
 
     // 👤 Usuarios
@@ -45,31 +47,33 @@ service cloud.firestore {
     // 🏋️ Ejercicios
     match /exercises/{exerciseId} {
       allow read: if isSignedIn();
-      // Se asume que el ejercicio tiene un campo 'userId' con el uid del autor
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // 🏟️ Equipos
     match /teams/{teamId} {
       allow read: if isTeamMember(teamId) || isTeamOwner(teamId) || isAdmin();
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isTeamOwner(teamId) || isAdmin();
+      allow update: if isTeamOwner(teamId) || isAdmin();
+      allow delete: if isTeamOwner(teamId) || isAdmin();
 
       match /attendance/{date} {
-        allow read, write: if isTeamOwner(teamId) || isAdmin();
+        allow read, write: if isTeamOwner(teamId) || isTeamMember(teamId) || isAdmin();
       }
 
       match /players/{playerId} {
-        allow read, write: if isTeamOwner(teamId) || isAdmin();
+        allow read: if isTeamOwner(teamId) || isTeamMember(teamId) || isAdmin();
+        allow write: if isTeamOwner(teamId) || isAdmin();
       }
       
       match /staff/{staffId} {
-         allow read, write: if isTeamOwner(teamId) || isAdmin();
+         allow read: if isTeamOwner(teamId) || isTeamMember(teamId) || isAdmin();
+         allow write: if isTeamOwner(teamId) || isAdmin();
       }
     }
 
-    // 📅 Colecciones generales (acceso general para usuarios autenticados, puede requerir refinar)
+    // 📅 Colecciones generales
     match /matches/{matchId} {
       allow read, write: if isSignedIn();
     }
@@ -82,13 +86,8 @@ service cloud.firestore {
       allow read, write: if isSignedIn();
     }
     
-    // teamMembers y referrals parecen obsoletas con la nueva estructura
-    match /teamMembers/{memberId} {
-      allow read, write: if false;
-    }
-
-    match /referrals/{referralId} {
-      allow read, write: if isSignedIn();
-    }
+    // Obsolete collections
+    match /teamMembers/{memberId} { allow read, write: if false; }
+    match /referrals/{referralId} { allow read, write: if false; }
   }
 }

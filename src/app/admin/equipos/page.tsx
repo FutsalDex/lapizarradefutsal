@@ -1,36 +1,29 @@
 
 "use client";
 
+import { useCollection } from 'react-firebase-hooks/firestore';
+import { collection } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Team = {
-  teamName: string;
+  id: string;
+  name: string;
   club: string;
-  season: string;
-  ownerEmail: string;
+  competition: string;
+  ownerId: string; // Assuming we'll want to maybe show owner info later
 };
 
-const teamsData: Team[] = [
-    { teamName: 'Cadete A', club: 'Rapid santa coloma', season: '-', ownerEmail: 'rauldrup10@gmail.com' },
-    { teamName: 'Cadete A', club: 'Rapid Santa coloma', season: '-', ownerEmail: 'rauldrup10@hotmail.com' },
-    { teamName: 'Juvenil', club: 'Fs tapias', season: '-', ownerEmail: 'josemr_63@hotmail.com' },
-    { teamName: 'Cadete A', club: 'F.S. Rapid Santa Coloma', season: '-', ownerEmail: 'isaac.tarrason@gmail.com' },
-    { teamName: 'CADETE B', club: 'RAPID SANTA COLOMA', season: '-', ownerEmail: 'juanfranro70@gmail.com' },
-    { teamName: 'Víctor', club: 'VICTOR FC', season: '-', ownerEmail: 'victorroldan2911@gmail.com' },
-    { teamName: 'Infantil A', club: 'Rapid Santa Coloma', season: '-', ownerEmail: 'dani.ruiz46@gmail.com' },
-    { teamName: 'Infantil a', club: 'Rapid', season: '-', ownerEmail: 'test06@gmail.com' },
-    { teamName: 'Cadete B', club: 'CD DON ANTONIO', season: '-', ownerEmail: 'froldan73@gmail.com' },
-    { teamName: 'JUVENIL B', club: 'F.S. RAPID SANTA COLOMA', season: '-', ownerEmail: 'vroldan0@iesnumancia.cat' },
-    { teamName: 'Senior', club: 'Fundació Terrassa', season: '-', ownerEmail: 'fernandosaezcamacho@gmail.com' },
-    { teamName: 'Alevín A', club: 'FS Ràpid Santa Coloma', season: '-', ownerEmail: 'ibautista2005@gmail.com' },
-    { teamName: 'Juvenil B', club: 'FS Ràpid Santa Coloma', season: '-', ownerEmail: 'futsaldex@gmail.com' },
-];
-
 export default function TeamsPage() {
+  const [teamsSnapshot, loading, error] = useCollection(collection(db, 'teams'));
+  
+  const teamsData = teamsSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team)) || [];
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -52,7 +45,7 @@ export default function TeamsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Todos los Equipos</CardTitle>
-          <CardDescription>{teamsData.length} equipos en total.</CardDescription>
+          <CardDescription>{loading ? 'Cargando equipos...' : `${teamsData.length} equipos en total.`}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg">
@@ -61,22 +54,40 @@ export default function TeamsPage() {
                 <TableRow>
                   <TableHead>Nombre del Equipo</TableHead>
                   <TableHead>Club</TableHead>
-                  <TableHead>Temporada</TableHead>
-                  <TableHead>Propietario (Email)</TableHead>
+                  <TableHead>Competición</TableHead>
+                  <TableHead>Propietario (ID)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {teamsData.map((team, index) => (
-                  <TableRow key={`${team.ownerEmail}-${index}`}>
-                    <TableCell className="font-medium">{team.teamName}</TableCell>
+                {loading && (
+                    Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                        </TableRow>
+                    ))
+                )}
+                {!loading && teamsData.map((team) => (
+                  <TableRow key={team.id}>
+                    <TableCell className="font-medium">{team.name}</TableCell>
                     <TableCell>{team.club}</TableCell>
-                    <TableCell>{team.season}</TableCell>
-                    <TableCell>{team.ownerEmail}</TableCell>
+                    <TableCell>{team.competition || '-'}</TableCell>
+                    <TableCell className="font-mono text-xs">{team.ownerId}</TableCell>
                   </TableRow>
                 ))}
+                 {!loading && teamsData.length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center">
+                            No se encontraron equipos.
+                        </TableCell>
+                    </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
+            {error && <p className="text-destructive mt-4">Error: {error.message}</p>}
         </CardContent>
       </Card>
     </div>
