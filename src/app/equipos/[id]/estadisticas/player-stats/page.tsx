@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Search, Trophy, Hand, Target, ChevronsRightLeft, RefreshCw, ShieldAlert, Clock, Goal } from "lucide-react";
+import { ArrowLeft, Users, Search, Trophy, Hand, Target, ChevronsRightLeft, RefreshCw, ShieldAlert, Clock, Goal, Shield } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
@@ -119,18 +119,18 @@ export default function PlayerStatsPage() {
                         if (stats[playerId]) {
                             const pStats = periodStats[playerId];
                             stats[playerId].goals += pStats.goals || 0;
-                            stats_playerId.assists += pStats.assists || 0;
-                            stats_playerId.shotsOnTarget += pStats.shotsOnTarget || 0;
-                            stats_playerId.shotsOffTarget += pStats.shotsOffTarget || 0;
-                            stats_playerId.recoveries += pStats.recoveries || 0;
-                            stats_playerId.turnovers += pStats.turnovers || 0;
-                            stats_playerId.fouls += pStats.fouls || 0;
-                            stats_playerId.yellowCards += pStats.yellowCards || 0;
-                            stats_playerId.redCards += pStats.redCards || 0;
-                            stats_playerId.saves += pStats.saves || 0;
-                            stats_playerId.unoVsUno += pStats.unoVsUno || 0;
-                            stats_playerId.goalsConceded += pStats.goalsConceded || 0;
-                            stats_playerId.minutesPlayed += pStats.minutesPlayed || 0;
+                            stats[playerId].assists += pStats.assists || 0;
+                            stats[playerId].shotsOnTarget += pStats.shotsOnTarget || 0;
+                            stats[playerId].shotsOffTarget += pStats.shotsOffTarget || 0;
+                            stats[playerId].recoveries += pStats.recoveries || 0;
+                            stats[playerId].turnovers += pStats.turnovers || 0;
+                            stats[playerId].fouls += pStats.fouls || 0;
+                            stats[playerId].yellowCards += pStats.yellowCards || 0;
+                            stats[playerId].redCards += pStats.redCards || 0;
+                            stats[playerId].saves += pStats.saves || 0;
+                            stats[playerId].unoVsUno += pStats.unoVsUno || 0;
+                            stats[playerId].goalsConceded += pStats.goalsConceded || 0;
+                            stats[playerId].minutesPlayed += pStats.minutesPlayed || 0;
                         }
                     }
                 }
