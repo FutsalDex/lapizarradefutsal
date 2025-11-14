@@ -469,19 +469,19 @@ export default function EstadisticasPartidoPage() {
                                     ))}
                                 </TableBody>
                                 <TableFooter>
+                                    <TableRow>
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
+                                        <TableHead className="p-2 text-center">Min</TableHead>
+                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                    </TableRow>
                                     <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
                                         <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
-                                        <TableCell className="p-2 text-center">{formatTime(totals.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="p-2 text-center">-</TableCell>
                                         {statHeaders.map(header => (
                                             <TableCell key={header.key} className="p-2 text-center">
                                                 {totals[header.key as keyof PlayerStat] || 0}
                                             </TableCell>
                                         ))}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                        <TableHead className="p-2 text-center">Min</TableHead>
-                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                     </TableRow>
                                 </TableFooter>
                             </Table>
@@ -547,19 +547,19 @@ export default function EstadisticasPartidoPage() {
                                         ))}
                                     </TableBody>
                                     <TableFooter>
-                                         <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
+                                        <TableRow>
+                                            <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
+                                            <TableHead className="p-2 text-center">Min</TableHead>
+                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                        </TableRow>
+                                        <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
                                             <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
-                                            <TableCell className="p-2 text-center">{formatTime(totals.minutesPlayed || 0)}</TableCell>
+                                            <TableCell className="p-2 text-center">-</TableCell>
                                             {statHeaders.map(header => (
                                                 <TableCell key={header.key} className="p-2 text-center">
                                                     {totals[header.key as keyof PlayerStat] || 0}
                                                 </TableCell>
                                             ))}
-                                        </TableRow>
-                                        <TableRow>
-                                            <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                            <TableHead className="p-2 text-center">Min</TableHead>
-                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                         </TableRow>
                                     </TableFooter>
                                 </Table>
@@ -596,3 +596,6 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
         </div>
     </div>
 );
+
+
+    
