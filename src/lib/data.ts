@@ -56,7 +56,7 @@ export const sessions: Session[] = [
         id: '1',
         name: 'Sesión 1',
         date: '2025-11-01',
-        exercises: exercises, // Populated for detail page
+        exercises: [], // Populated for detail page
         objectives: 'Mejorar la finalización y el juego bajo presión.',
         club: 'FS Ràpid Santa Coloma',
         team: 'Juvenil B',
@@ -83,8 +83,5 @@ export const sessions: Session[] = [
         facility: 'Polideportivo Municipal',
     }
 ]
-
-// Match type removed as it will be inferred from Firestore documents directly
-// export type Match = { ... }
 
 export const matches: any[] = [];

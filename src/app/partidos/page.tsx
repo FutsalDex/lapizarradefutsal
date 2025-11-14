@@ -90,6 +90,8 @@ export default function PartidosPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [isConvocatoriaOpen, setIsConvocatoriaOpen] = React.useState(false);
+    const [isAddCalendarOpen, setIsAddCalendarOpen] = React.useState(false);
+    const [isEditCalendarOpen, setIsEditCalendarOpen] = React.useState(false);
     
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
     const [matchForConvocatoria, setMatchForConvocatoria] = React.useState<Match | null>(null);
@@ -331,7 +333,7 @@ export default function PartidosPage() {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Fecha del partido</Label>
-                            <Popover>
+                            <Popover open={isAddCalendarOpen} onOpenChange={setIsAddCalendarOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
@@ -348,7 +350,10 @@ export default function PartidosPage() {
                                     <Calendar
                                         mode="single"
                                         selected={newMatch.date}
-                                        onSelect={(date) => handleNewMatchChange('date', date)}
+                                        onSelect={(date) => {
+                                            handleNewMatchChange('date', date);
+                                            setIsAddCalendarOpen(false);
+                                        }}
                                         initialFocus
                                     />
                                 </PopoverContent>
@@ -543,7 +548,7 @@ export default function PartidosPage() {
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Fecha del partido</Label>
-                            <Popover>
+                            <Popover open={isEditCalendarOpen} onOpenChange={setIsEditCalendarOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
@@ -560,7 +565,10 @@ export default function PartidosPage() {
                                     <Calendar
                                         mode="single"
                                         selected={editingMatch.date}
-                                        onSelect={(date) => handleEditFormChange('date', date)}
+                                        onSelect={(date) => {
+                                            handleEditFormChange('date', date);
+                                            setIsEditCalendarOpen(false);
+                                        }}
                                         initialFocus
                                     />
                                 </PopoverContent>
