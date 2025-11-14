@@ -101,7 +101,7 @@ export default function PartidosPage() {
         visitorTeam: '',
         date: undefined as Date | undefined,
         time: '',
-        type: 'Amistoso',
+        type: 'Liga',
         competition: '',
         round: ''
     });
@@ -201,7 +201,7 @@ export default function PartidosPage() {
             await addDoc(collection(db, "matches"), newMatchData);
             toast({ title: "Partido creado", description: "El nuevo partido ha sido añadido." });
             setIsAddDialogOpen(false);
-            setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Amistoso', competition: '', round: '' });
+            setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Liga', competition: '', round: '' });
         } catch (error: any) {
             toast({ variant: 'destructive', title: "Error", description: error.message });
         }
@@ -221,6 +221,7 @@ export default function PartidosPage() {
                 date: Timestamp.fromDate(matchDate),
                 competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
                 matchType: editingMatch.type,
+                round: editingMatch.round
             });
             toast({ title: "Cambios guardados" });
         } catch (error: any) {
@@ -618,7 +619,7 @@ export default function PartidosPage() {
                                 <Input 
                                     id="round" 
                                     type="number" 
-                                    value={editingMatch.round}
+                                    value={editingMatch.round || ''}
                                     onChange={(e) => handleEditFormChange('round', e.target.value)} 
                                 />
                             </div>
