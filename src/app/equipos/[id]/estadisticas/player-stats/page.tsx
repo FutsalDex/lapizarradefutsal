@@ -1,29 +1,285 @@
 
 "use client";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users, Search, Trophy, Hand, Target, ChevronsRightLeft, RefreshCw, ShieldAlert, Clock, Goal } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
+import { collection, query, where, doc, Timestamp } from 'firebase/firestore';
+import { db } from '@/firebase/config';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
+
+type Player = {
+  id: string;
+  name: string;
+  number: string;
+  position: string;
+};
+
+type Match = {
+    id: string;
+    isFinished: boolean;
+    teamId: string;
+    matchType: string;
+    playerStats?: {
+        '1H'?: Record<string, any>;
+        '2H'?: Record<string, any>;
+    };
+};
+
+type AggregatedStats = {
+    [key: string]: {
+        name: string;
+        goals: number;
+        assists: number;
+        shotsOnTarget: number;
+        shotsOffTarget: number;
+        recoveries: number;
+        turnovers: number;
+        fouls: number;
+        yellowCards: number;
+        redCards: number;
+        saves: number;
+        unoVsUno: number;
+        goalsConceded: number;
+        minutesPlayed: number;
+    }
+};
+
+const StatCard = ({ title, playerName, value, icon }: { title: string; playerName?: string; value: string | number; icon: React.ReactNode }) => (
+    <Card>
+        <CardContent className="p-4 flex items-start justify-between">
+            <div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {icon}
+                    <span>{title}</span>
+                </div>
+                <p className="font-bold text-lg mt-1">{playerName || '-'}</p>
+            </div>
+            <p className="text-3xl font-bold">{value}</p>
+        </CardContent>
+    </Card>
+);
+
+const SquareIcon = ({ className }: { className?: string }) => (
+    <div className={cn("w-3 h-4 rounded-sm", className)} />
+);
 
 
 export default function PlayerStatsPage() {
     const params = useParams();
     const teamId = params.id as string;
+    const [filter, setFilter] = useState('Todos');
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const [team, loadingTeam] = useDocumentData(doc(db, `teams/${teamId}`));
+    const [playersSnapshot, loadingPlayers] = useCollection(collection(db, `teams/${teamId}/players`));
+    const matchesQuery = teamId ? query(collection(db, "matches"), where("teamId", "==", teamId), where("isFinished", "==", true)) : null;
+    const [matchesSnapshot, loadingMatches] = useCollection(matchesQuery);
+
+    const playersMap = useMemo(() => {
+        if (!playersSnapshot) return new Map<string, Player>();
+        return new Map(playersSnapshot.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() } as Player]));
+    }, [playersSnapshot]);
+
+    const matches = useMemo(() => 
+        matchesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match)) || [],
+    [matchesSnapshot]);
+
+    const filteredMatches = useMemo(() => {
+        if (filter === 'Todos') {
+            return matches;
+        }
+        return matches.filter(match => match.matchType === filter);
+    }, [matches, filter]);
+
+    const playerStats: AggregatedStats = useMemo(() => {
+        const stats: AggregatedStats = {};
+
+        playersMap.forEach((player, playerId) => {
+            stats[playerId] = {
+                name: player.name,
+                goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
+                recoveries: 0, turnovers: 0, fouls: 0, yellowCards: 0, redCards: 0,
+                saves: 0, unoVsUno: 0, goalsConceded: 0, minutesPlayed: 0
+            };
+        });
+
+        filteredMatches.forEach(match => {
+            ['1H', '2H'].forEach(period => {
+                const periodStats = match.playerStats?.[period as '1H' | '2H'];
+                if (periodStats) {
+                    for (const playerId in periodStats) {
+                        if (stats[playerId]) {
+                            const pStats = periodStats[playerId];
+                            stats[playerId].goals += pStats.goals || 0;
+                            stats_playerId.assists += pStats.assists || 0;
+                            stats_playerId.shotsOnTarget += pStats.shotsOnTarget || 0;
+                            stats_playerId.shotsOffTarget += pStats.shotsOffTarget || 0;
+                            stats_playerId.recoveries += pStats.recoveries || 0;
+                            stats_playerId.turnovers += pStats.turnovers || 0;
+                            stats_playerId.fouls += pStats.fouls || 0;
+                            stats_playerId.yellowCards += pStats.yellowCards || 0;
+                            stats_playerId.redCards += pStats.redCards || 0;
+                            stats_playerId.saves += pStats.saves || 0;
+                            stats_playerId.unoVsUno += pStats.unoVsUno || 0;
+                            stats_playerId.goalsConceded += pStats.goalsConceded || 0;
+                            stats_playerId.minutesPlayed += pStats.minutesPlayed || 0;
+                        }
+                    }
+                }
+            });
+        });
+        return stats;
+    }, [filteredMatches, playersMap]);
+
+    const searchFilteredPlayerIds = useMemo(() => {
+        if (!searchTerm) return new Set(Object.keys(playerStats));
+        const lowercasedTerm = searchTerm.toLowerCase();
+        return new Set(Object.keys(playerStats).filter(id => playerStats[id].name.toLowerCase().includes(lowercasedTerm)));
+    }, [searchTerm, playerStats]);
+
+
+    const getTopPlayer = (stat: keyof AggregatedStats[string], mode: 'max' | 'min' = 'max', position?: 'Portero') => {
+        let leader = { name: '-', value: mode === 'max' ? -1 : Infinity };
+        let foundPlayer = false;
+
+        for (const playerId of Array.from(searchFilteredPlayerIds)) {
+            const player = playersMap.get(playerId);
+            if (!player) continue;
+
+            const isPositionMatch = !position || player.position === position;
+            if (!isPositionMatch) continue;
+
+            const statValue = playerStats[playerId][stat];
+            if (typeof statValue !== 'number') continue;
+
+            let isNewLeader = false;
+            if (mode === 'max' && statValue > leader.value) {
+                isNewLeader = true;
+            } else if (mode === 'min' && statValue < leader.value && statValue > 0) { // For min, ensure it's not zero unless that's the only option
+                isNewLeader = true;
+            } else if (mode === 'min' && leader.value === Infinity) { // If we haven't found any player yet
+                isNewLeader = true;
+            }
+
+            if (isNewLeader) {
+                leader = { name: playerStats[playerId].name, value: statValue };
+                foundPlayer = true;
+            }
+        }
+        
+        // if for min we still have infinity, means no one has stats for it, so we can pick anyone with 0
+        if(mode === 'min' && leader.value === Infinity) {
+             for (const playerId of Array.from(searchFilteredPlayerIds)) {
+                const player = playersMap.get(playerId);
+                if (!player) continue;
+                 const isPositionMatch = !position || player.position === position;
+                 if (!isPositionMatch) continue;
+
+                leader = { name: player.name, value: 0 };
+                break;
+            }
+        }
+
+
+        return leader;
+    };
+    
+    const formatTime = (seconds: number) => {
+        if (seconds < 0) return '00:00';
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    };
+
+    const leaders = {
+        topScorer: getTopPlayer('goals'),
+        topAssistant: getTopPlayer('assists'),
+        mostShotsOn: getTopPlayer('shotsOnTarget'),
+        mostShotsOff: getTopPlayer('shotsOffTarget'),
+        mostRecoveries: getTopPlayer('recoveries'),
+        mostTurnovers: getTopPlayer('turnovers'),
+        mostFouls: getTopPlayer('fouls'),
+        mostYellows: getTopPlayer('yellowCards'),
+        mostSaves: getTopPlayer('saves', 'max', 'Portero'),
+        bestUnoVsUno: getTopPlayer('unoVsUno', 'max', 'Portero'),
+        leastConceded: getTopPlayer('goalsConceded', 'min', 'Portero'),
+        mostConceded: getTopPlayer('goalsConceded', 'max', 'Portero'),
+        mostMinutes: getTopPlayer('minutesPlayed'),
+        leastMinutes: getTopPlayer('minutesPlayed', 'min'),
+    };
+    
+    const isLoading = loadingTeam || loadingPlayers || loadingMatches;
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="mb-6">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                     <div className="flex items-center gap-3 mb-2">
+                        <Users className="w-8 h-8 text-primary" />
+                        <h1 className="text-3xl font-bold font-headline">Estadísticas de Jugadores</h1>
+                    </div>
+                    <p className="text-muted-foreground">Rendimiento individual de los jugadores de {team?.name || '...'}.</p>
+                </div>
                 <Button variant="outline" asChild>
-                <Link href={`/equipos/${teamId}/estadisticas`}>
-                    <ArrowLeft className="mr-2" />
-                    Volver a Estadísticas
-                </Link>
+                    <Link href={`/equipos/${teamId}/estadisticas`}>
+                        <ArrowLeft className="mr-2" />
+                        Volver
+                    </Link>
                 </Button>
             </div>
-            <h1 className="text-3xl font-bold mb-6">Estadísticas de Jugadores</h1>
-            <p className="text-muted-foreground">Próximamente...</p>
+
+             <Card className="mb-8">
+                <CardContent className="p-4">
+                    <h3 className="font-semibold mb-2">Controles</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Filtra por competición y busca jugadores.</p>
+                     <div className="flex flex-col md:flex-row gap-4">
+                         <div className="relative flex-grow">
+                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input placeholder="Buscar jugador..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        </div>
+                        <Tabs value={filter} onValueChange={setFilter}>
+                            <TabsList>
+                                <TabsTrigger value="Todos">Todos</TabsTrigger>
+                                <TabsTrigger value="Liga">Liga</TabsTrigger>
+                                <TabsTrigger value="Copa">Copa</TabsTrigger>
+                                <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+                                <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {isLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Array.from({ length: 14 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                </div>
+            ) : (
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard title="Máximo Goleador" playerName={leaders.topScorer.name} value={leaders.topScorer.value} icon={<Trophy />} />
+                    <StatCard title="Máximo Asistente" playerName={leaders.topAssistant.name} value={leaders.topAssistant.value} icon={<Hand />} />
+                    <StatCard title="Más Tiros a Puerta" playerName={leaders.mostShotsOn.name} value={leaders.mostShotsOn.value} icon={<Target />} />
+                    <StatCard title="Más Tiros Fuera" playerName={leaders.mostShotsOff.name} value={leaders.mostShotsOff.value} icon={<Goal />} />
+                    <StatCard title="Más Recuperaciones" playerName={leaders.mostRecoveries.name} value={leaders.mostRecoveries.value} icon={<RefreshCw />} />
+                    <StatCard title="Más Pérdidas" playerName={leaders.mostTurnovers.name} value={leaders.mostTurnovers.value} icon={<ChevronsRightLeft />} />
+                    <StatCard title="Más Faltas" playerName={leaders.mostFouls.name} value={leaders.mostFouls.value} icon={<ShieldAlert />} />
+                    <StatCard title="Más T. Amarillas" playerName={leaders.mostYellows.name} value={leaders.mostYellows.value} icon={<SquareIcon className="bg-yellow-400" />} />
+                    <StatCard title="Portero con más Paradas" playerName={leaders.mostSaves.name} value={leaders.mostSaves.value} icon={<Shield />} />
+                    <StatCard title="Portero mejor en 1vs1" playerName={leaders.bestUnoVsUno.name} value={leaders.bestUnoVsUno.value} icon={<Target />} />
+                    <StatCard title="Portero Menos Goleado" playerName={leaders.leastConceded.name} value={leaders.leastConceded.value} icon={<Shield />} />
+                    <StatCard title="Portero Más Goleado" playerName={leaders.mostConceded.name} value={leaders.mostConceded.value} icon={<Shield />} />
+                    <StatCard title="Jugador con más minutos" playerName={leaders.mostMinutes.name} value={formatTime(leaders.mostMinutes.value as number)} icon={<Clock />} />
+                    <StatCard title="Jugador con menos minutos" playerName={leaders.leastMinutes.name} value={formatTime(leaders.leastMinutes.value as number)} icon={<Clock />} />
+                </div>
+            )}
         </div>
     );
 }

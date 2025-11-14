@@ -79,7 +79,11 @@
         "gRec": { "type": "number" },
         "ta": { "type": "number" },
         "tr": { "type": "number" },
-        "smvp": { "type": "number" }
+        "smvp": { "type": "number" },
+        "saves": { "type": "number" },
+        "goalsConceded": { "type": "number" },
+        "unoVsUno": { "type": "number" },
+        "minutesPlayed": { "type": "number" }
       },
       "required": ["name", "number", "position"]
     },
