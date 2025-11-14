@@ -3,7 +3,7 @@
 
 import { useParams } from 'next/navigation';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
-import { doc } from 'firebase/firestore';
+import { doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { ArrowLeft, BarChart, History, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type StatRowProps = {
@@ -69,21 +70,7 @@ export default function PartidoDetallePage() {
     events = [], playerStats = {}, opponentStats = {}
   } = match;
   
-  const getPeriodStats = (statsObj: any, period: '1H' | '2H') => {
-      const periodData = statsObj?.[period] || {};
-      const stats = {
-          tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0
-      };
-      if (typeof periodData === 'object' && periodData !== null) {
-          Object.keys(periodData).forEach(key => {
-              if(key in stats) {
-                // @ts-ignore
-                stats[key as keyof typeof stats] = Object.values(periodData[key]).reduce((acc, val: any) => acc + (val.shotsOnTarget || 0), 0);
-              }
-          });
-      }
-      return stats;
-  }
+  const matchDate = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date);
   
   const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
       const totalLocal = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
@@ -179,7 +166,7 @@ export default function PartidoDetallePage() {
             </div>
             <div>
                 <h1 className="text-2xl font-bold font-headline">Detalles del Partido</h1>
-                <p className="text-muted-foreground">{format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: es })} - {competition}</p>
+                <p className="text-muted-foreground">{format(matchDate, "EEEE, dd MMMM yyyy", { locale: es })} - {competition}</p>
             </div>
         </div>
         <div className="flex gap-2">

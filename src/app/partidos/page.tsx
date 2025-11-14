@@ -4,7 +4,7 @@
 import React from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
-import { collection, query, where, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   AlertDialog,
@@ -40,7 +40,7 @@ type Match = {
     id: string;
     localTeam: string;
     visitorTeam: string;
-    date: string; // ISO string
+    date: Date; // Changed to Date object
     competition: string;
     localScore: number;
     visitorScore: number;
@@ -73,7 +73,15 @@ export default function PartidosPage() {
     const matchesQuery = user ? query(collection(db, "matches"), where("userId", "==", user.uid)) : null;
     const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
 
-    const matches = matchesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+    const matches = matchesSnapshot?.docs.map(doc => {
+        const data = doc.data();
+        const date = (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(data.date);
+        return { 
+            id: doc.id, 
+            ...data,
+            date: date
+        } as Match
+    }).sort((a, b) => b.date.getTime() - a.date.getTime()) || [];
 
     const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/vfR0cLrsj4r5DSYxUac1/players`)) : null);
     const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })) || [];
@@ -117,7 +125,7 @@ export default function PartidosPage() {
         try {
             await updateDoc(doc(db, "matches", matchForConvocatoria.id), {
                 squad: squad,
-                playersCalled: `${squad.length} Jug.`
+                playersCalled: squad.length // Updated to number
             });
             toast({ title: "Convocatoria guardada" });
         } catch (error: any) {
@@ -143,11 +151,10 @@ export default function PartidosPage() {
     };
 
     const handleOpenEditDialog = (match: Match) => {
-        const date = new Date(match.date);
         setEditingMatch({
             ...match,
-            date: date,
-            time: format(date, "HH:mm"),
+            date: match.date,
+            time: format(match.date, "HH:mm"),
             type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? match.competition : 'Liga',
         });
         setIsEditDialogOpen(true);
@@ -171,7 +178,7 @@ export default function PartidosPage() {
         const newMatchData = {
             localTeam: newMatch.localTeam,
             visitorTeam: newMatch.visitorTeam,
-            date: matchDate.toISOString(),
+            date: Timestamp.fromDate(matchDate),
             competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
             round: newMatch.round,
             localScore: 0,
@@ -207,7 +214,7 @@ export default function PartidosPage() {
             await updateDoc(doc(db, "matches", editingMatch.id), {
                 localTeam: editingMatch.localTeam,
                 visitorTeam: editingMatch.visitorTeam,
-                date: matchDate.toISOString(),
+                date: Timestamp.fromDate(matchDate),
                 competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
             });
             toast({ title: "Cambios guardados" });
@@ -235,7 +242,7 @@ export default function PartidosPage() {
         <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
             <CardContent className="p-6 text-center flex-grow">
                 <p className="font-semibold truncate">{match.localTeam} vs {match.visitorTeam}</p>
-                <p className="text-sm text-muted-foreground mb-4">{format(parseISO(match.date), 'dd/MM/yyyy HH:mm')}</p>
+                <p className="text-sm text-muted-foreground mb-4">{format(match.date, 'dd/MM/yyyy HH:mm')}</p>
                 <p className={`text-5xl font-bold mb-4 ${getResultColor(match.localScore, match.visitorScore, match.localTeam, match.visitorTeam, teamName)}`}>{match.localScore} - {match.visitorScore}</p>
                 <Badge variant="secondary">{match.competition}</Badge>
             </CardContent>
