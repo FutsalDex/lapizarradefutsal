@@ -434,9 +434,9 @@ export default function EstadisticasPartidoPage() {
                             <Table className="text-xs">
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                        <TableHead className="p-2 text-center">Min</TableHead>
-                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] px-1 py-2 text-center">Jugador</TableHead>
+                                        <TableHead className="px-1 py-2 text-center">Min</TableHead>
+                                        {statHeaders.map(header => <TableHead key={header.key} className="px-1 py-2 text-center">{header.label}</TableHead>)}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -449,14 +449,14 @@ export default function EstadisticasPartidoPage() {
                                             })}
                                         >
                                             <TableCell className={cn(
-                                                "sticky left-0 p-2 min-w-[150px]", 
+                                                "sticky left-0 px-1 py-2 min-w-[150px]", 
                                                 selectedPlayerIds.has(player.id) 
                                                     ? "bg-green-100/50 dark:bg-green-900/30 font-bold" 
                                                     : "bg-card font-medium"
                                             )}>{player.number}. {player.name}</TableCell>
-                                            <TableCell className="p-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
+                                            <TableCell className="px-1 py-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
                                             {statHeaders.map(header => (
-                                                 <TableCell key={header.key} className="p-2" onClick={(e) => e.stopPropagation()}>
+                                                 <TableCell key={header.key} className="px-1 py-2" onClick={(e) => e.stopPropagation()}>
                                                     <StatButton 
                                                         value={playerStats[player.id]?.[header.key as keyof PlayerStat] as number || 0} 
                                                         onIncrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, 1)} 
@@ -470,15 +470,15 @@ export default function EstadisticasPartidoPage() {
                                 </TableBody>
                                 <TableFooter>
                                     <TableRow>
-                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                        <TableHead className="p-2 text-center">Min</TableHead>
-                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] px-1 py-2 text-center">Jugador</TableHead>
+                                        <TableHead className="px-1 py-2 text-center">Min</TableHead>
+                                        {statHeaders.map(header => <TableHead key={header.key} className="px-1 py-2 text-center">{header.label}</TableHead>)}
                                     </TableRow>
                                     <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
-                                        <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
-                                        <TableCell className="p-2 text-center">-</TableCell>
+                                        <TableCell className="sticky left-0 bg-muted/50 px-1 py-2 min-w-[150px] text-center">Total</TableCell>
+                                        <TableCell className="px-1 py-2 text-center">-</TableCell>
                                         {statHeaders.map(header => (
-                                            <TableCell key={header.key} className="p-2 text-center">
+                                            <TableCell key={header.key} className="px-1 py-2 text-center">
                                                 {totals[header.key as keyof PlayerStat] || 0}
                                             </TableCell>
                                         ))}
@@ -512,9 +512,9 @@ export default function EstadisticasPartidoPage() {
                                 <Table className="text-xs">
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                            <TableHead className="p-2 text-center">Min</TableHead>
-                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                            <TableHead className="sticky left-0 bg-card min-w-[150px] px-1 py-2 text-center">Jugador</TableHead>
+                                            <TableHead className="px-1 py-2 text-center">Min</TableHead>
+                                            {statHeaders.map(header => <TableHead key={header.key} className="px-1 py-2 text-center">{header.label}</TableHead>)}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -527,14 +527,14 @@ export default function EstadisticasPartidoPage() {
                                                 })}
                                             >
                                                 <TableCell className={cn(
-                                                    "sticky left-0 p-2 min-w-[150px]", 
+                                                    "sticky left-0 px-1 py-2 min-w-[150px]", 
                                                     selectedPlayerIds.has(player.id) 
                                                         ? "bg-green-100/50 dark:bg-green-900/30 font-bold" 
                                                         : "bg-card font-medium"
                                                 )}>{player.number}. {player.name}</TableCell>
-                                                <TableCell className="p-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
+                                                <TableCell className="px-1 py-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
                                                 {statHeaders.map(header => (
-                                                    <TableCell key={header.key} className="p-2" onClick={(e) => e.stopPropagation()}>
+                                                    <TableCell key={header.key} className="px-1 py-2" onClick={(e) => e.stopPropagation()}>
                                                         <StatButton 
                                                             value={playerStats[player.id]?.[header.key as keyof PlayerStat] as number || 0} 
                                                             onIncrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, 1)} 
@@ -548,15 +548,15 @@ export default function EstadisticasPartidoPage() {
                                     </TableBody>
                                     <TableFooter>
                                         <TableRow>
-                                            <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
-                                            <TableHead className="p-2 text-center">Min</TableHead>
-                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
+                                            <TableHead className="sticky left-0 bg-card min-w-[150px] px-1 py-2 text-center">Jugador</TableHead>
+                                            <TableHead className="px-1 py-2 text-center">Min</TableHead>
+                                            {statHeaders.map(header => <TableHead key={header.key} className="px-1 py-2 text-center">{header.label}</TableHead>)}
                                         </TableRow>
                                         <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
-                                            <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
-                                            <TableCell className="p-2 text-center">-</TableCell>
+                                            <TableCell className="sticky left-0 bg-muted/50 px-1 py-2 min-w-[150px] text-center">Total</TableCell>
+                                            <TableCell className="px-1 py-2 text-center">-</TableCell>
                                             {statHeaders.map(header => (
-                                                <TableCell key={header.key} className="p-2 text-center">
+                                                <TableCell key={header.key} className="px-1 py-2 text-center">
                                                     {totals[header.key as keyof PlayerStat] || 0}
                                                 </TableCell>
                                             ))}
