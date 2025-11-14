@@ -236,7 +236,7 @@ export default function PartidoDetallePage() {
                                     {goal.team === 'visitor' ? (
                                         <div className="w-1/2 flex justify-between items-center pl-4">
                                             <span className="text-muted-foreground">{goal.minute}'</span>
-                                            <span className="font-medium text-right">{goal.playerName}</span>
+                                            <span className="font-medium text-right">RIVAL</span>
                                         </div>
                                     ) : <div className="w-1/2 pl-4"></div>}
                                 </div>
@@ -321,5 +321,3 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
-
-    

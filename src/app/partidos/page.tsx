@@ -43,6 +43,7 @@ type Match = {
     date: Date;
     competition: string;
     matchType: string;
+    round?: string;
     localScore: number;
     visitorScore: number;
     status: 'scheduled' | 'finished' | 'live';
@@ -260,7 +261,10 @@ export default function PartidosPage() {
                 <p className="font-semibold truncate">{match.localTeam} vs {match.visitorTeam}</p>
                 <p className="text-sm text-muted-foreground mb-4">{format(match.date, 'dd/MM/yyyy HH:mm')}</p>
                 <p className={`text-5xl font-bold mb-4 ${getResultColor(match.localScore, match.visitorScore, match.localTeam, match.visitorTeam, teamName)}`}>{match.localScore} - {match.visitorScore}</p>
-                <Badge variant="secondary">{match.matchType}</Badge>
+                 <Badge variant="secondary">{match.matchType}</Badge>
+                 {match.matchType === 'Liga' && match.round && (
+                    <p className="text-xs text-muted-foreground mt-1">Jornada {match.round}</p>
+                )}
             </CardContent>
             <CardFooter className="bg-muted/50 p-3 flex justify-around">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
@@ -387,10 +391,10 @@ export default function PartidosPage() {
                                 <SelectValue placeholder="Seleccionar tipo" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="Amistoso">Amistoso</SelectItem>
                                 <SelectItem value="Liga">Liga</SelectItem>
                                 <SelectItem value="Copa">Copa</SelectItem>
                                 <SelectItem value="Torneo">Torneo</SelectItem>
-                                <SelectItem value="Amistoso">Amistoso</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -607,10 +611,10 @@ export default function PartidosPage() {
                                 <SelectValue placeholder="Seleccionar tipo" />
                             </SelectTrigger>
                             <SelectContent>
+                                <SelectItem value="Amistoso">Amistoso</SelectItem>
                                 <SelectItem value="Liga">Liga</SelectItem>
                                 <SelectItem value="Copa">Copa</SelectItem>
                                 <SelectItem value="Torneo">Torneo</SelectItem>
-                                <SelectItem value="Amistoso">Amistoso</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
