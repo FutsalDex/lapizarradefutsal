@@ -174,7 +174,7 @@ export default function PlayerStatsPage() {
     }, [searchTerm, playerStats]);
 
 
-    const getTopPlayer = (stat: keyof AggregatedStats[string], mode: 'max' | 'min' = 'max', position?: 'Portero') => {
+    const getTopPlayer = (stat: keyof AggregatedStats[string], mode: 'max' | 'min' = 'max', position?: 'Portero', excludePosition?: 'Portero') => {
         let leader = { name: '-', value: mode === 'max' ? -1 : Infinity };
         let foundPlayer = false;
 
@@ -183,7 +183,9 @@ export default function PlayerStatsPage() {
             if (!player) continue;
 
             const isPositionMatch = !position || player.position === position;
-            if (!isPositionMatch) continue;
+            const isExcludedPosition = excludePosition && player.position === excludePosition;
+
+            if (!isPositionMatch || isExcludedPosition) continue;
 
             const statValue = playerStats[playerId][stat];
             if (typeof statValue !== 'number') continue;
@@ -208,7 +210,9 @@ export default function PlayerStatsPage() {
                 const player = playersMap.get(playerId);
                 if (!player) continue;
                  const isPositionMatch = !position || player.position === position;
-                 if (!isPositionMatch) continue;
+                 const isExcludedPosition = excludePosition && player.position === excludePosition;
+                 
+                 if (!isPositionMatch || isExcludedPosition) continue;
 
                 leader = { name: player.name, value: 0 };
                 break;
@@ -231,8 +235,8 @@ export default function PlayerStatsPage() {
         bestUnoVsUno: getTopPlayer('unoVsUno', 'max', 'Portero'),
         leastConceded: getTopPlayer('goalsConceded', 'min', 'Portero'),
         mostConceded: getTopPlayer('goalsConceded', 'max', 'Portero'),
-        mostMinutes: getTopPlayer('minutesPlayed'),
-        leastMinutes: getTopPlayer('minutesPlayed', 'min'),
+        mostMinutes: getTopPlayer('minutesPlayed', 'max', undefined, 'Portero'),
+        leastMinutes: getTopPlayer('minutesPlayed', 'min', undefined, 'Portero'),
     };
     
     const tablePlayers = Array.from(playersMap.values())
