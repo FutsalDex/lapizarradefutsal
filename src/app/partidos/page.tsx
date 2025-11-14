@@ -236,7 +236,7 @@ export default function PartidosPage() {
         if (editingMatch.matchType === 'Liga') {
             dataToUpdate.round = editingMatch.round || '';
         } else {
-            delete dataToUpdate.round; // Ensure round is not sent for non-league matches
+             dataToUpdate.round = '';
         }
     
         try {
@@ -332,12 +332,12 @@ export default function PartidosPage() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Añadir Partido
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Añadir Nuevo Partido</DialogTitle>
                     <DialogDescription>Introduce los datos básicos del partido. Podrás añadir las estadísticas más tarde.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 overflow-y-auto pr-2">
                     <div className="space-y-2">
                         <Label htmlFor="local-team-add">Equipo Local</Label>
                         <div className="flex gap-2">
@@ -541,12 +541,12 @@ export default function PartidosPage() {
 
       {editingMatch && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Editar Partido</DialogTitle>
                     <DialogDescription>Modifica los datos del partido.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 overflow-y-auto pr-2">
                     <div className="space-y-2">
                         <Label htmlFor="local-team">Equipo Local</Label>
                         <div className="flex gap-2">
