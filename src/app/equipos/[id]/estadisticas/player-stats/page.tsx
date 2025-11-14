@@ -57,7 +57,7 @@ type AggregatedStats = {
 
 const StatCard = ({ title, playerName, value, icon }: { title: string; playerName?: string; value: string | number; icon: React.ReactNode }) => (
     <Card>
-        <CardContent className="p-4 flex items-start justify-between">
+        <CardContent className="p-4 flex flex-col justify-between h-full">
             <div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     {icon}
@@ -65,7 +65,7 @@ const StatCard = ({ title, playerName, value, icon }: { title: string; playerNam
                 </div>
                 <p className="font-bold text-lg mt-1">{playerName || '-'}</p>
             </div>
-            <p className="text-3xl font-bold">{value}</p>
+            <p className="text-3xl font-bold self-end">{value}</p>
         </CardContent>
     </Card>
 );
@@ -318,7 +318,7 @@ export default function PlayerStatsPage() {
 
             {isLoading ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Array.from({ length: 14 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                    {Array.from({ length: 14 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
                 </div>
             ) : (
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -430,6 +430,8 @@ export default function PlayerStatsPage() {
     );
 }
 
+
+    
 
     
 
