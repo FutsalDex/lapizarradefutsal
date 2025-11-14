@@ -21,7 +21,7 @@ type Match = {
     id: string;
     localTeam: string;
     visitorTeam: string;
-    date: Timestamp;
+    date: Timestamp | Date;
     matchType: string;
     localScore: number;
     visitorScore: number;
@@ -106,7 +106,14 @@ export default function TeamStatsPage() {
     const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
 
     const matches = useMemo(() => 
-        matchesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match)) || [],
+        matchesSnapshot?.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                date: (data.date as Timestamp).toDate(),
+            } as Match;
+        }) || [],
     [matchesSnapshot]);
 
     const filteredMatches = useMemo(() => {
@@ -292,7 +299,7 @@ export default function TeamStatsPage() {
                                         {filteredMatches.length > 0 ? filteredMatches.map((match) => (
                                             <TableRow key={match.id}>
                                                 <TableCell className="font-medium">
-                                                    {format(match.date.toDate(), 'dd/MM/yyyy', { locale: es })}
+                                                    {format(match.date, 'dd/MM/yyyy', { locale: es })}
                                                 </TableCell>
                                                 <TableCell>{match.localTeam}</TableCell>
                                                 <TableCell>{match.visitorTeam}</TableCell>
