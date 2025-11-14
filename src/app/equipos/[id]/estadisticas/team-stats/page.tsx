@@ -108,10 +108,14 @@ export default function TeamStatsPage() {
     const matches = useMemo(() => 
         matchesSnapshot?.docs.map(doc => {
             const data = doc.data();
+            // Safely convert timestamp to date
+            const date = data.date && typeof data.date.toDate === 'function' 
+                ? (data.date as Timestamp).toDate() 
+                : data.date;
             return {
                 id: doc.id,
                 ...data,
-                date: (data.date as Timestamp).toDate(),
+                date: date,
             } as Match;
         }) || [],
     [matchesSnapshot]);
