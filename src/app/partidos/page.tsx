@@ -225,15 +225,22 @@ export default function PartidosPage() {
         const matchDate = new Date(editingMatch.date);
         matchDate.setHours(hours, minutes);
     
+        const dataToUpdate: any = {
+            localTeam: editingMatch.localTeam,
+            visitorTeam: editingMatch.visitorTeam,
+            date: Timestamp.fromDate(matchDate),
+            competition: editingMatch.matchType === 'Liga' ? editingMatch.competition : editingMatch.matchType,
+            matchType: editingMatch.matchType,
+        };
+
+        if (editingMatch.matchType === 'Liga') {
+            dataToUpdate.round = editingMatch.round || '';
+        } else {
+            delete dataToUpdate.round; // Ensure round is not sent for non-league matches
+        }
+    
         try {
-            await updateDoc(doc(db, "matches", editingMatch.id), {
-                localTeam: editingMatch.localTeam,
-                visitorTeam: editingMatch.visitorTeam,
-                date: Timestamp.fromDate(matchDate),
-                competition: editingMatch.matchType === 'Liga' ? editingMatch.competition : editingMatch.matchType,
-                matchType: editingMatch.matchType,
-                round: editingMatch.round
-            });
+            await updateDoc(doc(db, "matches", editingMatch.id), dataToUpdate);
             toast({ title: "Cambios guardados" });
         } catch (error: any) {
             toast({ variant: 'destructive', title: "Error", description: error.message });
