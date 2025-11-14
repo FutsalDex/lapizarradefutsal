@@ -101,7 +101,7 @@ export default function PartidosPage() {
         visitorTeam: '',
         date: undefined as Date | undefined,
         time: '',
-        type: 'Liga',
+        type: 'Amistoso',
         competition: '',
         round: ''
     });
@@ -158,7 +158,7 @@ export default function PartidosPage() {
             ...match,
             date: match.date,
             time: format(match.date, "HH:mm"),
-            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.matchType) ? match.matchType : 'Liga',
+            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.matchType) ? match.matchType : 'Amistoso',
         });
         setIsEditDialogOpen(true);
     };
@@ -201,7 +201,7 @@ export default function PartidosPage() {
             await addDoc(collection(db, "matches"), newMatchData);
             toast({ title: "Partido creado", description: "El nuevo partido ha sido añadido." });
             setIsAddDialogOpen(false);
-            setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Liga', competition: '', round: '' });
+            setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Amistoso', competition: '', round: '' });
         } catch (error: any) {
             toast({ variant: 'destructive', title: "Error", description: error.message });
         }
