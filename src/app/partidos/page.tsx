@@ -76,7 +76,7 @@ export default function PartidosPage() {
 
     const matches = matchesSnapshot?.docs.map(doc => {
         const data = doc.data();
-        const date = (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(data.date);
+        const date = (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date();
         return { 
             id: doc.id, 
             ...data,
@@ -156,7 +156,7 @@ export default function PartidosPage() {
             ...match,
             date: match.date,
             time: format(match.date, "HH:mm"),
-            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? match.competition : 'Liga',
+            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.matchType) ? match.matchType : 'Liga',
         });
         setIsEditDialogOpen(true);
     };
@@ -247,7 +247,7 @@ export default function PartidosPage() {
                 <p className="font-semibold truncate">{match.localTeam} vs {match.visitorTeam}</p>
                 <p className="text-sm text-muted-foreground mb-4">{format(match.date, 'dd/MM/yyyy HH:mm')}</p>
                 <p className={`text-5xl font-bold mb-4 ${getResultColor(match.localScore, match.visitorScore, match.localTeam, match.visitorTeam, teamName)}`}>{match.localScore} - {match.visitorScore}</p>
-                <Badge variant="secondary">{match.competition}</Badge>
+                <Badge variant="secondary">{match.matchType}</Badge>
             </CardContent>
             <CardFooter className="bg-muted/50 p-3 flex justify-around">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
