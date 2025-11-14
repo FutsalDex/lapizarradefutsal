@@ -127,7 +127,8 @@ export default function EstadisticasPartidoPage() {
             const squadPlayerIds = new Set(match.squad || []);
             const squadPlayers = playersSnapshot.docs
                 .map(doc => ({id: doc.id, ...doc.data() } as Player))
-                .filter(p => squadPlayerIds.has(p.id));
+                .filter(p => squadPlayerIds.has(p.id))
+                .sort((a, b) => Number(a.number) - Number(b.number));
             setActivePlayers(squadPlayers);
         }
     }, [match, playersSnapshot]);
