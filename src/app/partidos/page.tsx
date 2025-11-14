@@ -85,7 +85,7 @@ export default function PartidosPage() {
     }).sort((a, b) => a.date.getTime() - b.date.getTime()) || [];
 
     const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/vfR0cLrsj4r5DSYxUac1/players`)) : null);
-    const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })) || [];
+    const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })).sort((a,b) => Number(a.number) - Number(b.number)) || [];
     
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
@@ -636,3 +636,4 @@ export default function PartidosPage() {
     </div>
   );
 }
+
