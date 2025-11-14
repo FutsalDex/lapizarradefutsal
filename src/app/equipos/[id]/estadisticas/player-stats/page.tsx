@@ -12,7 +12,6 @@ import { collection, query, where, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 
@@ -58,14 +57,14 @@ type AggregatedStats = {
 const StatCard = ({ title, playerName, value, icon }: { title: string; playerName?: string; value: string | number; icon: React.ReactNode }) => (
     <Card>
         <CardContent className="p-4 flex flex-col justify-between h-full">
-            <div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {icon}
-                    <span>{title}</span>
-                </div>
-                <p className="font-bold text-lg mt-1">{playerName || '-'}</p>
+            <div className='flex items-center gap-2'>
+                 {icon}
+                <span className="text-sm text-muted-foreground">{title}</span>
             </div>
-            <p className="text-3xl font-bold self-end">{value}</p>
+            <div>
+                <p className="font-bold text-lg mt-1 truncate">{playerName || '-'}</p>
+                <p className="text-3xl font-bold self-end text-right">{value}</p>
+            </div>
         </CardContent>
     </Card>
 );
@@ -274,6 +273,8 @@ export default function PlayerStatsPage() {
 
     const isLoading = loadingTeam || loadingPlayers || loadingMatches;
 
+    const filterOptions = ['Todos', 'Liga', 'Copa', 'Torneo', 'Amistoso'];
+
     return (
         <div className="container mx-auto px-4 py-8 space-y-8">
             <div className="flex justify-between items-center">
@@ -292,26 +293,34 @@ export default function PlayerStatsPage() {
                 </Button>
             </div>
 
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Controles</CardTitle>
                     <p className="text-sm text-muted-foreground">Filtra por competición y busca jugadores.</p>
                 </CardHeader>
                 <CardContent>
-                     <div className="flex flex-col md:flex-row gap-4">
-                         <div className="relative flex-grow">
-                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            <Input placeholder="Buscar jugador..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="relative flex-grow w-full sm:w-auto">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                            <Input 
+                                placeholder="Buscar jugador..." 
+                                className="pl-10" 
+                                value={searchTerm} 
+                                onChange={(e) => setSearchTerm(e.target.value)} 
+                            />
                         </div>
-                        <Tabs value={filter} onValueChange={setFilter}>
-                            <TabsList>
-                                <TabsTrigger value="Todos">Todos</TabsTrigger>
-                                <TabsTrigger value="Liga">Liga</TabsTrigger>
-                                <TabsTrigger value="Copa">Copa</TabsTrigger>
-                                <TabsTrigger value="Torneo">Torneo</TabsTrigger>
-                                <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
+                        <div className="flex items-center gap-2">
+                            {filterOptions.map(option => (
+                                <Button 
+                                    key={option}
+                                    variant={filter === option ? 'default' : 'outline'}
+                                    onClick={() => setFilter(option)}
+                                    size="sm"
+                                >
+                                    {option}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
