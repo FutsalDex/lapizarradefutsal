@@ -99,7 +99,7 @@ export default function TeamStatsPage() {
     const [team, loadingTeam] = useDocumentData(doc(db, `teams/${teamId}`));
     const teamName = team?.name || '';
 
-    const matchesQuery = teamId ? query(collection(db, "matches"), where("teamId", "==", teamId), where("isFinished", "==", true)) : null;
+    const matchesQuery = teamId ? query(collection(db, "matches"), where("teamId", "==", teamId)) : null;
     const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
 
     const matches = useMemo(() => 
@@ -269,4 +269,4 @@ export default function TeamStatsPage() {
     );
 }
 
-
+    
