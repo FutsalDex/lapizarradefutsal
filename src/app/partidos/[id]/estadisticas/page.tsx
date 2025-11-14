@@ -362,10 +362,10 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">{match?.localTeam}</h2>
                         <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                         <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')} disabled={isFinished}>TM</Button>
+                         <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')} disabled={isFinished}>TM</Button>
                     </div>
 
                     <div className="flex flex-col items-center gap-4">
@@ -387,24 +387,24 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">{match?.visitorTeam}</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                        <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')} disabled={isFinished}>TM</Button>
+                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')} disabled={isFinished}>TM</Button>
                     </div>
                 </div>
             </CardContent>
         </Card>
 
-        <Tabs defaultValue="team-b">
+        <Tabs defaultValue="team-a">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="team-a">{match?.localTeam}</TabsTrigger>
                 <TabsTrigger value="team-b">{match?.visitorTeam}</TabsTrigger>
             </TabsList>
-            <TabsContent value="team-b">
+            <TabsContent value="team-a">
                 <Card>
                     <CardHeader>
-                        <CardTitle>{match?.visitorTeam} - Estadísticas {period}</CardTitle>
+                        <CardTitle>{match?.localTeam} - Estadísticas {period}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
@@ -467,10 +467,10 @@ export default function EstadisticasPartidoPage() {
                     </CardContent>
                 </Card>
             </TabsContent>
-            <TabsContent value="team-a">
+            <TabsContent value="team-b">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Estadísticas del Rival - {match?.localTeam} ({period})</CardTitle>
+                        <CardTitle>Estadísticas del Rival - {match?.visitorTeam} ({period})</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

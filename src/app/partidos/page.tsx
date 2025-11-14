@@ -40,8 +40,9 @@ type Match = {
     id: string;
     localTeam: string;
     visitorTeam: string;
-    date: Date; // Changed to Date object
+    date: Date;
     competition: string;
+    matchType: string;
     localScore: number;
     visitorScore: number;
     status: 'scheduled' | 'finished' | 'live';
@@ -125,7 +126,7 @@ export default function PartidosPage() {
         try {
             await updateDoc(doc(db, "matches", matchForConvocatoria.id), {
                 squad: squad,
-                playersCalled: squad.length // Updated to number
+                playersCalled: squad.length
             });
             toast({ title: "Convocatoria guardada" });
         } catch (error: any) {
@@ -180,6 +181,7 @@ export default function PartidosPage() {
             visitorTeam: newMatch.visitorTeam,
             date: Timestamp.fromDate(matchDate),
             competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
+            matchType: newMatch.type,
             round: newMatch.round,
             localScore: 0,
             visitorScore: 0,
@@ -216,6 +218,7 @@ export default function PartidosPage() {
                 visitorTeam: editingMatch.visitorTeam,
                 date: Timestamp.fromDate(matchDate),
                 competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
+                matchType: editingMatch.type,
             });
             toast({ title: "Cambios guardados" });
         } catch (error: any) {
@@ -438,27 +441,27 @@ export default function PartidosPage() {
                 </TabsContent>
                 <TabsContent value="Liga">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {matches.filter(m => m.competition.includes('Liga') || m.competition.includes('DIVISION')).map(renderMatchCard)}
+                        {matches.filter(m => m.matchType === 'Liga').map(renderMatchCard)}
                     </div>
                 </TabsContent>
                 <TabsContent value="Copa">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {matches.filter(m => m.competition.includes('Copa')).length > 0 ? (
-                            matches.filter(m => m.competition.includes('Copa')).map(renderMatchCard)
+                        {matches.filter(m => m.matchType === 'Copa').length > 0 ? (
+                            matches.filter(m => m.matchType === 'Copa').map(renderMatchCard)
                         ) : <p className="text-center text-muted-foreground col-span-3">No hay partidos de copa para mostrar.</p>}
                     </div>
                 </TabsContent>
                 <TabsContent value="Torneo">
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {matches.filter(m => m.competition.includes('Torneo')).length > 0 ? (
-                            matches.filter(m => m.competition.includes('Torneo')).map(renderMatchCard)
+                        {matches.filter(m => m.matchType === 'Torneo').length > 0 ? (
+                            matches.filter(m => m.matchType === 'Torneo').map(renderMatchCard)
                         ) : <p className="text-center text-muted-foreground col-span-3">No hay partidos de torneo para mostrar.</p>}
                     </div>
                 </TabsContent>
                 <TabsContent value="Amistoso">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {matches.filter(m => m.competition === 'Amistoso').length > 0 ? (
-                             matches.filter(m => m.competition === 'Amistoso').map(renderMatchCard)
+                        {matches.filter(m => m.matchType === 'Amistoso').length > 0 ? (
+                             matches.filter(m => m.matchType === 'Amistoso').map(renderMatchCard)
                         ): <p className="text-center text-muted-foreground col-span-3">No hay partidos amistosos para mostrar.</p>}
                     </div>
                 </TabsContent>
