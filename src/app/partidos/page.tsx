@@ -355,6 +355,8 @@ export default function PartidosPage() {
                                             setIsAddCalendarOpen(false);
                                         }}
                                         initialFocus
+                                        locale={es}
+                                        weekStartsOn={1}
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -570,6 +572,8 @@ export default function PartidosPage() {
                                             setIsEditCalendarOpen(false);
                                         }}
                                         initialFocus
+                                        locale={es}
+                                        weekStartsOn={1}
                                     />
                                 </PopoverContent>
                             </Popover>

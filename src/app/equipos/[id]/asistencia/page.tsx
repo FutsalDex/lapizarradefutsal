@@ -248,6 +248,7 @@ export default function AsistenciaPage() {
                                     }}
                                     initialFocus
                                     locale={es}
+                                    weekStartsOn={1}
                                     modifiers={{ 'with-record': recordedDates }}
                                     modifiersClassNames={{ 'with-record': 'day-with-record' }}
                                 />

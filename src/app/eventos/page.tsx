@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -68,6 +69,7 @@ export default function EventosPage() {
                 onSelect={setDate}
                 className="p-4 w-full"
                 locale={es}
+                weekStartsOn={1}
                 month={new Date('2025-10-01T00:00:00')}
                 modifiers={{ with_event: eventDates }}
                 modifiersClassNames={{

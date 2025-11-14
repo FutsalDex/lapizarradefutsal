@@ -35,6 +35,7 @@ export default function CrearSesionPage() {
     cooldown: [],
   });
   const [selectedFormat, setSelectedFormat] = useState('basico');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const addExercise = (phase: SessionPhase, exercise: Exercise) => {
     setSelectedExercises(prev => {
@@ -211,7 +212,7 @@ export default function CrearSesionPage() {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div className="space-y-2">
                   <Label>Fecha</Label>
-                  <Popover>
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant={"outline"}
@@ -228,8 +229,13 @@ export default function CrearSesionPage() {
                       <Calendar
                         mode="single"
                         selected={date}
-                        onSelect={setDate}
+                        onSelect={(newDate) => {
+                            setDate(newDate);
+                            setIsCalendarOpen(false);
+                        }}
                         initialFocus
+                        locale={es}
+                        weekStartsOn={1}
                       />
                     </PopoverContent>
                   </Popover>
