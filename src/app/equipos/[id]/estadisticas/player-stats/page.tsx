@@ -331,20 +331,20 @@ export default function PlayerStatsPage() {
                 </div>
             ) : (
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard title="Máximo Goleador" playerName={leaders.topScorer.name} value={leaders.topScorer.value} icon={<Trophy />} />
-                    <StatCard title="Máximo Asistente" playerName={leaders.topAssistant.name} value={leaders.topAssistant.value} icon={<Hand />} />
-                    <StatCard title="Más Tiros a Puerta" playerName={leaders.mostShotsOn.name} value={leaders.mostShotsOn.value} icon={<Target />} />
-                    <StatCard title="Más Tiros Fuera" playerName={leaders.mostShotsOff.name} value={leaders.mostShotsOff.value} icon={<Goal />} />
-                    <StatCard title="Más Recuperaciones" playerName={leaders.mostRecoveries.name} value={leaders.mostRecoveries.value} icon={<RefreshCw />} />
-                    <StatCard title="Más Pérdidas" playerName={leaders.mostTurnovers.name} value={leaders.mostTurnovers.value} icon={<ChevronsRightLeft />} />
-                    <StatCard title="Más Faltas" playerName={leaders.mostFouls.name} value={leaders.mostFouls.value} icon={<ShieldAlert />} />
+                    <StatCard title="Máximo Goleador" playerName={leaders.topScorer.name} value={leaders.topScorer.value} icon={<Trophy className="text-primary"/>} />
+                    <StatCard title="Máximo Asistente" playerName={leaders.topAssistant.name} value={leaders.topAssistant.value} icon={<Hand className="text-primary"/>} />
+                    <StatCard title="Más Tiros a Puerta" playerName={leaders.mostShotsOn.name} value={leaders.mostShotsOn.value} icon={<Target className="text-primary"/>} />
+                    <StatCard title="Más Tiros Fuera" playerName={leaders.mostShotsOff.name} value={leaders.mostShotsOff.value} icon={<Goal className="text-primary"/>} />
+                    <StatCard title="Más Recuperaciones" playerName={leaders.mostRecoveries.name} value={leaders.mostRecoveries.value} icon={<RefreshCw className="text-primary"/>} />
+                    <StatCard title="Más Pérdidas" playerName={leaders.mostTurnovers.name} value={leaders.mostTurnovers.value} icon={<ChevronsRightLeft className="text-primary"/>} />
+                    <StatCard title="Más Faltas" playerName={leaders.mostFouls.name} value={leaders.mostFouls.value} icon={<ShieldAlert className="text-orange-500"/>} />
                     <StatCard title="Más T. Amarillas" playerName={leaders.mostYellows.name} value={leaders.mostYellows.value} icon={<SquareIcon className="bg-yellow-400" />} />
-                    <StatCard title="Portero con más Paradas" playerName={leaders.mostSaves.name} value={leaders.mostSaves.value} icon={<Shield />} />
-                    <StatCard title="Portero mejor en 1vs1" playerName={leaders.bestUnoVsUno.name} value={leaders.bestUnoVsUno.value} icon={<Target />} />
-                    <StatCard title="Portero Menos Goleado" playerName={leaders.leastConceded.name} value={leaders.leastConceded.value} icon={<Shield />} />
-                    <StatCard title="Portero Más Goleado" playerName={leaders.mostConceded.name} value={leaders.mostConceded.value} icon={<Shield />} />
-                    <StatCard title="Jugador con más minutos" playerName={leaders.mostMinutes.name} value={formatTime(leaders.mostMinutes.value as number)} icon={<Clock />} />
-                    <StatCard title="Jugador con menos minutos" playerName={leaders.leastMinutes.name} value={formatTime(leaders.leastMinutes.value as number)} icon={<Clock />} />
+                    <StatCard title="Portero con más Paradas" playerName={leaders.mostSaves.name} value={leaders.mostSaves.value} icon={<Shield className="text-primary"/>} />
+                    <StatCard title="Portero mejor en 1vs1" playerName={leaders.bestUnoVsUno.name} value={leaders.bestUnoVsUno.value} icon={<Target className="text-primary"/>} />
+                    <StatCard title="Portero Menos Goleado" playerName={leaders.leastConceded.name} value={leaders.leastConceded.value} icon={<Shield className="text-primary"/>} />
+                    <StatCard title="Portero Más Goleado" playerName={leaders.mostConceded.name} value={leaders.mostConceded.value} icon={<Shield className="text-primary"/>} />
+                    <StatCard title="Jugador con más minutos" playerName={leaders.mostMinutes.name} value={formatTime(leaders.mostMinutes.value as number)} icon={<Clock className="text-primary"/>} />
+                    <StatCard title="Jugador con menos minutos" playerName={leaders.leastMinutes.name} value={formatTime(leaders.leastMinutes.value as number)} icon={<Clock className="text-primary"/>} />
                 </div>
             )}
             
@@ -403,9 +403,9 @@ export default function PlayerStatsPage() {
                                  </TableBody>
                                  <TableFooter>
                                      <TableRow className="font-bold bg-muted/50">
-                                         <TableCell colSpan={2}>Total Equipo</TableCell>
-                                         <TableCell className="text-center">{formatTime(tableTotals.minutesPlayed)}</TableCell>
+                                         <TableCell colSpan={3}>Total Equipo</TableCell>
                                          <TableCell className="text-center">{tableTotals.matchesPlayed}</TableCell>
+                                         <TableCell className="text-center">{formatTime(tableTotals.minutesPlayed)}</TableCell>
                                          <TableCell className="text-center">{tableTotals.goals}</TableCell>
                                          <TableCell className="text-center">{tableTotals.assists}</TableCell>
                                          <TableCell className="text-center">{tableTotals.shotsOnTarget}</TableCell>
@@ -445,3 +445,4 @@ export default function PlayerStatsPage() {
     
 
     
+
