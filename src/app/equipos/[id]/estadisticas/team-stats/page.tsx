@@ -115,7 +115,7 @@ export default function TeamStatsPage() {
                 ...data,
                 date: date,
             } as Match;
-        }) || [],
+        }).sort((a,b) => a.date.getTime() - b.date.getTime()) || [],
     [matchesSnapshot]);
 
     const filteredMatches = useMemo(() => {
