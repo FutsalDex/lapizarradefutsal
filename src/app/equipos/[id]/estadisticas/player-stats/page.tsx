@@ -78,10 +78,11 @@ const SquareIcon = ({ className }: { className?: string }) => (
 const legendItems = [
     { abbr: "PJ", full: "Partidos Jugados" },
     { abbr: "Min.", full: "Minutos Jugados" },
-    { abbr: "Goles", full: "Goles" }, { abbr: "Asist.", full: "Asistencias" }, { abbr: "TA", full: "Tarjetas Amarillas" },
-    { abbr: "TR", full: "Tarjetas Rojas" }, { abbr: "Faltas", full: "Faltas Cometidas" },
-    { abbr: "T.P.", full: "Tiros a Puerta" }, { abbr: "T.F.", full: "Tiros Fuera" }, { abbr: "R", full: "Recuperaciones" },
-    { abbr: "P", full: "Pérdidas" }, { abbr: "Paradas", full: "Paradas (Portero)" }, { abbr: "G. Rec.", full: "Goles Recibidos (Portero)" },
+    { abbr: "G", full: "Goles" }, { abbr: "A", full: "Asistencias" }, { abbr: "TA", full: "Tarjetas Amarillas" },
+    { abbr: "TR", full: "Tarjetas Rojas" }, { abbr: "F", full: "Faltas Cometidas" },
+    { abbr: "T.P.", full: "Tiros a Puerta" }, { abbr: "T.F.", full: "Tiros Fuera" }, { abbr: "REC", full: "Recuperaciones" },
+    { abbr: "PER", full: "Pérdidas" }, { abbr: "PAR", full: "Paradas (Portero)" }, { abbr: "GC", full: "Goles Recibidos (Portero)" },
+    { abbr: "1vs1", full: "Uno contra Uno (Portero)" },
 ];
 
 
@@ -260,12 +261,13 @@ export default function PlayerStatsPage() {
                 acc.turnovers += stats.turnovers;
                 acc.saves += stats.saves;
                 acc.goalsConceded += stats.goalsConceded;
+                acc.unoVsUno += stats.unoVsUno;
             }
             return acc;
         }, {
             matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
             yellowCards: 0, redCards: 0, fouls: 0, shotsOnTarget: 0,
-            shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0
+            shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0, unoVsUno: 0,
         });
     }, [tablePlayers, playerStats]);
 
@@ -347,22 +349,22 @@ export default function PlayerStatsPage() {
                              <Table>
                                  <TableHeader>
                                      <TableRow>
+                                         <TableHead className="text-center">PJ</TableHead>
                                          <TableHead>Dorsal</TableHead>
                                          <TableHead>Nombre</TableHead>
-                                         <TableHead>Equipo</TableHead>
-                                         <TableHead className="text-center">PJ</TableHead>
                                          <TableHead className="text-center">Min.</TableHead>
-                                         <TableHead className="text-center">Goles</TableHead>
-                                         <TableHead className="text-center">Asist.</TableHead>
-                                         <TableHead className="text-center">TA</TableHead>
-                                         <TableHead className="text-center">TR</TableHead>
-                                         <TableHead className="text-center">Faltas</TableHead>
+                                         <TableHead className="text-center">G</TableHead>
+                                         <TableHead className="text-center">A</TableHead>
                                          <TableHead className="text-center">T.P.</TableHead>
                                          <TableHead className="text-center">T.F.</TableHead>
-                                         <TableHead className="text-center">R</TableHead>
-                                         <TableHead className="text-center">P</TableHead>
-                                         <TableHead className="text-center">Paradas</TableHead>
-                                         <TableHead className="text-center">G. Rec.</TableHead>
+                                         <TableHead className="text-center">REC</TableHead>
+                                         <TableHead className="text-center">PER</TableHead>
+                                         <TableHead className="text-center">F</TableHead>
+                                         <TableHead className="text-center">TA</TableHead>
+                                         <TableHead className="text-center">TR</TableHead>
+                                         <TableHead className="text-center">PAR</TableHead>
+                                         <TableHead className="text-center">GC</TableHead>
+                                         <TableHead className="text-center">1vs1</TableHead>
                                      </TableRow>
                                  </TableHeader>
                                  <TableBody>
@@ -370,42 +372,43 @@ export default function PlayerStatsPage() {
                                          const stats = playerStats[player.id];
                                          return (
                                              <TableRow key={player.id}>
+                                                 <TableCell className="text-center">{stats?.matchesPlayed || 0}</TableCell>
                                                  <TableCell className="font-medium">{player.number}</TableCell>
                                                  <TableCell>{player.name}</TableCell>
-                                                 <TableCell>{team?.name}</TableCell>
-                                                 <TableCell className="text-center">{stats?.matchesPlayed || 0}</TableCell>
                                                  <TableCell className="text-center">{formatTime(stats?.minutesPlayed || 0)}</TableCell>
                                                  <TableCell className="text-center">{stats?.goals || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.assists || 0}</TableCell>
-                                                 <TableCell className="text-center">{stats?.yellowCards || 0}</TableCell>
-                                                 <TableCell className="text-center">{stats?.redCards || 0}</TableCell>
-                                                 <TableCell className="text-center">{stats?.fouls || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.shotsOnTarget || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.shotsOffTarget || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.recoveries || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.turnovers || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.fouls || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.yellowCards || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.redCards || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.saves || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.goalsConceded || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.unoVsUno || 0}</TableCell>
                                              </TableRow>
                                          )
                                      })}
                                  </TableBody>
                                  <TableFooter>
                                      <TableRow className="font-bold bg-muted/50">
-                                         <TableCell colSpan={3}>Total Equipo</TableCell>
                                          <TableCell className="text-center">{tableTotals.matchesPlayed}</TableCell>
+                                         <TableCell colSpan={2}>Total Equipo</TableCell>
                                          <TableCell className="text-center">{formatTime(tableTotals.minutesPlayed)}</TableCell>
                                          <TableCell className="text-center">{tableTotals.goals}</TableCell>
                                          <TableCell className="text-center">{tableTotals.assists}</TableCell>
-                                         <TableCell className="text-center">{tableTotals.yellowCards}</TableCell>
-                                         <TableCell className="text-center">{tableTotals.redCards}</TableCell>
-                                         <TableCell className="text-center">{tableTotals.fouls}</TableCell>
                                          <TableCell className="text-center">{tableTotals.shotsOnTarget}</TableCell>
                                          <TableCell className="text-center">{tableTotals.shotsOffTarget}</TableCell>
                                          <TableCell className="text-center">{tableTotals.recoveries}</TableCell>
                                          <TableCell className="text-center">{tableTotals.turnovers}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.fouls}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.yellowCards}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.redCards}</TableCell>
                                          <TableCell className="text-center">{tableTotals.saves}</TableCell>
                                          <TableCell className="text-center">{tableTotals.goalsConceded}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.unoVsUno}</TableCell>
                                      </TableRow>
                                  </TableFooter>
                              </Table>
@@ -427,3 +430,5 @@ export default function PlayerStatsPage() {
     );
 }
 
+
+    
