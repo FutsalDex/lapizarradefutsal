@@ -298,7 +298,6 @@ export default function TeamStatsPage() {
                             <GanttChart className="h-5 w-5 text-primary" />
                             Historial de Partidos ({filter})
                         </CardTitle>
-                        <CardDescription>Lista de partidos utilizados para calcular estas estadísticas.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? <Skeleton className="h-40 w-full" /> : (
