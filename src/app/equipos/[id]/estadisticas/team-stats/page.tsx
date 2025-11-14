@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -107,10 +106,11 @@ export default function TeamStatsPage() {
     [matchesSnapshot]);
 
     const filteredMatches = useMemo(() => {
+        const finishedMatches = matches.filter(match => match.isFinished);
         if (filter === 'Todos') {
-            return matches;
+            return finishedMatches;
         }
-        return matches.filter(match => match.matchType === filter);
+        return finishedMatches.filter(match => match.matchType === filter);
     }, [matches, filter]);
 
     const teamPerformanceStats: PerformanceStats = useMemo(() => {
@@ -268,5 +268,3 @@ export default function TeamStatsPage() {
         </div>
     );
 }
-
-    
