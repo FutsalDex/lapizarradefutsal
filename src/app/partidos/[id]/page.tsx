@@ -37,6 +37,7 @@ type PlayerStat = {
 export default function PartidoDetallePage() {
   const params = useParams();
   const matchId = params.id as string;
+  const myTeamName = "Juvenil B"; // Asumiendo que este es el nombre de tu equipo
 
   const [match, loading, error] = useDocumentData(doc(db, 'matches', matchId));
 
@@ -72,18 +73,15 @@ export default function PartidoDetallePage() {
   
   const matchDate = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date);
   
+  const isMyTeamLocal = localTeam === myTeamName;
+  const rivalName = "RIVAL";
+
   const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
-    const myTeamIsLocal = localTeam === "Juvenil B";
-      
-    const localStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-    const visitorStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-  
-    // Determine which stats object corresponds to local and which to visitor
-    const myTeamStats = myTeamIsLocal ? localStats : visitorStats;
-    const opponentTeamStats = myTeamIsLocal ? visitorStats : localStats;
+    const myTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
+    const opponentTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
   
     ['1H', '2H'].forEach(period => {
-      // Suma las estadísticas de nuestro equipo (playerData) al objeto correcto
+      // Suma las estadísticas de nuestro equipo (playerData)
       if (playerData[period]) {
           Object.values(playerData[period]).forEach((p: any) => {
               myTeamStats.tirosPuerta += p.shotsOnTarget || 0;
@@ -93,7 +91,7 @@ export default function PartidoDetallePage() {
               myTeamStats.perdidas += p.turnovers || 0;
           });
       }
-      // Suma las estadísticas del oponente (opponentData) al objeto correcto
+      // Suma las estadísticas del oponente (opponentData)
       if (opponentData[period]) {
           const oppStats = opponentData[period];
           opponentTeamStats.tirosPuerta += oppStats.shotsOnTarget || 0;
@@ -104,7 +102,10 @@ export default function PartidoDetallePage() {
       }
     });
 
-    return { local: localStats, visitor: visitorStats };
+    return { 
+        local: isMyTeamLocal ? myTeamStats : opponentTeamStats,
+        visitor: isMyTeamLocal ? opponentTeamStats : myTeamStats
+    };
   }
   
   const teamStats = calculateTotalTeamStats(playerStats, opponentStats);
@@ -165,6 +166,10 @@ export default function PartidoDetallePage() {
         const seconds = timeInSeconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
+    
+    const displayLocalTeam = isMyTeamLocal ? myTeamName : rivalName;
+    const displayVisitorTeam = isMyTeamLocal ? rivalName : myTeamName;
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -196,7 +201,7 @@ export default function PartidoDetallePage() {
       
       <Card className="mb-8 text-center">
         <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-2">{localTeam} vs {visitorTeam}</h2>
+            <h2 className="text-2xl font-bold mb-2">{displayLocalTeam} vs {displayVisitorTeam}</h2>
             <p className="text-6xl font-bold text-primary">{localScore} - {visitorScore}</p>
         </CardContent>
       </Card>
@@ -214,8 +219,8 @@ export default function PartidoDetallePage() {
                             <h3 className="font-bold text-lg mb-4">Cronología de Goles</h3>
                         </div>
                         <div className="flex justify-between font-bold text-sm text-muted-foreground border-b pb-2">
-                            <h4 className="w-1/2">{localTeam}</h4>
-                            <h4 className="w-1/2 text-right">{visitorTeam}</h4>
+                            <h4 className="w-1/2">{displayLocalTeam}</h4>
+                            <h4 className="w-1/2 text-right">{displayVisitorTeam}</h4>
                         </div>
                         <div className="space-y-4">
                             {events.filter((e: any) => e.type === 'goal').sort((a:any, b:any) => a.minute - b.minute).map((goal: any, index: number) => (
@@ -242,8 +247,8 @@ export default function PartidoDetallePage() {
                      <div className="space-y-4">
                        <h3 className="font-bold text-center text-lg">Estadísticas del Equipo</h3>
                        <div className="flex justify-between font-bold border-b pb-2 mb-2">
-                            <h4 className="text-left">{localTeam}</h4>
-                            <h4 className="text-right">{visitorTeam}</h4>
+                            <h4 className="text-left">{displayLocalTeam}</h4>
+                            <h4 className="text-right">{displayVisitorTeam}</h4>
                         </div>
                        <div className="space-y-2">
                             <StatRow label="Tiros a Puerta" localValue={teamStats.local.tirosPuerta} visitorValue={teamStats.visitor.tirosPuerta} />
