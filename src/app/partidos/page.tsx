@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useCollection } from 'react-firebase-hooks/firestore';
+import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
 import { collection, query, where, doc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
@@ -67,12 +67,16 @@ const getResultColor = (localScore: number, visitorScore: number, localTeamName:
 
 
 export default function PartidosPage() {
-    const teamName = "Juvenil B";
+    const teamId = 'vfR0cLrsj4r5DSYxUac1'; // Hardcoded team ID
     const { toast } = useToast();
     const [user, loadingAuth] = useAuthState(auth);
 
     const matchesQuery = user ? query(collection(db, "matches"), where("userId", "==", user.uid)) : null;
     const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
+
+    const [teamSnapshot, loadingTeam] = useDocumentData(doc(db, `teams/${teamId}`));
+    const teamName = teamSnapshot?.name || "Mi Equipo";
+    const teamCompetition = teamSnapshot?.competition || '';
 
     const matches = matchesSnapshot?.docs.map(doc => {
         const data = doc.data();
@@ -82,9 +86,9 @@ export default function PartidosPage() {
             ...data,
             date: date
         } as Match
-    }).sort((a, b) => a.date.getTime() - b.date.getTime()) || [];
+    }).sort((a, b) => b.date.getTime() - a.date.getTime()) || [];
 
-    const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/vfR0cLrsj4r5DSYxUac1/players`)) : null);
+    const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/${teamId}/players`)) : null);
     const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })).sort((a,b) => Number(a.number) - Number(b.number)) || [];
     
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
@@ -168,7 +172,13 @@ export default function PartidosPage() {
     };
 
     const handleNewMatchChange = (field: string, value: any) => {
-        setNewMatch((prev) => ({ ...prev, [field]: value }));
+        setNewMatch((prev) => {
+            const updatedMatch = { ...prev, [field]: value };
+            if (field === 'type' && value === 'Liga') {
+                updatedMatch.competition = teamCompetition;
+            }
+            return updatedMatch;
+        });
     };
 
     const handleCreateMatch = async () => {
@@ -190,7 +200,7 @@ export default function PartidosPage() {
             status: 'scheduled' as const,
             isFinished: false,
             userId: user.uid,
-            teamId: 'vfR0cLrsj4r5DSYxUac1', // Hardcoded for now
+            teamId: teamId,
             squad: [],
             events: [],
             playerStats: {},
@@ -292,14 +302,14 @@ export default function PartidosPage() {
         </Card>
     );
 
-    const isLoading = loadingAuth || loadingMatches || loadingPlayers;
+    const isLoading = loadingAuth || loadingMatches || loadingPlayers || loadingTeam;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div className='flex items-center gap-4'>
              <Button variant="outline" asChild>
-                <Link href="/equipos/1">
+                <Link href={`/equipos/${teamId}`}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver al Panel del Equipo
                 </Link>
@@ -590,7 +600,7 @@ export default function PartidosPage() {
                      <div className="space-y-2">
                         <Label htmlFor="type">Tipo</Label>
                         <Select 
-                            value={editingMatch.type}
+                            value={editingMatch.matchType}
                             onValueChange={(value) => handleEditFormChange('type', value)}
                         >
                             <SelectTrigger id="type">
