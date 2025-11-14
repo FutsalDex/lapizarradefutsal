@@ -73,29 +73,37 @@ export default function PartidoDetallePage() {
   const matchDate = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date);
   
   const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
-      const totalLocal = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-      const totalVisitor = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
+    const myTeamIsLocal = localTeam === "Juvenil B";
+      
+    const localStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
+    const visitorStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
 
-      ['1H', '2H'].forEach(period => {
-          if (playerData[period]) {
-              Object.values(playerData[period]).forEach((p: any) => {
-                  totalVisitor.tirosPuerta += p.shotsOnTarget || 0;
-                  totalVisitor.tirosFuera += p.shotsOffTarget || 0;
-                  totalVisitor.faltas += p.fouls || 0;
-                  totalVisitor.recuperaciones += p.recoveries || 0;
-                  totalVisitor.perdidas += p.turnovers || 0;
-              });
-          }
-          if (opponentData[period]) {
-              const oppStats = opponentData[period];
-              totalLocal.tirosPuerta += oppStats.shotsOnTarget || 0;
-              totalLocal.tirosFuera += oppStats.shotsOffTarget || 0;
-              totalLocal.faltas += oppStats.fouls || 0;
-              totalLocal.recuperaciones += oppStats.recoveries || 0;
-              totalLocal.perdidas += oppStats.turnovers || 0;
-          }
-      });
-      return { local: totalLocal, visitor: totalVisitor };
+    const teamToSumFor = myTeamIsLocal ? visitorStats : localStats;
+    const opponentToSumFor = myTeamIsLocal ? localStats : visitorStats;
+
+    ['1H', '2H'].forEach(period => {
+      // Suma las estadísticas de nuestro equipo (playerData) a la columna correcta
+      if (playerData[period]) {
+          Object.values(playerData[period]).forEach((p: any) => {
+              teamToSumFor.tirosPuerta += p.shotsOnTarget || 0;
+              teamToSumFor.tirosFuera += p.shotsOffTarget || 0;
+              teamToSumFor.faltas += p.fouls || 0;
+              teamToSumFor.recuperaciones += p.recoveries || 0;
+              teamToSumFor.perdidas += p.turnovers || 0;
+          });
+      }
+      // Suma las estadísticas del oponente (opponentData) a la columna correcta
+      if (opponentData[period]) {
+          const oppStats = opponentData[period];
+          opponentToSumFor.tirosPuerta += oppStats.shotsOnTarget || 0;
+          opponentToSumFor.tirosFuera += oppStats.shotsOffTarget || 0;
+          opponentToSumFor.faltas += oppStats.fouls || 0;
+          opponentToSumFor.recuperaciones += oppStats.recoveries || 0;
+          opponentToSumFor.perdidas += oppStats.turnovers || 0;
+      }
+    });
+
+    return { local: localStats, visitor: visitorStats };
   }
   
   const teamStats = calculateTotalTeamStats(playerStats, opponentStats);
@@ -308,3 +316,5 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
+
+    
