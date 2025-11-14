@@ -7,7 +7,7 @@ import { doc, updateDoc, collection, query } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { useParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, Play, Pause, Plus, Minus, Flag, ShieldAlert, Target, RefreshCw, XCircle, Goal, ArrowRightLeft, Lock, Unlock, Loader2 } from "lucide-react";
@@ -97,6 +97,28 @@ const OpponentStatCounter = ({ title, value, onIncrement, onDecrement, icon, dis
 );
 
 type Period = '1H' | '2H';
+
+const statHeaders = [
+    { key: "goals", label: "GOL" },
+    { key: "assists", label: "ASI" },
+    { key: "fouls", label: "FAL" },
+    { key: "shotsOnTarget", label: "T.P." },
+    { key: "shotsOffTarget", label: "T.F." },
+    { key: "recoveries", label: "REC" },
+    { key: "turnovers", label: "PER" },
+    { key: "saves", label: "PAR" },
+    { key: "goalsConceded", label: "GC" },
+    { key: "unoVsUno", label: "1VS1" },
+    { key: "yellowCards", label: "TA" },
+    { key: "redCards", label: "TR" },
+];
+
+const legendItems = [
+    { abbr: "GOL", full: "Goles" }, { abbr: "ASI", full: "Asistencias" }, { abbr: "FAL", full: "Faltas" },
+    { abbr: "T.P.", full: "Tiros a Puerta" }, { abbr: "T.F.", full: "Tiros Fuera" }, { abbr: "REC", full: "Recuperaciones" },
+    { abbr: "PER", full: "Pérdidas" }, { abbr: "PAR", full: "Paradas" }, { abbr: "GC", full: "Goles en Contra" },
+    { abbr: "1VS1", full: "Uno contra Uno" }, { abbr: "TA", full: "Tarjeta Amarilla" }, { abbr: "TR", full: "Tarjeta Roja" },
+];
 
 export default function EstadisticasPartidoPage() {
     const { toast } = useToast();
@@ -211,14 +233,14 @@ export default function EstadisticasPartidoPage() {
         }
     };
 
-
     const totals = Object.values(playerStats).reduce((acc, player) => {
-        acc.goals += player.goals;
-        acc.assists += player.assists;
-        acc.fouls += player.fouls;
-        // ... sum other stats
+        (Object.keys(player) as Array<keyof PlayerStat>).forEach(key => {
+            if (typeof player[key] === 'number') {
+                acc[key] = (acc[key] || 0) + (player[key] as number);
+            }
+        });
         return acc;
-    }, { goals: 0, assists: 0, fouls: 0 });
+    }, {} as Partial<Record<keyof PlayerStat, number>>);
 
 
     useEffect(() => {
@@ -414,18 +436,7 @@ export default function EstadisticasPartidoPage() {
                                     <TableRow>
                                         <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
                                         <TableHead className="p-2 text-center">Min</TableHead>
-                                        <TableHead className="p-2 text-center">G</TableHead>
-                                        <TableHead className="p-2 text-center">A</TableHead>
-                                        <TableHead className="p-2 text-center">Faltas</TableHead>
-                                        <TableHead className="p-2 text-center">T. Puerta</TableHead>
-                                        <TableHead className="p-2 text-center">T. Fuera</TableHead>
-                                        <TableHead className="p-2 text-center">Recup.</TableHead>
-                                        <TableHead className="p-2 text-center">Perdidas</TableHead>
-                                        <TableHead className="p-2 text-center">Paradas</TableHead>
-                                        <TableHead className="p-2 text-center">GC</TableHead>
-                                        <TableHead className="p-2 text-center">1vs1</TableHead>
-                                        <TableHead className="p-2 text-center">TA</TableHead>
-                                        <TableHead className="p-2 text-center">TR</TableHead>
+                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -444,23 +455,33 @@ export default function EstadisticasPartidoPage() {
                                                     : "bg-card font-medium"
                                             )}>{player.number}. {player.name}</TableCell>
                                             <TableCell className="p-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.goals || 0} onIncrement={() => handleStatChange(player.id, 'goals', 1)} onDecrement={() => handleStatChange(player.id, 'goals', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.assists || 0} onIncrement={() => handleStatChange(player.id, 'assists', 1)} onDecrement={() => handleStatChange(player.id, 'assists', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.fouls || 0} onIncrement={() => handleStatChange(player.id, 'fouls', 1)} onDecrement={() => handleStatChange(player.id, 'fouls', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.shotsOnTarget || 0} onIncrement={() => handleStatChange(player.id, 'shotsOnTarget', 1)} onDecrement={() => handleStatChange(player.id, 'shotsOnTarget', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.shotsOffTarget || 0} onIncrement={() => handleStatChange(player.id, 'shotsOffTarget', 1)} onDecrement={() => handleStatChange(player.id, 'shotsOffTarget', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.recoveries || 0} onIncrement={() => handleStatChange(player.id, 'recoveries', 1)} onDecrement={() => handleStatChange(player.id, 'recoveries', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.turnovers || 0} onIncrement={() => handleStatChange(player.id, 'turnovers', 1)} onDecrement={() => handleStatChange(player.id, 'turnovers', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.saves || 0} onIncrement={() => handleStatChange(player.id, 'saves', 1)} onDecrement={() => handleStatChange(player.id, 'saves', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.goalsConceded || 0} onIncrement={() => handleStatChange(player.id, 'goalsConceded', 1)} onDecrement={() => handleStatChange(player.id, 'goalsConceded', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.unoVsUno || 0} onIncrement={() => handleStatChange(player.id, 'unoVsUno', 1)} onDecrement={() => handleStatChange(player.id, 'unoVsUno', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.yellowCards || 0} onIncrement={() => handleStatChange(player.id, 'yellowCards', 1)} onDecrement={() => handleStatChange(player.id, 'yellowCards', -1)} disabled={isFinished} /></TableCell>
-                                            <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.redCards || 0} onIncrement={() => handleStatChange(player.id, 'redCards', 1)} onDecrement={() => handleStatChange(player.id, 'redCards', -1)} disabled={isFinished} /></TableCell>
+                                            {statHeaders.map(header => (
+                                                 <TableCell key={header.key} className="p-2" onClick={(e) => e.stopPropagation()}>
+                                                    <StatButton 
+                                                        value={playerStats[player.id]?.[header.key as keyof PlayerStat] as number || 0} 
+                                                        onIncrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, 1)} 
+                                                        onDecrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, -1)} 
+                                                        disabled={isFinished} 
+                                                    />
+                                                </TableCell>
+                                            ))}
                                         </TableRow>
                                     ))}
                                 </TableBody>
                                 <TableFooter>
-                                    <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
+                                    <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
+                                        <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
+                                        <TableCell className="p-2 text-center">{formatTime(totals.minutesPlayed || 0)}</TableCell>
+                                        {statHeaders.map(header => (
+                                            <TableCell key={header.key} className="p-2 text-center">
+                                                {totals[header.key as keyof PlayerStat] || 0}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
+                                        <TableHead className="p-2 text-center">Min</TableHead>
+                                        {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                     </TableRow>
                                 </TableFooter>
                             </Table>
@@ -469,6 +490,15 @@ export default function EstadisticasPartidoPage() {
                              <OpponentStatCounters disabled={isFinished} opponentStats={opponentStats} handleOpponentStatChange={handleOpponentStatChange} />
                         )}
                     </CardContent>
+                     <CardFooter className="pt-4">
+                        <div className="text-xs text-muted-foreground grid grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-1">
+                            {legendItems.map(item => (
+                                <div key={item.abbr}>
+                                    <span className="font-semibold">{item.abbr}:</span> {item.full}
+                                </div>
+                            ))}
+                        </div>
+                    </CardFooter>
                 </Card>
             </TabsContent>
             <TabsContent value="team-b">
@@ -484,18 +514,7 @@ export default function EstadisticasPartidoPage() {
                                         <TableRow>
                                             <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
                                             <TableHead className="p-2 text-center">Min</TableHead>
-                                            <TableHead className="p-2 text-center">G</TableHead>
-                                            <TableHead className="p-2 text-center">A</TableHead>
-                                            <TableHead className="p-2 text-center">Faltas</TableHead>
-                                            <TableHead className="p-2 text-center">T. Puerta</TableHead>
-                                            <TableHead className="p-2 text-center">T. Fuera</TableHead>
-                                            <TableHead className="p-2 text-center">Recup.</TableHead>
-                                            <TableHead className="p-2 text-center">Perdidas</TableHead>
-                                            <TableHead className="p-2 text-center">Paradas</TableHead>
-                                            <TableHead className="p-2 text-center">GC</TableHead>
-                                            <TableHead className="p-2 text-center">1vs1</TableHead>
-                                            <TableHead className="p-2 text-center">TA</TableHead>
-                                            <TableHead className="p-2 text-center">TR</TableHead>
+                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -514,23 +533,33 @@ export default function EstadisticasPartidoPage() {
                                                         : "bg-card font-medium"
                                                 )}>{player.number}. {player.name}</TableCell>
                                                 <TableCell className="p-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.goals || 0} onIncrement={() => handleStatChange(player.id, 'goals', 1)} onDecrement={() => handleStatChange(player.id, 'goals', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.assists || 0} onIncrement={() => handleStatChange(player.id, 'assists', 1)} onDecrement={() => handleStatChange(player.id, 'assists', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.fouls || 0} onIncrement={() => handleStatChange(player.id, 'fouls', 1)} onDecrement={() => handleStatChange(player.id, 'fouls', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.shotsOnTarget || 0} onIncrement={() => handleStatChange(player.id, 'shotsOnTarget', 1)} onDecrement={() => handleStatChange(player.id, 'shotsOnTarget', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.shotsOffTarget || 0} onIncrement={() => handleStatChange(player.id, 'shotsOffTarget', 1)} onDecrement={() => handleStatChange(player.id, 'shotsOffTarget', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.recoveries || 0} onIncrement={() => handleStatChange(player.id, 'recoveries', 1)} onDecrement={() => handleStatChange(player.id, 'recoveries', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.turnovers || 0} onIncrement={() => handleStatChange(player.id, 'turnovers', 1)} onDecrement={() => handleStatChange(player.id, 'turnovers', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.saves || 0} onIncrement={() => handleStatChange(player.id, 'saves', 1)} onDecrement={() => handleStatChange(player.id, 'saves', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.goalsConceded || 0} onIncrement={() => handleStatChange(player.id, 'goalsConceded', 1)} onDecrement={() => handleStatChange(player.id, 'goalsConceded', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.unoVsUno || 0} onIncrement={() => handleStatChange(player.id, 'unoVsUno', 1)} onDecrement={() => handleStatChange(player.id, 'unoVsUno', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.yellowCards || 0} onIncrement={() => handleStatChange(player.id, 'yellowCards', 1)} onDecrement={() => handleStatChange(player.id, 'yellowCards', -1)} disabled={isFinished} /></TableCell>
-                                                <TableCell className="p-2" onClick={(e) => e.stopPropagation()}><StatButton value={playerStats[player.id]?.redCards || 0} onIncrement={() => handleStatChange(player.id, 'redCards', 1)} onDecrement={() => handleStatChange(player.id, 'redCards', -1)} disabled={isFinished} /></TableCell>
+                                                {statHeaders.map(header => (
+                                                    <TableCell key={header.key} className="p-2" onClick={(e) => e.stopPropagation()}>
+                                                        <StatButton 
+                                                            value={playerStats[player.id]?.[header.key as keyof PlayerStat] as number || 0} 
+                                                            onIncrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, 1)} 
+                                                            onDecrement={() => handleStatChange(player.id, header.key as keyof PlayerStat, -1)} 
+                                                            disabled={isFinished} 
+                                                        />
+                                                    </TableCell>
+                                                ))}
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                     <TableFooter>
-                                        <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
+                                         <TableRow className="font-bold bg-muted/50 hover:bg-muted/50">
+                                            <TableCell className="sticky left-0 bg-muted/50 p-2 min-w-[150px] text-center">Total</TableCell>
+                                            <TableCell className="p-2 text-center">{formatTime(totals.minutesPlayed || 0)}</TableCell>
+                                            {statHeaders.map(header => (
+                                                <TableCell key={header.key} className="p-2 text-center">
+                                                    {totals[header.key as keyof PlayerStat] || 0}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableHead className="sticky left-0 bg-card min-w-[150px] p-2 text-center">Jugador</TableHead>
+                                            <TableHead className="p-2 text-center">Min</TableHead>
+                                            {statHeaders.map(header => <TableHead key={header.key} className="p-2 text-center">{header.label}</TableHead>)}
                                         </TableRow>
                                     </TableFooter>
                                 </Table>
@@ -539,6 +568,15 @@ export default function EstadisticasPartidoPage() {
                             <OpponentStatCounters disabled={isFinished} opponentStats={opponentStats} handleOpponentStatChange={handleOpponentStatChange} />
                         )}
                     </CardContent>
+                     <CardFooter className="pt-4">
+                        <div className="text-xs text-muted-foreground grid grid-cols-4 md:grid-cols-6 gap-x-4 gap-y-1">
+                            {legendItems.map(item => (
+                                <div key={item.abbr}>
+                                    <span className="font-semibold">{item.abbr}:</span> {item.full}
+                                </div>
+                            ))}
+                        </div>
+                    </CardFooter>
                 </Card>
             </TabsContent>
         </Tabs>
