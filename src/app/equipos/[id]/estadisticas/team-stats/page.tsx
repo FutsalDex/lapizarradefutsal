@@ -4,8 +4,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus, Calendar, GanttChart } from "lucide-react";
+import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus, Calendar, GanttChart, GanttChartSquare } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
@@ -108,7 +107,6 @@ export default function TeamStatsPage() {
     const matches = useMemo(() => 
         matchesSnapshot?.docs.map(doc => {
             const data = doc.data();
-            // Safely convert timestamp to date
             const date = data.date && typeof data.date.toDate === 'function' 
                 ? (data.date as Timestamp).toDate() 
                 : data.date;
@@ -192,11 +190,15 @@ export default function TeamStatsPage() {
         <div className={cn("w-4 h-5 rounded-sm", className)} />
     );
 
+    const filterOptions = ['Todos', 'Liga', 'Copa', 'Torneo', 'Amistoso'];
 
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold font-headline">Estadísticas del Equipo: {teamName}</h1>
+                <div className="flex items-center gap-3">
+                    <Trophy className="h-8 w-8 text-primary" />
+                    <h1 className="text-3xl font-bold font-headline">Estadísticas del Equipo: {teamName}</h1>
+                </div>
                 <Button variant="outline" asChild>
                 <Link href={`/equipos/${teamId}/estadisticas`}>
                     <ArrowLeft className="mr-2" />
@@ -205,15 +207,26 @@ export default function TeamStatsPage() {
                 </Button>
             </div>
 
-            <Tabs value={filter} onValueChange={setFilter}>
-                <TabsList className="mb-6">
-                    <TabsTrigger value="Todos">Todos</TabsTrigger>
-                    <TabsTrigger value="Liga">Liga</TabsTrigger>
-                    <TabsTrigger value="Copa">Copa</TabsTrigger>
-                    <TabsTrigger value="Torneo">Torneo</TabsTrigger>
-                    <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>Controles</CardTitle>
+                    <CardDescription>Filtra por competición para ver las estadísticas.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center gap-2">
+                        {filterOptions.map(option => (
+                            <Button 
+                                key={option}
+                                variant={filter === option ? 'default' : 'outline'}
+                                onClick={() => setFilter(option)}
+                                size="sm"
+                            >
+                                {option}
+                            </Button>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
             
             <div className="space-y-8">
                 <Card>
@@ -232,7 +245,7 @@ export default function TeamStatsPage() {
                             <p className="text-destructive">Error: {errorMatches.message}</p>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                                <StatCard title="Partidos Jugados" value={matchSummary.played} icon={<Trophy className="h-6 w-6 text-primary" />} />
+                                <StatCard title="Partidos Jugados" value={matchSummary.played} icon={<GanttChartSquare className="h-6 w-6 text-primary" />} />
                                 <StatCard title="Ganados" value={matchSummary.won} icon={<TrendingUp className="h-6 w-6 text-green-600" />} className="border-green-500/50" />
                                 <StatCard title="Empatados" value={matchSummary.drawn} icon={<Shield className="h-6 w-6 text-yellow-600" />} className="border-yellow-500/50" />
                                 <StatCard title="Perdidos" value={matchSummary.lost} icon={<TrendingDown className="h-6 w-6 text-red-600" />} className="border-red-500/50" />
