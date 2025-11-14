@@ -77,29 +77,30 @@ export default function PartidoDetallePage() {
       
     const localStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
     const visitorStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-
-    const teamToSumFor = myTeamIsLocal ? visitorStats : localStats;
-    const opponentToSumFor = myTeamIsLocal ? localStats : visitorStats;
-
+  
+    // Determine which stats object corresponds to local and which to visitor
+    const myTeamStats = myTeamIsLocal ? localStats : visitorStats;
+    const opponentTeamStats = myTeamIsLocal ? visitorStats : localStats;
+  
     ['1H', '2H'].forEach(period => {
-      // Suma las estadísticas de nuestro equipo (playerData) a la columna correcta
+      // Suma las estadísticas de nuestro equipo (playerData) al objeto correcto
       if (playerData[period]) {
           Object.values(playerData[period]).forEach((p: any) => {
-              teamToSumFor.tirosPuerta += p.shotsOnTarget || 0;
-              teamToSumFor.tirosFuera += p.shotsOffTarget || 0;
-              teamToSumFor.faltas += p.fouls || 0;
-              teamToSumFor.recuperaciones += p.recoveries || 0;
-              teamToSumFor.perdidas += p.turnovers || 0;
+              myTeamStats.tirosPuerta += p.shotsOnTarget || 0;
+              myTeamStats.tirosFuera += p.shotsOffTarget || 0;
+              myTeamStats.faltas += p.fouls || 0;
+              myTeamStats.recuperaciones += p.recoveries || 0;
+              myTeamStats.perdidas += p.turnovers || 0;
           });
       }
-      // Suma las estadísticas del oponente (opponentData) a la columna correcta
+      // Suma las estadísticas del oponente (opponentData) al objeto correcto
       if (opponentData[period]) {
           const oppStats = opponentData[period];
-          opponentToSumFor.tirosPuerta += oppStats.shotsOnTarget || 0;
-          opponentToSumFor.tirosFuera += oppStats.shotsOffTarget || 0;
-          opponentToSumFor.faltas += oppStats.fouls || 0;
-          opponentToSumFor.recuperaciones += oppStats.recoveries || 0;
-          opponentToSumFor.perdidas += oppStats.turnovers || 0;
+          opponentTeamStats.tirosPuerta += oppStats.shotsOnTarget || 0;
+          opponentTeamStats.tirosFuera += oppStats.shotsOffTarget || 0;
+          opponentTeamStats.faltas += oppStats.fouls || 0;
+          opponentTeamStats.recuperaciones += oppStats.recoveries || 0;
+          opponentTeamStats.perdidas += oppStats.turnovers || 0;
       }
     });
 
