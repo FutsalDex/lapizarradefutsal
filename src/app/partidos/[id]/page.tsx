@@ -74,7 +74,6 @@ export default function PartidoDetallePage() {
   const matchDate = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date);
   
   const isMyTeamLocal = localTeam === myTeamName;
-  const rivalName = "RIVAL";
 
   const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
     const myTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
@@ -167,8 +166,8 @@ export default function PartidoDetallePage() {
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     };
     
-    const displayLocalTeam = isMyTeamLocal ? myTeamName : rivalName;
-    const displayVisitorTeam = isMyTeamLocal ? rivalName : myTeamName;
+    const displayLocalTeam = localTeam;
+    const displayVisitorTeam = visitorTeam;
 
 
   return (
