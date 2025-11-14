@@ -68,6 +68,8 @@
         "pj": { "type": "number" },
         "goals": { "type": "number" },
         "assists": { "type": "number" },
+        "yellowCards": { "type": "number" },
+        "redCards": { "type": "number" },
         "faltas": { "type": "number" },
         "recuperaciones": { "type": "number" },
         "perdidas": { "type": "number" },
