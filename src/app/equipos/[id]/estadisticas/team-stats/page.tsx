@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus, Calendar, GanttChart } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
@@ -12,6 +13,9 @@ import { collection, query, where, doc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type Match = {
     id: string;
@@ -98,7 +102,7 @@ export default function TeamStatsPage() {
     const [team, loadingTeam] = useDocumentData(doc(db, `teams/${teamId}`));
     const teamName = team?.name || '';
 
-    const matchesQuery = teamId ? query(collection(db, "matches"), where("teamId", "==", teamId)) : null;
+    const matchesQuery = teamId ? query(collection(db, "matches"), where("teamId", "==", teamId), where("isFinished", "==", true)) : null;
     const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
 
     const matches = useMemo(() => 
@@ -106,11 +110,10 @@ export default function TeamStatsPage() {
     [matchesSnapshot]);
 
     const filteredMatches = useMemo(() => {
-        const finishedMatches = matches.filter(match => match.isFinished);
         if (filter === 'Todos') {
-            return finishedMatches;
+            return matches;
         }
-        return finishedMatches.filter(match => match.matchType === filter);
+        return matches.filter(match => match.matchType === filter);
     }, [matches, filter]);
 
     const teamPerformanceStats: PerformanceStats = useMemo(() => {
@@ -251,7 +254,7 @@ export default function TeamStatsPage() {
                     </CardContent>
                 </Card>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 pb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {isLoading ? (
                         <>
                             <Skeleton className="h-64 w-full" />
@@ -264,6 +267,51 @@ export default function TeamStatsPage() {
                         </>
                     )}
                 </div>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <GanttChart className="h-5 w-5 text-primary" />
+                            Historial de Partidos ({filter})
+                        </CardTitle>
+                        <CardDescription>Lista de partidos utilizados para calcular estas estadísticas.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isLoading ? <Skeleton className="h-40 w-full" /> : (
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[120px]">Fecha</TableHead>
+                                            <TableHead>Local</TableHead>
+                                            <TableHead>Visitante</TableHead>
+                                            <TableHead className="text-right">Resultado</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredMatches.length > 0 ? filteredMatches.map((match) => (
+                                            <TableRow key={match.id}>
+                                                <TableCell className="font-medium">
+                                                    {format(match.date.toDate(), 'dd/MM/yyyy', { locale: es })}
+                                                </TableCell>
+                                                <TableCell>{match.localTeam}</TableCell>
+                                                <TableCell>{match.visitorTeam}</TableCell>
+                                                <TableCell className="text-right font-mono">{match.localScore} - {match.visitorScore}</TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center h-24">
+                                                    No hay partidos para este filtro.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
             </div>
         </div>
     );
