@@ -438,7 +438,7 @@ export default function PartidosPage() {
                 </TabsContent>
                 <TabsContent value="Liga">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {matches.filter(m => m.competition.includes('Liga')).map(renderMatchCard)}
+                        {matches.filter(m => m.competition.includes('Liga') || m.competition.includes('DIVISION')).map(renderMatchCard)}
                     </div>
                 </TabsContent>
                 <TabsContent value="Copa">
