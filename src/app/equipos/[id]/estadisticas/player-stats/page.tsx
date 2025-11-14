@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Search, Trophy, Hand, Target, ChevronsRightLeft, RefreshCw, ShieldAlert, Clock, Goal, Shield } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+
 
 type Player = {
   id: string;
@@ -49,6 +51,7 @@ type AggregatedStats = {
         unoVsUno: number;
         goalsConceded: number;
         minutesPlayed: number;
+        matchesPlayed: number;
     }
 };
 
@@ -70,6 +73,16 @@ const StatCard = ({ title, playerName, value, icon }: { title: string; playerNam
 const SquareIcon = ({ className }: { className?: string }) => (
     <div className={cn("w-3 h-4 rounded-sm", className)} />
 );
+
+
+const legendItems = [
+    { abbr: "PJ", full: "Partidos Jugados" },
+    { abbr: "Min.", full: "Minutos Jugados" },
+    { abbr: "Goles", full: "Goles" }, { abbr: "Asist.", full: "Asistencias" }, { abbr: "TA", full: "Tarjetas Amarillas" },
+    { abbr: "TR", full: "Tarjetas Rojas" }, { abbr: "Faltas", full: "Faltas Cometidas" },
+    { abbr: "T.P.", full: "Tiros a Puerta" }, { abbr: "T.F.", full: "Tiros Fuera" }, { abbr: "R", full: "Recuperaciones" },
+    { abbr: "P", full: "Pérdidas" }, { abbr: "Paradas", full: "Paradas (Portero)" }, { abbr: "G. Rec.", full: "Goles Recibidos (Portero)" },
+];
 
 
 export default function PlayerStatsPage() {
@@ -98,6 +111,13 @@ export default function PlayerStatsPage() {
         }
         return matches.filter(match => match.matchType === filter);
     }, [matches, filter]);
+    
+    const formatTime = (totalSeconds: number) => {
+        if (isNaN(totalSeconds) || totalSeconds < 0) return '00:00';
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
 
     const playerStats: AggregatedStats = useMemo(() => {
         const stats: AggregatedStats = {};
@@ -107,16 +127,17 @@ export default function PlayerStatsPage() {
                 name: player.name,
                 goals: 0, assists: 0, shotsOnTarget: 0, shotsOffTarget: 0,
                 recoveries: 0, turnovers: 0, fouls: 0, yellowCards: 0, redCards: 0,
-                saves: 0, unoVsUno: 0, goalsConceded: 0, minutesPlayed: 0
+                saves: 0, unoVsUno: 0, goalsConceded: 0, minutesPlayed: 0, matchesPlayed: 0
             };
         });
 
         filteredMatches.forEach(match => {
+            const playerIdsInMatch = new Set<string>();
             ['1H', '2H'].forEach(period => {
                 const periodStats = match.playerStats?.[period as '1H' | '2H'];
                 if (periodStats) {
                     for (const playerId in periodStats) {
-                        if (stats[playerId]) {
+                         if (stats[playerId]) {
                             const pStats = periodStats[playerId];
                             stats[playerId].goals += pStats.goals || 0;
                             stats[playerId].assists += pStats.assists || 0;
@@ -131,10 +152,17 @@ export default function PlayerStatsPage() {
                             stats[playerId].unoVsUno += pStats.unoVsUno || 0;
                             stats[playerId].goalsConceded += pStats.goalsConceded || 0;
                             stats[playerId].minutesPlayed += pStats.minutesPlayed || 0;
+                            
+                            if(pStats.minutesPlayed > 0) {
+                                playerIdsInMatch.add(playerId);
+                            }
                         }
                     }
                 }
             });
+            playerIdsInMatch.forEach(id => {
+                if(stats[id]) stats[id].matchesPlayed += 1;
+            })
         });
         return stats;
     }, [filteredMatches, playersMap]);
@@ -165,7 +193,7 @@ export default function PlayerStatsPage() {
                 isNewLeader = true;
             } else if (mode === 'min' && statValue < leader.value && statValue > 0) { // For min, ensure it's not zero unless that's the only option
                 isNewLeader = true;
-            } else if (mode === 'min' && leader.value === Infinity) { // If we haven't found any player yet
+            } else if (mode === 'min' && leader.value === Infinity && statValue >= 0) { // If we haven't found any player yet, take first non-negative
                 isNewLeader = true;
             }
 
@@ -175,7 +203,6 @@ export default function PlayerStatsPage() {
             }
         }
         
-        // if for min we still have infinity, means no one has stats for it, so we can pick anyone with 0
         if(mode === 'min' && leader.value === Infinity) {
              for (const playerId of Array.from(searchFilteredPlayerIds)) {
                 const player = playersMap.get(playerId);
@@ -188,15 +215,7 @@ export default function PlayerStatsPage() {
             }
         }
 
-
         return leader;
-    };
-    
-    const formatTime = (seconds: number) => {
-        if (seconds < 0) return '00:00';
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
     };
 
     const leaders = {
@@ -216,11 +235,42 @@ export default function PlayerStatsPage() {
         leastMinutes: getTopPlayer('minutesPlayed', 'min'),
     };
     
+    const tablePlayers = Array.from(playersMap.values())
+        .filter(player => searchFilteredPlayerIds.has(player.id))
+        .sort((a, b) => Number(a.number) - Number(b.number));
+
+    const tableTotals = useMemo(() => {
+        return tablePlayers.reduce((acc, player) => {
+            const stats = playerStats[player.id];
+            if (stats) {
+                acc.matchesPlayed += stats.matchesPlayed;
+                acc.minutesPlayed += stats.minutesPlayed;
+                acc.goals += stats.goals;
+                acc.assists += stats.assists;
+                acc.yellowCards += stats.yellowCards;
+                acc.redCards += stats.redCards;
+                acc.fouls += stats.fouls;
+                acc.shotsOnTarget += stats.shotsOnTarget;
+                acc.shotsOffTarget += stats.shotsOffTarget;
+                acc.recoveries += stats.recoveries;
+                acc.turnovers += stats.turnovers;
+                acc.saves += stats.saves;
+                acc.goalsConceded += stats.goalsConceded;
+            }
+            return acc;
+        }, {
+            matchesPlayed: 0, minutesPlayed: 0, goals: 0, assists: 0,
+            yellowCards: 0, redCards: 0, fouls: 0, shotsOnTarget: 0,
+            shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0, goalsConceded: 0
+        });
+    }, [tablePlayers, playerStats]);
+
+
     const isLoading = loadingTeam || loadingPlayers || loadingMatches;
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
+        <div className="container mx-auto px-4 py-8 space-y-8">
+            <div className="flex justify-between items-center">
                 <div>
                      <div className="flex items-center gap-3 mb-2">
                         <Users className="w-8 h-8 text-primary" />
@@ -236,10 +286,12 @@ export default function PlayerStatsPage() {
                 </Button>
             </div>
 
-             <Card className="mb-8">
-                <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2">Controles</h3>
-                    <p className="text-sm text-muted-foreground mb-4">Filtra por competición y busca jugadores.</p>
+             <Card>
+                <CardHeader>
+                    <CardTitle>Controles</CardTitle>
+                    <p className="text-sm text-muted-foreground">Filtra por competición y busca jugadores.</p>
+                </CardHeader>
+                <CardContent>
                      <div className="flex flex-col md:flex-row gap-4">
                          <div className="relative flex-grow">
                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -280,6 +332,94 @@ export default function PlayerStatsPage() {
                     <StatCard title="Jugador con menos minutos" playerName={leaders.leastMinutes.name} value={formatTime(leaders.leastMinutes.value as number)} icon={<Clock />} />
                 </div>
             )}
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle>Tabla General de Jugadores</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     {isLoading ? <Skeleton className="h-64 w-full" /> : (
+                         <div className="overflow-x-auto">
+                             <Table>
+                                 <TableHeader>
+                                     <TableRow>
+                                         <TableHead>Dorsal</TableHead>
+                                         <TableHead>Nombre</TableHead>
+                                         <TableHead>Equipo</TableHead>
+                                         <TableHead className="text-center">PJ</TableHead>
+                                         <TableHead className="text-center">Min.</TableHead>
+                                         <TableHead className="text-center">Goles</TableHead>
+                                         <TableHead className="text-center">Asist.</TableHead>
+                                         <TableHead className="text-center">TA</TableHead>
+                                         <TableHead className="text-center">TR</TableHead>
+                                         <TableHead className="text-center">Faltas</TableHead>
+                                         <TableHead className="text-center">T.P.</TableHead>
+                                         <TableHead className="text-center">T.F.</TableHead>
+                                         <TableHead className="text-center">R</TableHead>
+                                         <TableHead className="text-center">P</TableHead>
+                                         <TableHead className="text-center">Paradas</TableHead>
+                                         <TableHead className="text-center">G. Rec.</TableHead>
+                                     </TableRow>
+                                 </TableHeader>
+                                 <TableBody>
+                                     {tablePlayers.map(player => {
+                                         const stats = playerStats[player.id];
+                                         return (
+                                             <TableRow key={player.id}>
+                                                 <TableCell className="font-medium">{player.number}</TableCell>
+                                                 <TableCell>{player.name}</TableCell>
+                                                 <TableCell>{team?.name}</TableCell>
+                                                 <TableCell className="text-center">{stats?.matchesPlayed || 0}</TableCell>
+                                                 <TableCell className="text-center">{formatTime(stats?.minutesPlayed || 0)}</TableCell>
+                                                 <TableCell className="text-center">{stats?.goals || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.assists || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.yellowCards || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.redCards || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.fouls || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.shotsOnTarget || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.shotsOffTarget || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.recoveries || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.turnovers || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.saves || 0}</TableCell>
+                                                 <TableCell className="text-center">{stats?.goalsConceded || 0}</TableCell>
+                                             </TableRow>
+                                         )
+                                     })}
+                                 </TableBody>
+                                 <TableFooter>
+                                     <TableRow className="font-bold bg-muted/50">
+                                         <TableCell colSpan={3}>Total Equipo</TableCell>
+                                         <TableCell className="text-center">{tableTotals.matchesPlayed}</TableCell>
+                                         <TableCell className="text-center">{formatTime(tableTotals.minutesPlayed)}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.goals}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.assists}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.yellowCards}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.redCards}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.fouls}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.shotsOnTarget}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.shotsOffTarget}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.recoveries}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.turnovers}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.saves}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.goalsConceded}</TableCell>
+                                     </TableRow>
+                                 </TableFooter>
+                             </Table>
+                         </div>
+                     )}
+                </CardContent>
+                <CardFooter className="pt-4">
+                     <div className="text-xs text-muted-foreground grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-1">
+                        {legendItems.map(item => (
+                            <div key={item.abbr}>
+                                <span className="font-semibold">{item.abbr}:</span> {item.full}
+                            </div>
+                        ))}
+                    </div>
+                </CardFooter>
+            </Card>
+
         </div>
     );
 }
+
