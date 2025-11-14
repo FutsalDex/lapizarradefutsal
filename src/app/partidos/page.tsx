@@ -86,7 +86,7 @@ export default function PartidosPage() {
             ...data,
             date: date
         } as Match
-    }).sort((a, b) => b.date.getTime() - a.date.getTime()) || [];
+    }).sort((a, b) => a.date.getTime() - b.date.getTime()) || [];
 
     const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/${teamId}/players`)) : null);
     const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })).sort((a,b) => Number(a.number) - Number(b.number)) || [];
@@ -162,7 +162,7 @@ export default function PartidosPage() {
             ...match,
             date: match.date,
             time: format(match.date, "HH:mm"),
-            type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.matchType) ? match.matchType : 'Amistoso',
+            matchType: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.matchType) ? match.matchType : 'Amistoso',
         });
         setIsEditDialogOpen(true);
     };
@@ -229,8 +229,8 @@ export default function PartidosPage() {
                 localTeam: editingMatch.localTeam,
                 visitorTeam: editingMatch.visitorTeam,
                 date: Timestamp.fromDate(matchDate),
-                competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
-                matchType: editingMatch.type,
+                competition: editingMatch.matchType === 'Liga' ? editingMatch.competition : editingMatch.matchType,
+                matchType: editingMatch.matchType,
                 round: editingMatch.round
             });
             toast({ title: "Cambios guardados" });
@@ -601,7 +601,7 @@ export default function PartidosPage() {
                         <Label htmlFor="type">Tipo</Label>
                         <Select 
                             value={editingMatch.matchType}
-                            onValueChange={(value) => handleEditFormChange('type', value)}
+                            onValueChange={(value) => handleEditFormChange('matchType', value)}
                         >
                             <SelectTrigger id="type">
                                 <SelectValue placeholder="Seleccionar tipo" />
@@ -614,7 +614,7 @@ export default function PartidosPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    {editingMatch.type === 'Liga' && (
+                    {editingMatch.matchType === 'Liga' && (
                         <>
                             <div className="space-y-2">
                                 <Label htmlFor="competition">Competición</Label>
