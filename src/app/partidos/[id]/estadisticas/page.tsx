@@ -445,13 +445,13 @@ export default function EstadisticasPartidoPage() {
                                             key={player.id} 
                                             onClick={() => handlePlayerSelection(player.id)}
                                             className={cn("cursor-pointer", {
-                                                'bg-orange-200/50 dark:bg-orange-900/30 hover:bg-orange-200/60 dark:hover:bg-orange-900/40': selectedPlayerIds.has(player.id)
+                                                'bg-teal-100/50 dark:bg-teal-900/30 hover:bg-teal-100/60 dark:hover:bg-teal-900/40': selectedPlayerIds.has(player.id)
                                             })}
                                         >
                                             <TableCell className={cn(
                                                 "sticky left-0 px-1 py-2 min-w-[150px]", 
                                                 selectedPlayerIds.has(player.id) 
-                                                    ? "bg-orange-200/50 dark:bg-orange-900/30 font-bold" 
+                                                    ? "bg-teal-100/50 dark:bg-teal-900/30 font-bold" 
                                                     : "bg-card font-medium"
                                             )}>{player.number}. {player.name}</TableCell>
                                             <TableCell className="px-1 py-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
@@ -523,13 +523,13 @@ export default function EstadisticasPartidoPage() {
                                                 key={player.id} 
                                                 onClick={() => handlePlayerSelection(player.id)}
                                                 className={cn("cursor-pointer", {
-                                                    'bg-orange-200/50 dark:bg-orange-900/30 hover:bg-orange-200/60 dark:hover:bg-orange-900/40': selectedPlayerIds.has(player.id)
+                                                    'bg-teal-100/50 dark:bg-teal-900/30 hover:bg-teal-100/60 dark:hover:bg-teal-900/40': selectedPlayerIds.has(player.id)
                                                 })}
                                             >
                                                 <TableCell className={cn(
                                                     "sticky left-0 px-1 py-2 min-w-[150px]", 
                                                     selectedPlayerIds.has(player.id) 
-                                                        ? "bg-orange-200/50 dark:bg-orange-900/30 font-bold" 
+                                                        ? "bg-teal-100/50 dark:bg-teal-900/30 font-bold" 
                                                         : "bg-card font-medium"
                                                 )}>{player.number}. {player.name}</TableCell>
                                                 <TableCell className="px-1 py-2 text-center">{formatTime(playerStats[player.id]?.minutesPlayed || 0)}</TableCell>
@@ -599,3 +599,4 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
 
 
     
+
