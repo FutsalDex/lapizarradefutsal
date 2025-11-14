@@ -1,24 +1,26 @@
 
-
 "use client";
 
-import { matches as initialMatches, Match } from '@/lib/data';
+import React from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { useCollection } from 'react-firebase-hooks/firestore';
+import { collection, query, where, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { auth, db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Trash2, Clock } from 'lucide-react';
+import { PlusCircle, ArrowLeft, Users, BarChart, Eye, Edit, Trophy, Save, Calendar as CalendarIcon, Trash2, Clock, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   AlertDialog,
@@ -31,47 +33,58 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
+type Match = {
+    id: string;
+    localTeam: string;
+    visitorTeam: string;
+    date: string; // ISO string
+    competition: string;
+    localScore: number;
+    visitorScore: number;
+    status: 'scheduled' | 'finished' | 'live';
+    playersCalled?: number;
+    teamId?: string;
+    userId?: string;
+    squad?: string[];
+};
 
-const initialPlayers = [
-    { dorsal: '7', nombre: 'Hugo', posicion: 'Pívot' },
-    { dorsal: '9', nombre: 'Marc Romera', posicion: 'Ala' },
-    { dorsal: '12', nombre: 'Marc Muñoz', posicion: 'Ala' },
-    { dorsal: '1', nombre: 'Alex', posicion: 'Portero' },
-    { dorsal: '10', nombre: 'Juan', posicion: 'Cierre' },
-    { dorsal: '11', nombre: 'Pedro', posicion: 'Ala' },
-];
-
-const getResultColor = (score: string, teamName: string, opponent: string): string => {
-    const [teamAScore, teamBScore] = score.split(' - ').map(Number);
-    const opponentNameParts = opponent.split(' vs ');
-    const teamA_name = opponentNameParts[0];
-    
-    const isDraw = teamAScore === teamBScore;
-
+const getResultColor = (localScore: number, visitorScore: number, localTeamName: string, visitorTeamName: string, myTeamName: string): string => {
+    const isDraw = localScore === visitorScore;
     if (isDraw) return 'text-muted-foreground';
 
-    if (teamA_name.trim() === teamName.trim()) { // We are team A (local)
-        if (teamAScore > teamBScore) return 'text-primary'; // Win
-        return 'text-destructive'; // Loss
-    } else { // We are team B (visitor)
-        if (teamBScore > teamAScore) return 'text-primary'; // Win
-        return 'text-destructive'; // Loss
+    if (myTeamName.trim() === localTeamName.trim()) {
+        return localScore > visitorScore ? 'text-primary' : 'text-destructive';
+    } else if (myTeamName.trim() === visitorTeamName.trim()) {
+        return visitorScore > localScore ? 'text-primary' : 'text-destructive';
     }
+    
+    return 'text-foreground';
 };
 
 
 export default function PartidosPage() {
     const teamName = "Juvenil B";
-    const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
+    const { toast } = useToast();
+    const [user, loadingAuth] = useAuthState(auth);
+
+    const matchesQuery = user ? query(collection(db, "matches"), where("userId", "==", user.uid)) : null;
+    const [matchesSnapshot, loadingMatches, errorMatches] = useCollection(matchesQuery);
+
+    const matches = matchesSnapshot?.docs.map(doc => ({ id: doc.id, ...doc.data() } as Match)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+
+    const [playersSnapshot, loadingPlayers] = useCollection(user ? query(collection(db, `teams/vfR0cLrsj4r5DSYxUac1/players`)) : null);
+    const teamPlayers = playersSnapshot?.docs.map(doc => ({ id: doc.id, name: doc.data().name, number: doc.data().number })) || [];
     
-    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [isConvocatoriaOpen, setIsConvocatoriaOpen] = React.useState(false);
+    
     const [editingMatch, setEditingMatch] = React.useState<any>(null);
     const [matchForConvocatoria, setMatchForConvocatoria] = React.useState<Match | null>(null);
-    const [matches, setMatches] = React.useState<Match[]>(initialMatches);
-
+    
     const [newMatch, setNewMatch] = React.useState({
         localTeam: '',
         visitorTeam: '',
@@ -82,57 +95,60 @@ export default function PartidosPage() {
         round: ''
     });
 
+    const [selectedPlayers, setSelectedPlayers] = React.useState<Record<string, boolean>>({});
+
+    const handleOpenConvocatoriaDialog = (match: Match) => {
+        setMatchForConvocatoria(match);
+        const initialSelection: Record<string, boolean> = {};
+        if (match.squad) {
+            match.squad.forEach(playerId => {
+                initialSelection[playerId] = true;
+            });
+        }
+        setSelectedPlayers(initialSelection);
+        setIsConvocatoriaOpen(true);
+    };
+    
+    const handleSaveConvocatoria = async () => {
+        if (!matchForConvocatoria) return;
+        
+        const squad = Object.keys(selectedPlayers).filter(id => selectedPlayers[id]);
+
+        try {
+            await updateDoc(doc(db, "matches", matchForConvocatoria.id), {
+                squad: squad,
+                playersCalled: `${squad.length} Jug.`
+            });
+            toast({ title: "Convocatoria guardada" });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
+        
+        setIsConvocatoriaOpen(false);
+        setMatchForConvocatoria(null);
+    };
 
     const handleSelectAll = (checked: boolean) => {
         const newSelectedPlayers: Record<string, boolean> = {};
         if (checked) {
-            initialPlayers.forEach(player => {
-                newSelectedPlayers[player.dorsal] = true;
+            teamPlayers.forEach(player => {
+                newSelectedPlayers[player.id] = true;
             });
         }
         setSelectedPlayers(newSelectedPlayers);
     };
 
     const handlePlayerSelect = (playerId: string, checked: boolean) => {
-        setSelectedPlayers(prev => ({
-            ...prev,
-            [playerId]: checked
-        }));
+        setSelectedPlayers(prev => ({ ...prev, [playerId]: checked }));
     };
-    
-    const handleOpenConvocatoriaDialog = (match: Match) => {
-        setMatchForConvocatoria(match);
-        // Pre-fill selection based on match.playersCalled if needed
-        setSelectedPlayers({}); // Reset selection
-        setIsConvocatoriaOpen(true);
-    };
-    
-    const handleSaveConvocatoria = () => {
-        if (!matchForConvocatoria) return;
-        
-        const count = Object.values(selectedPlayers).filter(Boolean).length;
-        const updatedMatches = matches.map(m => 
-            m.id === matchForConvocatoria.id 
-            ? { ...m, playersCalled: `${count} Jug.` } 
-            : m
-        );
-        setMatches(updatedMatches);
-        setIsConvocatoriaOpen(false);
-        setMatchForConvocatoria(null);
-    };
-
 
     const handleOpenEditDialog = (match: Match) => {
-        const [localTeam, visitorTeam] = match.opponent.split(' vs ');
+        const date = new Date(match.date);
         setEditingMatch({
             ...match,
-            localTeam,
-            visitorTeam,
-            date: new Date(match.date),
-            time: format(new Date(match.date), "HH:mm"),
+            date: date,
+            time: format(date, "HH:mm"),
             type: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? match.competition : 'Liga',
-            competition: ['Liga', 'Copa', 'Torneo', 'Amistoso'].includes(match.competition) ? '' : match.competition,
-            round: '1', // Placeholder
         });
         setIsEditDialogOpen(true);
     };
@@ -145,64 +161,87 @@ export default function PartidosPage() {
         setNewMatch((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleCreateMatch = () => {
-        if (!newMatch.localTeam || !newMatch.visitorTeam || !newMatch.date) return;
+    const handleCreateMatch = async () => {
+        if (!newMatch.localTeam || !newMatch.visitorTeam || !newMatch.date || !user) return;
 
-        const newMatchData: Match = {
-            id: String(Date.now()),
-            opponent: `${newMatch.localTeam} vs ${newMatch.visitorTeam}`,
-            date: newMatch.date.toISOString(),
-            score: '0 - 0',
-            result: 'Empate',
-            competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
+        const [hours, minutes] = newMatch.time.split(':').map(Number);
+        const matchDate = new Date(newMatch.date);
+        matchDate.setHours(hours, minutes);
+
+        const newMatchData = {
             localTeam: newMatch.localTeam,
             visitorTeam: newMatch.visitorTeam,
+            date: matchDate.toISOString(),
+            competition: newMatch.type === 'Liga' ? newMatch.competition || 'Liga' : newMatch.type,
+            round: newMatch.round,
             localScore: 0,
             visitorScore: 0,
-            status: 'scheduled',
+            status: 'scheduled' as const,
+            isFinished: false,
+            userId: user.uid,
+            teamId: 'vfR0cLrsj4r5DSYxUac1', // Hardcoded for now
+            squad: [],
+            events: [],
+            playerStats: {},
+            opponentStats: {},
         };
-        setMatches(prev => [newMatchData, ...prev]);
-        setIsAddDialogOpen(false);
-        setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Amistoso', competition: '', round: '' });
+
+        try {
+            await addDoc(collection(db, "matches"), newMatchData);
+            toast({ title: "Partido creado", description: "El nuevo partido ha sido añadido." });
+            setIsAddDialogOpen(false);
+            setNewMatch({ localTeam: '', visitorTeam: '', date: undefined, time: '', type: 'Amistoso', competition: '', round: '' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
     };
     
-    const handleSaveChanges = () => {
+    const handleSaveChanges = async () => {
         if (!editingMatch) return;
+        
+        const [hours, minutes] = editingMatch.time.split(':').map(Number);
+        const matchDate = new Date(editingMatch.date);
+        matchDate.setHours(hours, minutes);
     
-        setMatches(prevMatches =>
-          prevMatches.map(match =>
-            match.id === editingMatch.id
-              ? {
-                  ...match,
-                  opponent: `${editingMatch.localTeam} vs ${editingMatch.visitorTeam}`,
-                  date: editingMatch.date.toISOString(),
-                  competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
-                }
-              : match
-          )
-        );
+        try {
+            await updateDoc(doc(db, "matches", editingMatch.id), {
+                localTeam: editingMatch.localTeam,
+                visitorTeam: editingMatch.visitorTeam,
+                date: matchDate.toISOString(),
+                competition: editingMatch.type === 'Liga' ? editingMatch.competition : editingMatch.type,
+            });
+            toast({ title: "Cambios guardados" });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
+        
         setIsEditDialogOpen(false);
         setEditingMatch(null);
     };
 
-    const handleDeleteMatch = (matchId: string) => {
-        setMatches(prevMatches => prevMatches.filter(match => match.id !== matchId));
+    const handleDeleteMatch = async (matchId: string) => {
+        try {
+            await deleteDoc(doc(db, "matches", matchId));
+            toast({ variant: 'destructive', title: "Partido eliminado" });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error al eliminar", description: error.message });
+        }
     };
 
-    const allSelected = initialPlayers.length > 0 && initialPlayers.every(p => selectedPlayers[p.dorsal]);
     const selectedCount = Object.values(selectedPlayers).filter(Boolean).length;
+    const allSelected = teamPlayers.length > 0 && selectedCount === teamPlayers.length;
 
     const renderMatchCard = (match: Match) => (
         <Card key={match.id} className="transition-all hover:shadow-md flex flex-col">
             <CardContent className="p-6 text-center flex-grow">
-                <p className="font-semibold">{match.opponent}</p>
-                <p className="text-sm text-muted-foreground mb-4">{new Date(match.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
-                <p className={`text-5xl font-bold mb-4 ${getResultColor(match.score, teamName, match.opponent)}`}>{match.score}</p>
+                <p className="font-semibold truncate">{match.localTeam} vs {match.visitorTeam}</p>
+                <p className="text-sm text-muted-foreground mb-4">{format(parseISO(match.date), 'dd/MM/yyyy HH:mm')}</p>
+                <p className={`text-5xl font-bold mb-4 ${getResultColor(match.localScore, match.visitorScore, match.localTeam, match.visitorTeam, teamName)}`}>{match.localScore} - {match.visitorScore}</p>
                 <Badge variant="secondary">{match.competition}</Badge>
             </CardContent>
             <CardFooter className="bg-muted/50 p-3 flex justify-around">
                 <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => handleOpenConvocatoriaDialog(match)}>
-                    <Users className="mr-1" /> {match.playersCalled || 'Convocar'}
+                    <Users className="mr-1" /> {match.squad ? `${match.squad.length} Jug.` : 'Convocar'}
                 </Button>
                 <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                     <Link href={`/partidos/${match.id}/estadisticas`}>
@@ -240,6 +279,7 @@ export default function PartidosPage() {
         </Card>
     );
 
+    const isLoading = loadingAuth || loadingMatches || loadingPlayers;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -368,37 +408,55 @@ export default function PartidosPage() {
           <p className="text-lg text-muted-foreground">Gestiona los partidos, añade nuevos encuentros, edita los existentes o consulta sus estadísticas.</p>
         </div>
 
-      <Tabs defaultValue="Todos">
-        <TabsList className="mb-8">
-          <TabsTrigger value="Todos">Todos</TabsTrigger>
-          <TabsTrigger value="Liga">Liga</TabsTrigger>
-          <TabsTrigger value="Copa">Copa</TabsTrigger>
-          <TabsTrigger value="Torneo">Torneo</TabsTrigger>
-          <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="Todos">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.map(renderMatchCard)}
-            </div>
-        </TabsContent>
-        <TabsContent value="Liga">
+        {isLoading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.filter(m => m.competition.includes('Liga')).map(renderMatchCard)}
+                {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
             </div>
-        </TabsContent>
-         <TabsContent value="Copa">
-            <p className="text-center text-muted-foreground">No hay partidos de copa para mostrar.</p>
-        </TabsContent>
-         <TabsContent value="Torneo">
-            <p className="text-center text-muted-foreground">No hay partidos de torneo para mostrar.</p>
-        </TabsContent>
-         <TabsContent value="Amistoso">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {matches.filter(m => m.competition === 'Amistoso').map(renderMatchCard)}
-            </div>
-        </TabsContent>
-      </Tabs>
+        ) : errorMatches ? (
+            <p className="text-destructive">Error: {errorMatches.message}</p>
+        ) : (
+            <Tabs defaultValue="Todos">
+                <TabsList className="mb-8">
+                <TabsTrigger value="Todos">Todos</TabsTrigger>
+                <TabsTrigger value="Liga">Liga</TabsTrigger>
+                <TabsTrigger value="Copa">Copa</TabsTrigger>
+                <TabsTrigger value="Torneo">Torneo</TabsTrigger>
+                <TabsTrigger value="Amistoso">Amistoso</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="Todos">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {matches.map(renderMatchCard)}
+                    </div>
+                </TabsContent>
+                <TabsContent value="Liga">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {matches.filter(m => m.competition.includes('Liga')).map(renderMatchCard)}
+                    </div>
+                </TabsContent>
+                <TabsContent value="Copa">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {matches.filter(m => m.competition.includes('Copa')).length > 0 ? (
+                            matches.filter(m => m.competition.includes('Copa')).map(renderMatchCard)
+                        ) : <p className="text-center text-muted-foreground col-span-3">No hay partidos de copa para mostrar.</p>}
+                    </div>
+                </TabsContent>
+                <TabsContent value="Torneo">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {matches.filter(m => m.competition.includes('Torneo')).length > 0 ? (
+                            matches.filter(m => m.competition.includes('Torneo')).map(renderMatchCard)
+                        ) : <p className="text-center text-muted-foreground col-span-3">No hay partidos de torneo para mostrar.</p>}
+                    </div>
+                </TabsContent>
+                <TabsContent value="Amistoso">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {matches.filter(m => m.competition === 'Amistoso').length > 0 ? (
+                             matches.filter(m => m.competition === 'Amistoso').map(renderMatchCard)
+                        ): <p className="text-center text-muted-foreground col-span-3">No hay partidos amistosos para mostrar.</p>}
+                    </div>
+                </TabsContent>
+            </Tabs>
+        )}
       
       <Dialog open={isConvocatoriaOpen} onOpenChange={setIsConvocatoriaOpen}>
             <DialogContent>
@@ -420,17 +478,17 @@ export default function PartidosPage() {
                         </Label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        {initialPlayers.map(player => (
-                            <div key={player.dorsal} className="flex items-center space-x-2">
+                        {teamPlayers.map(player => (
+                            <div key={player.id} className="flex items-center space-x-2">
                                 <Checkbox 
-                                    id={`player-${player.dorsal}`} 
-                                    checked={!!selectedPlayers[player.dorsal]}
-                                    onCheckedChange={(checked) => handlePlayerSelect(player.dorsal, checked as boolean)}
-                                    disabled={selectedCount >= 12 && !selectedPlayers[player.dorsal]}
+                                    id={`player-${player.id}`} 
+                                    checked={!!selectedPlayers[player.id]}
+                                    onCheckedChange={(checked) => handlePlayerSelect(player.id, checked as boolean)}
+                                    disabled={selectedCount >= 12 && !selectedPlayers[player.id]}
                                 />
-                                <Label htmlFor={`player-${player.dorsal}`} className="flex items-center gap-2 text-sm font-normal">
-                                    <span className="font-bold w-6 text-right">({player.dorsal})</span>
-                                    <span>{player.nombre}</span>
+                                <Label htmlFor={`player-${player.id}`} className="flex items-center gap-2 text-sm font-normal">
+                                    <span className="font-bold w-6 text-right">({player.number})</span>
+                                    <span>{player.name}</span>
                                 </Label>
                             </div>
                         ))}

@@ -2,55 +2,58 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { matches } from '@/lib/data';
+import { useDocumentData } from 'react-firebase-hooks/firestore';
+import { doc } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { ArrowLeft, BarChart, History } from 'lucide-react';
+import { ArrowLeft, BarChart, History, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { format, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const goalChronology = [
-    { team: 'local', player: 'Marc Romera', minute: 10 },
-    { team: 'local', player: 'Adam', minute: 20 },
-    { team: 'local', player: 'Adam', minute: 22 },
-    { team: 'rival', player: 'Rival', minute: 25 },
-    { team: 'local', player: 'Marc Romera', minute: 26 },
-    { team: 'local', player: 'Hugo', minute: 28 },
-    { team: 'local', player: 'Marc Muñoz', minute: 30 },
-    { team: 'local', player: 'Adam', minute: 47 },
-    { team: 'local', player: 'Hugo', minute: 48 },
-];
-
-const teamStats = {
-    local: { tirosPuerta: 18, tirosFuera: 10, faltas: 6, recuperaciones: 25, perdidas: 15 },
-    visitor: { tirosPuerta: 8, tirosFuera: 5, faltas: 8, recuperaciones: 18, perdidas: 22 },
+type StatRowProps = {
+    label: string;
+    localValue: number;
+    visitorValue: number;
 };
 
-const playerStats = [
-    { id: 1, name: "Manel", timePlayed: "25:00", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 2, gc: 1, vs1: 1 },
-    { id: 2, name: "Marc Montoro", timePlayed: "22:57", g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
-    { id: 5, name: "Dani", timePlayed: "19:02", g: 0, a: 2, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
-    { id: 6, name: "Adam", timePlayed: "24:22", g: 3, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
-    { id: 7, name: "Hugo", timePlayed: "17:40", g: 2, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
-    { id: 8, name: "Victor", timePlayed: "22:05", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
-    { id: 9, name: "Marc Romera", timePlayed: "18:32", g: 2, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
-    { id: 10, name: "Iker Rando", timePlayed: "18:15", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
-    { id: 11, name: "Roger", timePlayed: "19:30", g: 0, a: 1, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 },
-    { id: 12, name: "Marc Muñoz", timePlayed: "16:10", g: 1, a: 1, ta: 0, tr: 0, fouls: 1, paradas: 0, gc: 0, vs1: 0 },
-    { id: 15, name: "Lucas", timePlayed: "25:00", g: 0, a: 0, ta: 0, tr: 0, fouls: 1, paradas: 1, gc: 0, vs1: 1 },
-    { id: 16, name: "Salva", timePlayed: "14:09", g: 0, a: 1, ta: 0, tr: 0, fouls: 0, paradas: 2, gc: 0, vs1: 0 },
-];
+const StatRow = ({ label, localValue, visitorValue }: StatRowProps) => (
+    <div className="flex justify-between items-center py-2 border-b last:border-none">
+        <span className="font-bold text-lg">{localValue}</span>
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="font-bold text-lg">{visitorValue}</span>
+    </div>
+);
 
+type PlayerStat = {
+  g: number; a: number; ta: number; tr: number; fouls: number; 
+  paradas: number; gc: number; vs1: number; minutesPlayed: number;
+};
 
 export default function PartidoDetallePage() {
   const params = useParams();
-  const match = matches.find(m => m.id === params.id);
+  const matchId = params.id as string;
 
-  if (!match) {
+  const [match, loading, error] = useDocumentData(doc(db, 'matches', matchId));
+
+  if (loading) {
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <Skeleton className="h-10 w-48 mb-6" />
+            <Skeleton className="h-32 w-full mb-8" />
+            <Skeleton className="h-96 w-full" />
+        </div>
+    );
+  }
+
+  if (error || !match) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold">Partido no encontrado</h1>
+        <p className="text-muted-foreground">{error?.message}</p>
         <Link href="/partidos">
           <Button variant="outline" className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -60,10 +63,91 @@ export default function PartidoDetallePage() {
       </div>
     );
   }
-  
-  const [localTeam, visitorTeam] = match.opponent.split(' vs ');
 
-    const totals = playerStats.reduce((acc, player) => {
+  const {
+    localTeam, visitorTeam, date, competition, localScore, visitorScore,
+    events = [], playerStats = {}, opponentStats = {}
+  } = match;
+  
+  const getPeriodStats = (statsObj: any, period: '1H' | '2H') => {
+      const periodData = statsObj?.[period] || {};
+      const stats = {
+          tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0
+      };
+      if (typeof periodData === 'object' && periodData !== null) {
+          Object.keys(periodData).forEach(key => {
+              if(key in stats) {
+                // @ts-ignore
+                stats[key as keyof typeof stats] = Object.values(periodData[key]).reduce((acc, val: any) => acc + (val.shotsOnTarget || 0), 0);
+              }
+          });
+      }
+      return stats;
+  }
+  
+  const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
+      const totalLocal = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
+      const totalVisitor = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
+
+      ['1H', '2H'].forEach(period => {
+          if (playerData[period]) {
+              Object.values(playerData[period]).forEach((p: any) => {
+                  totalVisitor.tirosPuerta += p.shotsOnTarget || 0;
+                  totalVisitor.tirosFuera += p.shotsOffTarget || 0;
+                  totalVisitor.faltas += p.fouls || 0;
+                  totalVisitor.recuperaciones += p.recoveries || 0;
+                  totalVisitor.perdidas += p.turnovers || 0;
+              });
+          }
+          if (opponentData[period]) {
+              const oppStats = opponentData[period];
+              totalLocal.tirosPuerta += oppStats.shotsOnTarget || 0;
+              totalLocal.tirosFuera += oppStats.shotsOffTarget || 0;
+              totalLocal.faltas += oppStats.fouls || 0;
+              totalLocal.recuperaciones += oppStats.recoveries || 0;
+              totalLocal.perdidas += oppStats.turnovers || 0;
+          }
+      });
+      return { local: totalLocal, visitor: totalVisitor };
+  }
+  
+  const teamStats = calculateTotalTeamStats(playerStats, opponentStats);
+  
+  const combinedPlayerStats = () => {
+    const combined: Record<string, PlayerStat & { name?: string, id?: string }> = {};
+
+    ['1H', '2H'].forEach(period => {
+        if (playerStats[period]) {
+            Object.entries(playerStats[period]).forEach(([playerId, stats]: [string, any]) => {
+                if (!combined[playerId]) {
+                    combined[playerId] = { id: playerId, minutesPlayed: 0, g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 };
+                }
+                combined[playerId].minutesPlayed += stats.minutesPlayed || 0;
+                combined[playerId].g += stats.goals || 0;
+                combined[playerId].a += stats.assists || 0;
+                combined[playerId].ta += stats.yellowCards || 0;
+                combined[playerId].tr += stats.redCards || 0;
+                combined[playerId].fouls += stats.fouls || 0;
+                combined[playerId].paradas += stats.saves || 0;
+                combined[playerId].gc += stats.goalsConceded || 0;
+                combined[playerId].vs1 += stats.unoVsUno || 0;
+            });
+        }
+    });
+    
+    // Find player names from events
+    events.forEach((event: any) => {
+        if(event.playerId && combined[event.playerId] && !combined[event.playerId].name) {
+            combined[event.playerId].name = event.playerName;
+        }
+    });
+
+    return Object.values(combined);
+  };
+  
+  const finalPlayerStats = combinedPlayerStats();
+  
+  const totals = finalPlayerStats.reduce((acc, player) => {
         acc.g += player.g;
         acc.a += player.a;
         acc.ta += player.ta;
@@ -72,25 +156,19 @@ export default function PartidoDetallePage() {
         acc.paradas += player.paradas;
         acc.gc += player.gc;
         acc.vs1 += player.vs1;
-        
-        const [mins, secs] = player.timePlayed.split(':').map(Number);
-        acc.totalSeconds += (mins * 60) + secs;
-
+        acc.totalSeconds += player.minutesPlayed;
         return acc;
     }, { g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0, totalSeconds: 0 });
 
     const totalMinutes = Math.floor(totals.totalSeconds / 60);
     const totalSecondsRemaining = totals.totalSeconds % 60;
     const totalTimeFormatted = `${totalMinutes}:${String(totalSecondsRemaining).padStart(2, '0')}`;
-
-    const StatRow = ({ label, localValue, visitorValue }: { label: string; localValue: number; visitorValue: number }) => (
-        <div className="flex justify-between items-center py-2 border-b last:border-none">
-            <span className="font-bold text-lg">{localValue}</span>
-            <span className="text-sm text-muted-foreground">{label}</span>
-            <span className="font-bold text-lg">{visitorValue}</span>
-        </div>
-    );
-
+    
+    const formatTime = (timeInSeconds: number) => {
+        const minutes = Math.floor(timeInSeconds / 60);
+        const seconds = timeInSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -101,7 +179,7 @@ export default function PartidoDetallePage() {
             </div>
             <div>
                 <h1 className="text-2xl font-bold font-headline">Detalles del Partido</h1>
-                <p className="text-muted-foreground">{new Date(match.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - {match.competition}</p>
+                <p className="text-muted-foreground">{format(parseISO(date), "EEEE, dd MMMM yyyy", { locale: es })} - {competition}</p>
             </div>
         </div>
         <div className="flex gap-2">
@@ -112,7 +190,7 @@ export default function PartidoDetallePage() {
                 </Link>
             </Button>
             <Button asChild>
-                 <Link href={`/partidos/${match.id}/estadisticas`}>
+                 <Link href={`/partidos/${matchId}/estadisticas`}>
                     <BarChart className="mr-2" />
                     Gestionar
                 </Link>
@@ -122,8 +200,8 @@ export default function PartidoDetallePage() {
       
       <Card className="mb-8 text-center">
         <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-2">{match.opponent}</h2>
-            <p className="text-6xl font-bold text-primary">{match.score}</p>
+            <h2 className="text-2xl font-bold mb-2">{localTeam} vs {visitorTeam}</h2>
+            <p className="text-6xl font-bold text-primary">{localScore} - {visitorScore}</p>
         </CardContent>
       </Card>
       
@@ -144,21 +222,21 @@ export default function PartidoDetallePage() {
                             <h4 className="w-1/2 text-right">{visitorTeam}</h4>
                         </div>
                         <div className="space-y-4">
-                            {goalChronology.map((goal, index) => (
+                            {events.filter((e: any) => e.type === 'goal').sort((a:any, b:any) => a.minute - b.minute).map((goal: any, index: number) => (
                                 <div key={index} className="flex items-center text-sm border-b last:border-none pb-2">
                                     {goal.team === 'local' ? (
                                         <div className="w-1/2 flex justify-between items-center pr-4">
-                                            <span className="font-medium">{goal.player}</span>
+                                            <span className="font-medium">{goal.playerName}</span>
                                             <span className="text-muted-foreground">{goal.minute}'</span>
                                         </div>
                                     ) : <div className="w-1/2 pr-4"></div>}
                                     
                                      <div className="w-[1px] bg-border h-4"></div>
 
-                                    {goal.team === 'rival' ? (
+                                    {goal.team === 'visitor' ? (
                                         <div className="w-1/2 flex justify-between items-center pl-4">
                                             <span className="text-muted-foreground">{goal.minute}'</span>
-                                            <span className="font-medium text-right">{goal.player}</span>
+                                            <span className="font-medium text-right">{goal.playerName}</span>
                                         </div>
                                     ) : <div className="w-1/2 pl-4"></div>}
                                 </div>
@@ -192,7 +270,6 @@ export default function PartidoDetallePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[50px] text-center">#</TableHead>
                                     <TableHead>Nombre</TableHead>
                                     <TableHead className="text-center">Min.</TableHead>
                                     <TableHead className="text-center">G</TableHead>
@@ -206,11 +283,10 @@ export default function PartidoDetallePage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {playerStats.map((player) => (
+                                {finalPlayerStats.map((player) => (
                                     <TableRow key={player.id}>
-                                        <TableCell className="text-center font-medium py-2 px-4">{player.id}</TableCell>
-                                        <TableCell className="py-2 px-4">{player.name}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.timePlayed}</TableCell>
+                                        <TableCell className="py-2 px-4 font-medium">{player.name || 'Desconocido'}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{formatTime(player.minutesPlayed)}</TableCell>
                                         <TableCell className="text-center py-2 px-4">{player.g}</TableCell>
                                         <TableCell className="text-center py-2 px-4">{player.a}</TableCell>
                                         <TableCell className="text-center py-2 px-4">{player.ta}</TableCell>
@@ -224,7 +300,7 @@ export default function PartidoDetallePage() {
                             </TableBody>
                              <TableFooter>
                                 <TableRow className="bg-muted/50 font-bold hover:bg-muted/50">
-                                    <TableCell colSpan={2} className="py-2 px-4">Total Equipo</TableCell>
+                                    <TableCell className="py-2 px-4">Total Equipo</TableCell>
                                     <TableCell className="text-center py-2 px-4">{totalTimeFormatted}</TableCell>
                                     <TableCell className="text-center py-2 px-4">{totals.g}</TableCell>
                                     <TableCell className="text-center py-2 px-4">{totals.a}</TableCell>
@@ -245,6 +321,3 @@ export default function PartidoDetallePage() {
     </div>
   );
 }
-
-    
-    
