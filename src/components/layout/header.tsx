@@ -25,6 +25,7 @@ import { useState } from "react";
 import { auth } from "@/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { signOut } from "firebase/auth";
+import { FirebaseLogo } from "./logo";
 
 
 const navLinks = [
@@ -172,6 +173,12 @@ export function Header() {
               <>
                 {isAdmin && (
                     <>
+                        <Button variant="ghost" size="icon" className="relative hover:bg-primary/80" asChild>
+                            <Link href="https://console.firebase.google.com/project/lapizarra-95eqd" target="_blank">
+                                <FirebaseLogo />
+                                <span className="sr-only">Proyecto de Firebase</span>
+                            </Link>
+                        </Button>
                         <Button variant="ghost" size="icon" className="relative hover:bg-primary/80" asChild>
                            <Link href="/admin/invitations">
                              <Gift className="h-5 w-5" />
