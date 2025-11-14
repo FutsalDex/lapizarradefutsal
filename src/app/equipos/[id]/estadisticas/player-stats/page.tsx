@@ -349,10 +349,10 @@ export default function PlayerStatsPage() {
                              <Table>
                                  <TableHeader>
                                      <TableRow>
-                                         <TableHead className="text-center">PJ</TableHead>
                                          <TableHead>Dorsal</TableHead>
                                          <TableHead>Nombre</TableHead>
                                          <TableHead className="text-center">Min.</TableHead>
+                                         <TableHead className="text-center">PJ</TableHead>
                                          <TableHead className="text-center">G</TableHead>
                                          <TableHead className="text-center">A</TableHead>
                                          <TableHead className="text-center">T.P.</TableHead>
@@ -372,10 +372,10 @@ export default function PlayerStatsPage() {
                                          const stats = playerStats[player.id];
                                          return (
                                              <TableRow key={player.id}>
-                                                 <TableCell className="text-center">{stats?.matchesPlayed || 0}</TableCell>
                                                  <TableCell className="font-medium">{player.number}</TableCell>
                                                  <TableCell>{player.name}</TableCell>
                                                  <TableCell className="text-center">{formatTime(stats?.minutesPlayed || 0)}</TableCell>
+                                                 <TableCell className="text-center">{stats?.matchesPlayed || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.goals || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.assists || 0}</TableCell>
                                                  <TableCell className="text-center">{stats?.shotsOnTarget || 0}</TableCell>
@@ -394,9 +394,9 @@ export default function PlayerStatsPage() {
                                  </TableBody>
                                  <TableFooter>
                                      <TableRow className="font-bold bg-muted/50">
-                                         <TableCell className="text-center">{tableTotals.matchesPlayed}</TableCell>
                                          <TableCell colSpan={2}>Total Equipo</TableCell>
                                          <TableCell className="text-center">{formatTime(tableTotals.minutesPlayed)}</TableCell>
+                                         <TableCell className="text-center">{tableTotals.matchesPlayed}</TableCell>
                                          <TableCell className="text-center">{tableTotals.goals}</TableCell>
                                          <TableCell className="text-center">{tableTotals.assists}</TableCell>
                                          <TableCell className="text-center">{tableTotals.shotsOnTarget}</TableCell>
@@ -430,5 +430,7 @@ export default function PlayerStatsPage() {
     );
 }
 
+
+    
 
     
