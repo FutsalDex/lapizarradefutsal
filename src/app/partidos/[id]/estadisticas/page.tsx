@@ -143,6 +143,9 @@ export default function EstadisticasPartidoPage() {
     const [isActive, setIsActive] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const [localScore, setLocalScore] = useState(0);
+    const [visitorScore, setVisitorScore] = useState(0);
+
     // Populate squad players
     useEffect(() => {
         if(match && playersSnapshot) {
@@ -169,6 +172,32 @@ export default function EstadisticasPartidoPage() {
             setOpponentStats(match.opponentStats?.[period] || getInitialOpponentStats());
             setLocalTimeoutTaken(match.timeouts?.[period]?.local || false);
             setOpponentTimeoutTaken(match.timeouts?.[period]?.visitor || false);
+            
+            // Calculate initial total score
+            const myTeamIsLocal = match.localTeam === "Juvenil B";
+            let totalLocalGoals = 0;
+            let totalVisitorGoals = 0;
+
+            const pStats1H = match.playerStats?.['1H'] || {};
+            const pStats2H = match.playerStats?.['2H'] || {};
+            const oStats1H = match.opponentStats?.['1H'] || {goals: 0};
+            const oStats2H = match.opponentStats?.['2H'] || {goals: 0};
+
+            const myTeamGoals1H = Object.values(pStats1H).reduce((acc: number, p: any) => acc + (p.goals || 0), 0);
+            const myTeamGoals2H = Object.values(pStats2H).reduce((acc: number, p: any) => acc + (p.goals || 0), 0);
+            
+            const myTeamTotalGoals = myTeamGoals1H + myTeamGoals2H;
+            const opponentTotalGoals = (oStats1H.goals || 0) + (oStats2H.goals || 0);
+
+            if (myTeamIsLocal) {
+                totalLocalGoals = myTeamTotalGoals;
+                totalVisitorGoals = opponentTotalGoals;
+            } else {
+                totalLocalGoals = opponentTotalGoals;
+                totalVisitorGoals = myTeamTotalGoals;
+            }
+            setLocalScore(totalLocalGoals);
+            setVisitorScore(totalVisitorGoals);
 
             setIsActive(false);
             setTime(25 * 60);
@@ -181,12 +210,21 @@ export default function EstadisticasPartidoPage() {
         if (!match) return;
         if (!auto) setIsSaving(true);
         
+        const myTeamIsLocal = match.localTeam === 'Juvenil B';
+        const myTeamTotalGoals = (Object.values(match.playerStats?.['1H'] || {}).reduce((acc: number, p: any) => acc + (p.goals || 0), 0)) + (Object.values(match.playerStats?.['2H'] || {}).reduce((acc: number, p: any) => acc + (p.goals || 0), 0));
+        const opponentTotalGoals = (match.opponentStats?.['1H']?.goals || 0) + (match.opponentStats?.['2H']?.goals || 0);
+
+        const finalLocalScore = myTeamIsLocal ? myTeamTotalGoals : opponentTotalGoals;
+        const finalVisitorScore = myTeamIsLocal ? opponentTotalGoals : myTeamTotalGoals;
+        
         const updateData = {
             [`playerStats.${period}`]: playerStats,
             [`opponentStats.${period}`]: opponentStats,
             [`timeouts.${period}.local`]: localTimeoutTaken,
             [`timeouts.${period}.visitor`]: opponentTimeoutTaken,
             isFinished,
+            localScore: finalLocalScore,
+            visitorScore: finalVisitorScore,
         };
 
         try {
@@ -213,14 +251,18 @@ export default function EstadisticasPartidoPage() {
     };
 
     const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
+        if (stat === 'goals') {
+            if (match?.localTeam !== "Juvenil B") {
+                setLocalScore(s => s + delta);
+            } else {
+                setVisitorScore(s => s + delta);
+            }
+        }
         setOpponentStats(prev => {
             const newValue = Math.max(0, (prev[stat] || 0) + delta);
             return { ...prev, [stat]: newValue };
         });
     };
-
-    const totalLocalScore = (match?.localScore || 0);
-    const totalOpponentScore = (match?.visitorScore || 0);
 
     const teamFouls = Object.values(playerStats).reduce((acc, player) => acc + player.fouls, 0);
     const opponentTeamFouls = opponentStats.fouls;
@@ -280,6 +322,13 @@ export default function EstadisticasPartidoPage() {
     };
     
     const handleStatChange = (playerId: string, stat: keyof PlayerStat, delta: number) => {
+        if (stat === 'goals') {
+             if (match?.localTeam === "Juvenil B") {
+                setLocalScore(s => s + delta);
+            } else {
+                setVisitorScore(s => s + delta);
+            }
+        }
         setPlayerStats(prev => {
             const playerStat = prev[playerId];
             if (!playerStat) return prev;
@@ -391,7 +440,7 @@ export default function EstadisticasPartidoPage() {
                     </div>
 
                     <div className="flex flex-col items-center gap-4">
-                        <div className="text-6xl font-bold text-primary">{totalLocalScore} - {totalOpponentScore}</div>
+                        <div className="text-6xl font-bold text-primary">{localScore} - {visitorScore}</div>
                         <div className="text-6xl font-bold bg-gray-900 text-white p-4 rounded-lg">
                            {formatTime(time)}
                         </div>
@@ -600,3 +649,6 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
 
     
 
+
+
+    
