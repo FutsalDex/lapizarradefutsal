@@ -636,4 +636,3 @@ export default function PartidosPage() {
     </div>
   );
 }
-
