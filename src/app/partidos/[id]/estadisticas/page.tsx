@@ -175,9 +175,7 @@ export default function EstadisticasPartidoPage() {
             
             // Calculate initial total score
             const myTeamIsLocal = match.localTeam === "Juvenil B";
-            let totalLocalGoals = 0;
-            let totalVisitorGoals = 0;
-
+            
             const pStats1H = match.playerStats?.['1H'] || {};
             const pStats2H = match.playerStats?.['2H'] || {};
             const oStats1H = match.opponentStats?.['1H'] || {goals: 0};
@@ -190,14 +188,12 @@ export default function EstadisticasPartidoPage() {
             const opponentTotalGoals = (oStats1H.goals || 0) + (oStats2H.goals || 0);
 
             if (myTeamIsLocal) {
-                totalLocalGoals = myTeamTotalGoals;
-                totalVisitorGoals = opponentTotalGoals;
+                setLocalScore(myTeamTotalGoals);
+                setVisitorScore(opponentTotalGoals);
             } else {
-                totalLocalGoals = opponentTotalGoals;
-                totalVisitorGoals = myTeamTotalGoals;
+                setLocalScore(opponentTotalGoals);
+                setVisitorScore(myTeamTotalGoals);
             }
-            setLocalScore(totalLocalGoals);
-            setVisitorScore(totalVisitorGoals);
 
             setIsActive(false);
             setTime(25 * 60);
@@ -209,10 +205,21 @@ export default function EstadisticasPartidoPage() {
     const saveStats = useCallback(async (auto = false) => {
         if (!match) return;
         if (!auto) setIsSaving(true);
-        
+
         const myTeamIsLocal = match.localTeam === 'Juvenil B';
-        const myTeamTotalGoals = (Object.values(match.playerStats?.['1H'] || {}).reduce((acc: number, p: any) => acc + (p.goals || 0), 0)) + (Object.values(match.playerStats?.['2H'] || {}).reduce((acc: number, p: any) => acc + (p.goals || 0), 0));
-        const opponentTotalGoals = (match.opponentStats?.['1H']?.goals || 0) + (match.opponentStats?.['2H']?.goals || 0);
+        
+        // Combine stats from Firestore for the other period with current state for the active period
+        const otherPeriod = period === '1H' ? '2H' : '1H';
+        const playerStatsOtherPeriod = match.playerStats?.[otherPeriod] || {};
+        const opponentStatsOtherPeriod = match.opponentStats?.[otherPeriod] || { goals: 0 };
+        
+        const myTeamGoalsCurrentPeriod = Object.values(playerStats).reduce((acc, p) => acc + p.goals, 0);
+        const myTeamGoalsOtherPeriod = Object.values(playerStatsOtherPeriod).reduce((acc: number, p: any) => acc + (p.goals || 0), 0);
+        const myTeamTotalGoals = myTeamGoalsCurrentPeriod + myTeamGoalsOtherPeriod;
+
+        const opponentGoalsCurrentPeriod = opponentStats.goals;
+        const opponentGoalsOtherPeriod = opponentStatsOtherPeriod.goals || 0;
+        const opponentTotalGoals = opponentGoalsCurrentPeriod + opponentGoalsOtherPeriod;
 
         const finalLocalScore = myTeamIsLocal ? myTeamTotalGoals : opponentTotalGoals;
         const finalVisitorScore = myTeamIsLocal ? opponentTotalGoals : myTeamTotalGoals;
@@ -251,6 +258,7 @@ export default function EstadisticasPartidoPage() {
     };
 
     const handleOpponentStatChange = (stat: keyof OpponentStats, delta: number) => {
+        if (isFinished) return;
         if (stat === 'goals') {
             if (match?.localTeam !== "Juvenil B") {
                 setLocalScore(s => s + delta);
@@ -268,6 +276,7 @@ export default function EstadisticasPartidoPage() {
     const opponentTeamFouls = opponentStats.fouls;
 
     const handleTimeout = (team: 'local' | 'opponent') => {
+        if (isFinished) return;
         if (team === 'local') {
             setLocalTimeoutTaken(true);
         } else {
@@ -322,6 +331,7 @@ export default function EstadisticasPartidoPage() {
     };
     
     const handleStatChange = (playerId: string, stat: keyof PlayerStat, delta: number) => {
+        if (isFinished) return;
         if (stat === 'goals') {
              if (match?.localTeam === "Juvenil B") {
                 setLocalScore(s => s + delta);
@@ -436,7 +446,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                         <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')} disabled={isFinished}>TM</Button>
+                         <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')} disabled={isFinished || localTimeoutTaken}>TM</Button>
                     </div>
 
                     <div className="flex flex-col items-center gap-4">
@@ -461,7 +471,7 @@ export default function EstadisticasPartidoPage() {
                                 <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
-                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')} disabled={isFinished}>TM</Button>
+                        <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')} disabled={isFinished || opponentTimeoutTaken}>TM</Button>
                     </div>
                 </div>
             </CardContent>
@@ -518,7 +528,7 @@ export default function EstadisticasPartidoPage() {
                                     ))}
                                 </TableBody>
                                 <TableFooter>
-                                    <TableRow>
+                                     <TableRow>
                                         <TableHead className="sticky left-0 bg-card min-w-[150px] px-1 py-2 text-center">Jugador</TableHead>
                                         <TableHead className="px-1 py-2 text-center">Min</TableHead>
                                         {statHeaders.map(header => <TableHead key={header.key} className="px-1 py-2 text-center">{header.label}</TableHead>)}
@@ -650,5 +660,7 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
     
 
 
+
+    
 
     
