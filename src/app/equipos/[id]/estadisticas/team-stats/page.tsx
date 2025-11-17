@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus, Calendar, GanttChart, GanttChartSquare } from "lucide-react";
+import { ArrowLeft, Trophy, TrendingUp, Shield, TrendingDown, Target, XCircle, ShieldAlert, RefreshCw, ChevronsRightLeft, Plus, Minus, Calendar, GanttChart, GanttChartSquare, Goal } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 
 type Match = {
     id: string;
@@ -28,6 +29,7 @@ type Match = {
     teamId: string;
     playerStats?: any;
     opponentStats?: any;
+    events?: { type: string; team: string; playerName: string }[];
 };
 
 type MatchStats = {
@@ -97,6 +99,8 @@ export default function TeamStatsPage() {
     const params = useParams();
     const teamId = params.id as string;
     const [filter, setFilter] = useState('Todos');
+    const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+
 
     const [team, loadingTeam] = useDocumentData(doc(db, `teams/${teamId}`));
     const teamName = team?.name || '';
@@ -107,6 +111,7 @@ export default function TeamStatsPage() {
     const matches = useMemo(() => 
         matchesSnapshot?.docs.map(doc => {
             const data = doc.data();
+            // Handle both Timestamp and JS Date objects
             const date = data.date && typeof data.date.toDate === 'function' 
                 ? (data.date as Timestamp).toDate() 
                 : data.date;
@@ -115,7 +120,7 @@ export default function TeamStatsPage() {
                 ...data,
                 date: date,
             } as Match;
-        }).sort((a,b) => a.date.getTime() - b.date.getTime()) || [],
+        }).sort((a, b) => a.date.getTime() - b.date.getTime()) || [],
     [matchesSnapshot]);
 
     const filteredMatches = useMemo(() => {
@@ -192,6 +197,12 @@ export default function TeamStatsPage() {
 
     const filterOptions = ['Todos', 'Liga', 'Copa', 'Torneo', 'Amistoso'];
 
+    const goalscorers = useMemo(() => {
+        if (!selectedMatch) return [];
+        const myTeamSide = selectedMatch.localTeam.trim() === teamName.trim() ? 'local' : 'visitor';
+        return selectedMatch.events?.filter(e => e.type === 'goal' && e.team === myTeamSide) || [];
+    }, [selectedMatch, teamName]);
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-6">
@@ -210,7 +221,6 @@ export default function TeamStatsPage() {
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle>Controles</CardTitle>
-                    <CardDescription>Filtra por competición para ver las estadísticas.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center gap-2">
@@ -309,6 +319,7 @@ export default function TeamStatsPage() {
                                             <TableHead>Local</TableHead>
                                             <TableHead>Visitante</TableHead>
                                             <TableHead className="text-right">Resultado</TableHead>
+                                            <TableHead className="text-right w-[80px]">Goles</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -320,10 +331,15 @@ export default function TeamStatsPage() {
                                                 <TableCell>{match.localTeam}</TableCell>
                                                 <TableCell>{match.visitorTeam}</TableCell>
                                                 <TableCell className="text-right">{match.localScore} - {match.visitorScore}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="ghost" size="icon" onClick={() => setSelectedMatch(match)}>
+                                                        <Goal className="h-5 w-5 text-muted-foreground" />
+                                                    </Button>
+                                                </TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={4} className="text-center h-24">
+                                                <TableCell colSpan={5} className="text-center h-24">
                                                     No hay partidos para este filtro.
                                                 </TableCell>
                                             </TableRow>
@@ -336,6 +352,31 @@ export default function TeamStatsPage() {
                 </Card>
 
             </div>
+             <Dialog open={!!selectedMatch} onOpenChange={(open) => !open && setSelectedMatch(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Goleadores del Partido</DialogTitle>
+                        <DialogDescription>
+                            {selectedMatch?.localTeam} vs {selectedMatch?.visitorTeam}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div>
+                        {goalscorers.length > 0 ? (
+                            <ul className="space-y-2">
+                                {goalscorers.map((goal, index) => (
+                                    <li key={index} className="flex justify-between items-center p-2 bg-muted rounded-md">
+                                        <span>{goal.playerName}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-muted-foreground">Tu equipo no marcó goles en este partido.</p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+    
