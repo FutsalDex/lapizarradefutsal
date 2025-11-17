@@ -136,6 +136,10 @@ export default function EstadisticasPartidoPage() {
     const matchId = params.id as string;
     
     const [match, loadingMatch, errorMatch] = useDocumentData(doc(db, "matches", matchId));
+    
+    const [team, loadingTeam] = useDocumentData(match ? doc(db, `teams/${match.teamId}`) : null);
+    const myTeamName = team?.name || "";
+
     const [playersSnapshot, loadingPlayers] = useCollection(match ? query(collection(db, `teams/${match.teamId}/players`)) : null);
 
     const [activePlayers, setActivePlayers] = useState<Player[]>([]);
@@ -242,7 +246,7 @@ export default function EstadisticasPartidoPage() {
         if (isFinished) return;
         if (stat === 'goals' && delta > 0) {
             const currentMinute = matchDuration - Math.floor(time / 60);
-            const myTeamIsLocal = match?.localTeam === "Juvenil B";
+            const myTeamIsLocal = match?.localTeam === myTeamName;
             const opponentTeamName = myTeamIsLocal ? match?.visitorTeam : match?.localTeam;
 
             const newEvent: MatchEvent = {
@@ -328,7 +332,7 @@ export default function EstadisticasPartidoPage() {
         if (stat === 'goals' && delta > 0) {
              const currentMinute = matchDuration - Math.floor(time / 60);
              const player = activePlayers.find(p => p.id === playerId);
-             const myTeamIsLocal = match?.localTeam === "Juvenil B";
+             const myTeamIsLocal = match?.localTeam === myTeamName;
              const newEvent: MatchEvent = {
                 type: 'goal',
                 minute: currentMinute,
@@ -389,7 +393,7 @@ export default function EstadisticasPartidoPage() {
         toast({ title: "Partido Reabierto" });
     }
 
-    const isLoading = loadingMatch || loadingPlayers;
+    const isLoading = loadingMatch || loadingPlayers || loadingTeam;
 
     if (isLoading) {
         return <div className="container mx-auto px-4 py-8"><Loader2 className="animate-spin" /> Cargando datos del partido...</div>
@@ -482,18 +486,18 @@ export default function EstadisticasPartidoPage() {
             </CardContent>
         </Card>
 
-        <Tabs defaultValue={match?.localTeam === "Juvenil B" ? "team-a" : "team-b"}>
+        <Tabs defaultValue={match?.localTeam === myTeamName ? "local" : "visitor"}>
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="team-a">{match?.localTeam}</TabsTrigger>
-                <TabsTrigger value="team-b">{match?.visitorTeam}</TabsTrigger>
+                <TabsTrigger value="local">{match?.localTeam}</TabsTrigger>
+                <TabsTrigger value="visitor">{match?.visitorTeam}</TabsTrigger>
             </TabsList>
-            <TabsContent value="team-a">
+            <TabsContent value="local">
                 <Card>
                     <CardHeader>
                         <CardTitle>{match?.localTeam} - Estadísticas {period}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                    {match?.localTeam === "Juvenil B" ? (
+                    {match?.localTeam === myTeamName ? (
                         <div className="overflow-x-auto">
                             <Table className="text-xs">
                                 <TableHeader>
@@ -565,13 +569,13 @@ export default function EstadisticasPartidoPage() {
                     </CardFooter>
                 </Card>
             </TabsContent>
-            <TabsContent value="team-b">
+            <TabsContent value="visitor">
                 <Card>
                     <CardHeader>
                         <CardTitle>{match?.visitorTeam} - Estadísticas {period}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         {match?.visitorTeam === "Juvenil B" ? (
+                         {match?.visitorTeam === myTeamName ? (
                             <div className="overflow-x-auto">
                                 <Table className="text-xs">
                                     <TableHeader>
@@ -665,6 +669,8 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
     
 
 
+
+    
 
     
 
