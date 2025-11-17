@@ -314,12 +314,12 @@ export default function TeamStatsPage() {
                                     <TableBody>
                                         {filteredMatches.length > 0 ? filteredMatches.map((match) => (
                                             <TableRow key={match.id}>
-                                                <TableCell className="font-medium">
+                                                <TableCell>
                                                     {format(match.date, 'dd/MM/yyyy', { locale: es })}
                                                 </TableCell>
                                                 <TableCell>{match.localTeam}</TableCell>
                                                 <TableCell>{match.visitorTeam}</TableCell>
-                                                <TableCell className="text-right font-mono">{match.localScore} - {match.visitorScore}</TableCell>
+                                                <TableCell className="text-right">{match.localScore} - {match.visitorScore}</TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
