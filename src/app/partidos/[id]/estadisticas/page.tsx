@@ -179,14 +179,21 @@ export default function EstadisticasPartidoPage() {
         if (match) {
             setIsFinished(match.isFinished);
             setEvents(match.events || []);
+
             const currentPeriodPlayerStats = match.playerStats?.[period] || {};
             const fullPlayerStats: Record<string, PlayerStat> = {};
+            
             activePlayers.forEach(p => {
                 fullPlayerStats[p.id] = { ...getInitialPlayerStat(), ...currentPeriodPlayerStats[p.id] };
             });
 
             setPlayerStats(fullPlayerStats);
-            setOpponentStats(match.opponentStats?.[period] || getInitialOpponentStats());
+
+            const oppStats = match.opponentStats?.[period] || 
+                             (period === '1H' ? match.opponentStats1 : match.opponentStats2) || 
+                             getInitialOpponentStats();
+            setOpponentStats(oppStats);
+
             setLocalTimeoutTaken(match.timeouts?.[period]?.local || false);
             setOpponentTimeoutTaken(match.timeouts?.[period]?.visitor || false);
             
@@ -452,7 +459,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">{match?.localTeam}</h2>
                         <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < teamFouls ? 'bg-destructive' : '')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < (match?.localTeam === myTeamName ? teamFouls : opponentTeamFouls) ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
                          <Button variant={localTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": localTimeoutTaken})} size="sm" onClick={() => handleTimeout('local')} disabled={isFinished || localTimeoutTaken}>TM</Button>
@@ -477,7 +484,7 @@ export default function EstadisticasPartidoPage() {
                         <h2 className="text-2xl font-bold truncate">{match?.visitorTeam}</h2>
                          <div className="flex items-center gap-2">
                             {[...Array(5)].map((_, i) => (
-                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < opponentTeamFouls ? 'bg-destructive' : '')}></div>
+                                <div key={i} className={cn("w-4 h-4 rounded-full border-2 border-destructive", i < (match?.visitorTeam === myTeamName ? teamFouls : opponentTeamFouls) ? 'bg-destructive' : '')}></div>
                             ))}
                         </div>
                         <Button variant={opponentTimeoutTaken ? "default" : "outline"} className={cn({"bg-primary hover:bg-primary/90 text-primary-foreground": opponentTimeoutTaken})} size="sm" onClick={() => handleTimeout('opponent')} disabled={isFinished || opponentTimeoutTaken}>TM</Button>
@@ -664,14 +671,3 @@ const OpponentStatCounters = ({ opponentStats, handleOpponentStatChange, disable
         </div>
     </div>
 );
-
-
-    
-
-
-
-    
-
-    
-
-    

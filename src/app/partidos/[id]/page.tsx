@@ -37,11 +37,13 @@ type PlayerStat = {
 export default function PartidoDetallePage() {
   const params = useParams();
   const matchId = params.id as string;
-  const myTeamName = "Juvenil B"; // Asumiendo que este es el nombre de tu equipo
-
+  
   const [match, loading, error] = useDocumentData(doc(db, 'matches', matchId));
+  
+  const [team, loadingTeam] = useDocumentData(match ? doc(db, 'teams', match.teamId) : null);
+  const myTeamName = team?.name || "Mi Equipo";
 
-  if (loading) {
+  if (loading || loadingTeam) {
     return (
         <div className="container mx-auto px-4 py-8">
             <Skeleton className="h-10 w-48 mb-6" />
@@ -68,75 +70,118 @@ export default function PartidoDetallePage() {
 
   const {
     localTeam, visitorTeam, date, competition, localScore, visitorScore,
-    events = [], playerStats = {}, opponentStats = {}
+    events = [], playerStats = {}, opponentStats = {}, visitorPlayers = []
   } = match;
   
   const matchDate = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date);
   
   const isMyTeamLocal = localTeam === myTeamName;
 
-  const calculateTotalTeamStats = (playerData: any, opponentData: any) => {
-    const myTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-    const opponentTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0 };
-  
-    ['1H', '2H'].forEach(period => {
-      // Suma las estadísticas de nuestro equipo (playerData)
-      if (playerData[period]) {
-          Object.values(playerData[period]).forEach((p: any) => {
-              myTeamStats.tirosPuerta += p.shotsOnTarget || 0;
-              myTeamStats.tirosFuera += p.shotsOffTarget || 0;
-              myTeamStats.faltas += p.fouls || 0;
-              myTeamStats.recuperaciones += p.recoveries || 0;
-              myTeamStats.perdidas += p.turnovers || 0;
-          });
-      }
-      // Suma las estadísticas del oponente (opponentData)
-      if (opponentData[period]) {
-          const oppStats = opponentData[period];
-          opponentTeamStats.tirosPuerta += oppStats.shotsOnTarget || 0;
-          opponentTeamStats.tirosFuera += oppStats.shotsOffTarget || 0;
-          opponentTeamStats.faltas += oppStats.fouls || 0;
-          opponentTeamStats.recuperaciones += oppStats.recoveries || 0;
-          opponentTeamStats.perdidas += oppStats.turnovers || 0;
-      }
-    });
+  const calculateTotalTeamStats = () => {
+    const myTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0, amarillas: 0, rojas: 0 };
+    const opponentTeamStats = { tirosPuerta: 0, tirosFuera: 0, faltas: 0, recuperaciones: 0, perdidas: 0, amarillas: 0, rojas: 0 };
 
+    if (Object.keys(playerStats).length > 0) { // New structure
+        ['1H', '2H'].forEach(period => {
+            if (playerStats[period]) {
+                Object.values(playerStats[period]).forEach((p: any) => {
+                    myTeamStats.tirosPuerta += p.shotsOnTarget || 0;
+                    myTeamStats.tirosFuera += p.shotsOffTarget || 0;
+                    myTeamStats.faltas += p.fouls || 0;
+                    myTeamStats.recuperaciones += p.recoveries || 0;
+                    myTeamStats.perdidas += p.turnovers || 0;
+                    myTeamStats.amarillas += p.yellowCards || 0;
+                    myTeamStats.rojas += p.redCards || 0;
+                });
+            }
+            if (opponentStats[period]) {
+                const oppStats = opponentStats[period];
+                opponentTeamStats.tirosPuerta += oppStats.shotsOnTarget || 0;
+                opponentTeamStats.tirosFuera += oppStats.shotsOffTarget || 0;
+                opponentTeamStats.faltas += oppStats.fouls || 0;
+                opponentTeamStats.recuperaciones += oppStats.recoveries || 0;
+                opponentTeamStats.perdidas += oppStats.turnovers || 0;
+                opponentTeamStats.amarillas += oppStats.yellowCards || 0;
+                opponentTeamStats.rojas += oppStats.redCards || 0;
+            }
+        });
+    } else { // Old structure from visitorPlayers
+        visitorPlayers.forEach((p: any) => {
+            myTeamStats.tirosPuerta += p.tirosPuerta || 0;
+            myTeamStats.tirosFuera += p.tirosFuera || 0;
+            myTeamStats.faltas += p.faltas || 0;
+            myTeamStats.recuperaciones += p.recuperaciones || 0;
+            myTeamStats.perdidas += p.perdidas || 0;
+            myTeamStats.amarillas += p.amarillas || 0;
+            myTeamStats.rojas += p.rojas || 0;
+        });
+
+        ['opponentStats1', 'opponentStats2'].forEach(key => {
+            if (match[key]) {
+                const oppStats = match[key];
+                opponentTeamStats.tirosPuerta += oppStats.shotsOnTarget || 0;
+                opponentTeamStats.tirosFuera += oppStats.shotsOffTarget || 0;
+                opponentTeamStats.faltas += oppStats.fouls || 0;
+                opponentTeamStats.recuperaciones += oppStats.recoveries || 0;
+                opponentTeamStats.perdidas += oppStats.turnovers || 0;
+            }
+        });
+    }
+    
     return { 
         local: isMyTeamLocal ? myTeamStats : opponentTeamStats,
         visitor: isMyTeamLocal ? opponentTeamStats : myTeamStats
     };
   }
   
-  const teamStats = calculateTotalTeamStats(playerStats, opponentStats);
+  const teamStats = calculateTotalTeamStats();
   
   const combinedPlayerStats = () => {
-    const combined: Record<string, PlayerStat & { name?: string, id?: string }> = {};
+    const combined: Record<string, Partial<PlayerStat> & { name?: string, id?: string }> = {};
 
-    ['1H', '2H'].forEach(period => {
-        if (playerStats[period]) {
-            Object.entries(playerStats[period]).forEach(([playerId, stats]: [string, any]) => {
-                if (!combined[playerId]) {
-                    combined[playerId] = { id: playerId, minutesPlayed: 0, g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 };
-                }
-                combined[playerId].minutesPlayed += stats.minutesPlayed || 0;
-                combined[playerId].g += stats.goals || 0;
-                combined[playerId].a += stats.assists || 0;
-                combined[playerId].ta += stats.yellowCards || 0;
-                combined[playerId].tr += stats.redCards || 0;
-                combined[playerId].fouls += stats.fouls || 0;
-                combined[playerId].paradas += stats.saves || 0;
-                combined[playerId].gc += stats.goalsConceded || 0;
-                combined[playerId].vs1 += stats.unoVsUno || 0;
-            });
-        }
-    });
-    
-    // Find player names from events
-    events.forEach((event: any) => {
-        if(event.playerId && combined[event.playerId] && !combined[event.playerId].name) {
-            combined[event.playerId].name = event.playerName;
-        }
-    });
+    if (Object.keys(playerStats).length > 0) { // New structure
+        ['1H', '2H'].forEach(period => {
+            if (playerStats[period]) {
+                Object.entries(playerStats[period]).forEach(([playerId, stats]: [string, any]) => {
+                    if (!combined[playerId]) {
+                        combined[playerId] = { id: playerId, minutesPlayed: 0, g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0 };
+                    }
+                    combined[playerId].minutesPlayed! += stats.minutesPlayed || 0;
+                    combined[playerId].g! += stats.goals || 0;
+                    combined[playerId].a! += stats.assists || 0;
+                    combined[playerId].ta! += stats.yellowCards || 0;
+                    combined[playerId].tr! += stats.redCards || 0;
+                    combined[playerId].fouls! += stats.fouls || 0;
+                    combined[playerId].paradas! += stats.saves || 0;
+                    combined[playerId].gc! += stats.goalsConceded || 0;
+                    combined[playerId].vs1! += stats.unoVsUno || 0;
+                });
+            }
+        });
+         // Find player names from events
+        events.forEach((event: any) => {
+            if(event.playerId && combined[event.playerId] && !combined[event.playerId].name) {
+                combined[event.playerId].name = event.playerName;
+            }
+        });
+
+    } else if (visitorPlayers.length > 0) { // Old structure
+        visitorPlayers.forEach((p: any) => {
+            combined[p.id] = {
+                id: p.id,
+                name: p.name,
+                minutesPlayed: p.timeOnCourt || 0,
+                g: p.goals || 0,
+                a: p.assists || 0,
+                ta: p.amarillas || 0,
+                tr: p.rojas || 0,
+                fouls: p.faltas || 0,
+                paradas: p.paradas || 0,
+                gc: p.gRec || 0,
+                vs1: p.vs1 || 0,
+            };
+        });
+    }
 
     return Object.values(combined);
   };
@@ -144,15 +189,15 @@ export default function PartidoDetallePage() {
   const finalPlayerStats = combinedPlayerStats();
   
   const totals = finalPlayerStats.reduce((acc, player) => {
-        acc.g += player.g;
-        acc.a += player.a;
-        acc.ta += player.ta;
-        acc.tr += player.tr;
-        acc.fouls += player.fouls;
-        acc.paradas += player.paradas;
-        acc.gc += player.gc;
-        acc.vs1 += player.vs1;
-        acc.totalSeconds += player.minutesPlayed;
+        acc.g += player.g || 0;
+        acc.a += player.a || 0;
+        acc.ta += player.ta || 0;
+        acc.tr += player.tr || 0;
+        acc.fouls += player.fouls || 0;
+        acc.paradas += player.paradas || 0;
+        acc.gc += player.gc || 0;
+        acc.vs1 += player.vs1 || 0;
+        acc.totalSeconds += player.minutesPlayed || 0;
         return acc;
     }, { g: 0, a: 0, ta: 0, tr: 0, fouls: 0, paradas: 0, gc: 0, vs1: 0, totalSeconds: 0 });
 
@@ -161,6 +206,7 @@ export default function PartidoDetallePage() {
     const totalTimeFormatted = `${totalMinutes}:${String(totalSecondsRemaining).padStart(2, '0')}`;
     
     const formatTime = (timeInSeconds: number) => {
+        if (isNaN(timeInSeconds)) return '00:00';
         const minutes = Math.floor(timeInSeconds / 60);
         const seconds = timeInSeconds % 60;
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -236,7 +282,7 @@ export default function PartidoDetallePage() {
                                     {goal.team === 'visitor' ? (
                                         <div className="w-1/2 flex justify-between items-center pl-4">
                                             <span className="text-muted-foreground">{goal.minute}'</span>
-                                            <span className="font-medium text-right">RIVAL</span>
+                                            <span className="font-medium text-right">{goal.playerName === myTeamName ? 'RIVAL' : goal.playerName}</span>
                                         </div>
                                     ) : <div className="w-1/2 pl-4"></div>}
                                 </div>
@@ -263,7 +309,7 @@ export default function PartidoDetallePage() {
         <TabsContent value="estadisticas">
             <Card>
                 <CardHeader>
-                    <CardTitle>Estadísticas de Jugadores</CardTitle>
+                    <CardTitle>Estadísticas de Jugadores ({myTeamName})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -286,15 +332,15 @@ export default function PartidoDetallePage() {
                                 {finalPlayerStats.map((player) => (
                                     <TableRow key={player.id}>
                                         <TableCell className="py-2 px-4 font-medium">{player.name || 'Desconocido'}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{formatTime(player.minutesPlayed)}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.g}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.a}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.ta}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.tr}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.fouls}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.paradas}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.gc}</TableCell>
-                                        <TableCell className="text-center py-2 px-4">{player.vs1}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{formatTime(player.minutesPlayed || 0)}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.g || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.a || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.ta || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.tr || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.fouls || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.paradas || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.gc || 0}</TableCell>
+                                        <TableCell className="text-center py-2 px-4">{player.vs1 || 0}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
