@@ -368,3 +368,4 @@ export default function GestionEquiposPage() {
     </div>
   );
 }
+

@@ -76,7 +76,7 @@ const formatStatTime = (totalSeconds: number) => {
 };
 
 const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
-    const initialTotals = {
+    const initialTotals: PlayerStats = {
         minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
         shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
         goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
@@ -106,9 +106,8 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
                 if (statsMap.has(playerId)) {
                     const existingStats = statsMap.get(playerId)!;
                     const playerPeriodStats = periodStats[playerId] as Partial<PlayerStats>;
-                    Object.keys(playerPeriodStats).forEach(key => {
-                        const statKey = key as keyof PlayerStats;
-                        (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerPeriodStats[statKey] || 0);
+                    (Object.keys(playerPeriodStats) as Array<keyof PlayerStats>).forEach(key => {
+                        (existingStats[key] as number) = (existingStats[key] || 0) + (playerPeriodStats[key] || 0);
                     });
                 }
             }
@@ -119,14 +118,13 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
              if (statsMap.has(playerId)) {
                 const existingStats = statsMap.get(playerId)!;
                 const playerLegacyStats = legacyPlayerStats[playerId] || {};
-                Object.keys(playerLegacyStats).forEach(key => {
-                    const statKey = key as keyof PlayerStats;
-                    (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerLegacyStats[statKey] || 0);
+                 (Object.keys(playerLegacyStats) as Array<keyof PlayerStats>).forEach(key => {
+                    (existingStats[key] as number) = (existingStats[key] || 0) + (playerLegacyStats[key] || 0);
                 });
             }
         }
     } else if (match.localPlayers && match.userTeam) { // Even older legacy format
-        const legacyPlayerList = match.localPlayers;
+        const legacyPlayerList = match.userTeam === 'local' ? match.localPlayers : match.visitorPlayers;
         if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
             legacyPlayerList.forEach((legacyPlayer) => {
                 if (legacyPlayer.id && statsMap.has(legacyPlayer.id)) {
@@ -265,7 +263,8 @@ const PlayerStatsTable = ({ match, teamId }: { match: Match, teamId: string}) =>
                         </TableBody>
                          <TableFooter>
                             <TableRow className="bg-muted/50 font-bold">
-                                <TableCell colSpan={3}>Total Equipo</TableCell>
+                                <TableCell colSpan={2}>Total Equipo</TableCell>
+                                <TableCell>{formatStatTime(totals.minutesPlayed || 0)}</TableCell>
                                 <TableCell>{totals.goals}</TableCell>
                                 <TableCell>{totals.assists}</TableCell>
                                 <TableCell>{totals.fouls}</TableCell>
@@ -355,8 +354,6 @@ export default function MatchDetailsPage() {
   if (!match || !team) {
     return <div className="container mx-auto px-4 py-8 text-center">No se encontraron datos del partido o del equipo.</div>;
   }
-
-  const isMyTeamLocal = match.localTeam === team.name;
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">

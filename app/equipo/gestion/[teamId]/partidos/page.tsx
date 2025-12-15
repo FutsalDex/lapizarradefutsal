@@ -175,24 +175,26 @@ function MatchFormDialog({
   });
 
   useEffect(() => {
-    if (isEditMode && matchToEdit) {
-      form.reset({
-        localTeam: matchToEdit.localTeam,
-        visitorTeam: matchToEdit.visitorTeam,
-        date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
-        matchType: matchToEdit.matchType,
-        competition: matchToEdit.competition || '',
-        matchday: matchToEdit.matchday?.toString() || '',
-      });
-    } else {
-      form.reset({
-        localTeam: '',
-        visitorTeam: '',
-        date: undefined,
-        matchType: 'Amistoso',
-        competition: team.competition || '',
-        matchday: ''
-      });
+    if (isOpen) {
+      if (isEditMode && matchToEdit) {
+        form.reset({
+          localTeam: matchToEdit.localTeam,
+          visitorTeam: matchToEdit.visitorTeam,
+          date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
+          matchType: matchToEdit.matchType,
+          competition: matchToEdit.competition || '',
+          matchday: matchToEdit.matchday?.toString() || '',
+        });
+      } else {
+        form.reset({
+          localTeam: '',
+          visitorTeam: '',
+          date: undefined,
+          matchType: 'Amistoso',
+          competition: team.competition || '',
+          matchday: ''
+        });
+      }
     }
   }, [isOpen, isEditMode, matchToEdit, form, team.competition]);
 
@@ -220,11 +222,12 @@ function MatchFormDialog({
 
       if (isEditMode && matchToEdit) {
         const matchRef = doc(firestore, 'matches', matchToEdit.id);
+        const updateData: Partial<Match> = { ...matchData };
         // Remove matchday if it's empty, to avoid storing undefined
-        if (!matchData.matchday) {
-            delete (matchData as any).matchday;
+        if (!updateData.matchday) {
+            delete (updateData as any).matchday;
         }
-        await updateDoc(matchRef, matchData);
+        await updateDoc(matchRef, updateData);
          toast({
             title: 'Partido actualizado',
             description: `El partido ${values.localTeam} vs ${values.visitorTeam} ha sido modificado.`,
@@ -696,7 +699,11 @@ export default function MatchesPage() {
   const isLoading = isUserLoading || isLoadingTeam || isLoadingMatches;
   
   const handleOpenForm = (match?: Match) => {
-    setMatchToEdit(match);
+    if (match) {
+        setMatchToEdit(match);
+    } else {
+        setMatchToEdit(undefined);
+    }
     setFormOpen(true);
   };
   
@@ -808,5 +815,3 @@ export default function MatchesPage() {
     </div>
   );
 }
-
-    

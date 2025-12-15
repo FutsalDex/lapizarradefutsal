@@ -394,6 +394,46 @@ function AttendanceHistoryTable({ players, attendanceRecords }: { players: Playe
     );
 }
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+    const { user, isUserLoading } = useUser();
+
+    if (isUserLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8 space-y-6">
+                <Skeleton className="h-10 w-80" />
+                <Skeleton className="h-6 w-full max-w-lg" />
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            <Skeleton className="h-12 w-full" />
+                            <Skeleton className="h-48 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+                <p className="text-muted-foreground mb-4">Debes iniciar sesión para gestionar la asistencia.</p>
+                <Button asChild variant="outline">
+                    <Link href="/acceso">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Acceder
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+    
+    return <>{children}</>;
+}
+
+
 // ====================
 // PÁGINA PRINCIPAL
 // ====================
@@ -401,7 +441,7 @@ export default function AttendancePage() {
   const params = useParams();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
 
   const [existingRecordDays, setExistingRecordDays] = useState<Date[]>([]);
 
@@ -430,42 +470,9 @@ export default function AttendancePage() {
     }
   }, [attendanceRecords]);
 
-  const isLoading = isUserLoading || isLoadingTeam || isLoadingPlayers || isLoadingAttendance;
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        <Skeleton className="h-10 w-80" />
-        <Skeleton className="h-6 w-full max-w-lg" />
-        <Card>
-            <CardContent className="p-6">
-                <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                </div>
-            </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
-        <p className="text-muted-foreground mb-4">Debes iniciar sesión para gestionar la asistencia.</p>
-        <Button asChild variant="outline">
-          <Link href="/acceso">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Acceder
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
-  if (!team) {
+  const isLoading = isLoadingTeam || isLoadingPlayers || isLoadingAttendance;
+  
+  if (!team && !isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
@@ -481,41 +488,47 @@ export default function AttendancePage() {
   }
   
   return (
-    <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-            <Button asChild variant="outline" className="mb-4">
-                <Link href={`/equipo/gestion/${teamId}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Volver al Panel del Equipo
-                </Link>
-            </Button>
-            <h1 className="text-4xl font-bold font-headline text-primary">
-                Control de Asistencia: {team.name}
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2">
-                Selecciona una fecha y marca el estado de cada jugador. Los días enmarcados ya tienen un registro.
-            </p>
-        </div>
+    <AuthGuard>
+        <div className="container mx-auto px-4 py-8">
+            <div className="mb-8">
+                <Button asChild variant="outline" className="mb-4">
+                    <Link href={`/equipo/gestion/${teamId}`}>
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Volver al Panel del Equipo
+                    </Link>
+                </Button>
+                <h1 className="text-4xl font-bold font-headline text-primary">
+                    Control de Asistencia: {team?.name}
+                </h1>
+                <p className="text-lg text-muted-foreground mt-2">
+                    Selecciona una fecha y marca el estado de cada jugador. Los días enmarcados ya tienen un registro.
+                </p>
+            </div>
 
-        <Tabs defaultValue="registry" className="w-full">
-            <TabsList className='grid w-full grid-cols-2'>
-                <TabsTrigger value="registry">Registro Diario</TabsTrigger>
-                <TabsTrigger value="history">Historial de Asistencia</TabsTrigger>
-            </TabsList>
-            <TabsContent value="registry" className='mt-6'>
-                <DailyAttendanceRegistry 
-                    team={team}
-                    teamId={teamId}
-                    players={players || []}
-                    attendanceRecords={attendanceRecords || []}
-                    setExistingRecordDays={setExistingRecordDays}
-                    existingRecordDays={existingRecordDays}
-                />
-            </TabsContent>
-            <TabsContent value="history" className='mt-6'>
-                <AttendanceHistoryTable players={players || []} attendanceRecords={attendanceRecords || []} />
-            </TabsContent>
-        </Tabs>
-    </div>
+            <Tabs defaultValue="registry" className="w-full">
+                <TabsList className='grid w-full grid-cols-2'>
+                    <TabsTrigger value="registry">Registro Diario</TabsTrigger>
+                    <TabsTrigger value="history">Historial de Asistencia</TabsTrigger>
+                </TabsList>
+                <TabsContent value="registry" className='mt-6'>
+                    <DailyAttendanceRegistry 
+                        team={team!}
+                        teamId={teamId}
+                        players={players || []}
+                        attendanceRecords={attendanceRecords || []}
+                        setExistingRecordDays={setExistingRecordDays}
+                        existingRecordDays={existingRecordDays}
+                    />
+                </TabsContent>
+                <TabsContent value="history" className='mt-6'>
+                    <AttendanceHistoryTable players={players || []} attendanceRecords={attendanceRecords || []} />
+                </TabsContent>
+            </Tabs>
+        </div>
+    </AuthGuard>
   );
 }
+
+    
+
+    

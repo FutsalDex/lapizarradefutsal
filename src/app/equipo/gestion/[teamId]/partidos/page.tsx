@@ -180,7 +180,7 @@ function MatchFormDialog({
         form.reset({
           localTeam: matchToEdit.localTeam,
           visitorTeam: matchToEdit.visitorTeam,
-          date: matchToEdit.date.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
+          date: matchToEdit.date?.toDate ? matchToEdit.date.toDate() : new Date(matchToEdit.date),
           matchType: matchToEdit.matchType,
           competition: matchToEdit.competition || '',
           matchday: matchToEdit.matchday?.toString() || '',
@@ -542,7 +542,7 @@ ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: () => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
+function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: (match: Match) => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
   const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -624,7 +624,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                           </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={onEdit}>
+                          <DropdownMenuItem onClick={() => onEdit(match)}>
                               <Edit className="mr-2 h-4 w-4" />
                               <span>Editar Partido</span>
                           </DropdownMenuItem>
@@ -699,14 +699,18 @@ export default function MatchesPage() {
   const isLoading = isUserLoading || isLoadingTeam || isLoadingMatches;
   
   const handleOpenForm = (match?: Match) => {
-    setMatchToEdit(match);
+    if(match) {
+        setMatchToEdit(match);
+    } else {
+        setMatchToEdit(undefined);
+    }
     setFormOpen(true);
   };
   
   const handleRefresh = () => {
     setKey(k => k + 1);
   };
-
+  
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -800,7 +804,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={() => handleOpenForm(match)} onMatchDeleted={handleRefresh} onSquadSaved={handleRefresh}/>
+            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={handleOpenForm} onMatchDeleted={handleRefresh} onSquadSaved={handleRefresh}/>
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">

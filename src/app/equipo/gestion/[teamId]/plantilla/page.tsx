@@ -464,6 +464,38 @@ function RosterForm({ team, players, isLoadingPlayers }: { team: Team, players: 
   );
 }
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+    const { user, isUserLoading } = useUser();
+
+    if (isUserLoading) {
+        return (
+            <div className="container mx-auto px-4 py-8 space-y-8">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-64 w-full" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+                <p className="text-muted-foreground mb-4">Debes iniciar sesión para gestionar la plantilla de un equipo.</p>
+                <Button asChild variant="outline">
+                    <Link href="/acceso">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Acceder
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
+    
+    return <>{children}</>;
+}
+
+
 // ====================
 // PÁGINA PRINCIPAL
 // ====================
@@ -471,63 +503,31 @@ export default function RosterPage() {
   const params = useParams();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const firestore = useFirestore();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const teamRef = useMemoFirebase(() => {
-    if (!firestore || !teamId || !user) return null;
+    if (!firestore || !teamId) return null;
     return doc(firestore, 'teams', teamId);
-  }, [firestore, teamId, user]);
+  }, [firestore, teamId]);
 
-  const playersRef = useMemoFirebase(() => {
-    if(!firestore || !teamId || !user) return null;
-    return collection(firestore, `teams/${teamId}/players`);
-  }, [firestore, teamId, user]);
-  
-  const staffRef = useMemoFirebase(() => {
-    if(!firestore || !teamId || !user) return null;
-    return collection(firestore, `teams/${teamId}/staff`);
-  }, [firestore, teamId, user, refreshKey]);
+  const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
+  const staffRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/staff`), [firestore, teamId, refreshKey]);
 
   const { data: team, isLoading: isLoadingTeam } = useDoc<Team>(teamRef);
   const { data: players, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
   const { data: staff, isLoading: isLoadingStaff } = useCollection<StaffMember>(staffRef);
 
-  const isLoading = isUserLoading || isLoadingTeam;
-
-  if (isLoading) {
+  if (!team && !isLoadingTeam) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-  if (!user) {
-    return (
-        <div className="container mx-auto px-4 py-8 text-center">
-           <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
-           <p className="text-muted-foreground mb-4">Debes iniciar sesión para gestionar la plantilla de un equipo.</p>
-           <Button asChild variant="outline">
-             <Link href="/acceso">
-               <ArrowLeft className="mr-2 h-4 w-4" />
-               Acceder
-             </Link>
-           </Button>
-        </div>
-      );
-  }
-  
-  if (!team) return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h2 className="text-2xl font-bold mb-4">Equipo no encontrado</h2>
       </div>
-  );
-  
+    );
+  }
+
   const isOwner = user && team && user.uid === team.ownerId;
-  
-  if (!isOwner) {
+  if (!isOwner && !isLoadingTeam) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
            <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
@@ -543,30 +543,32 @@ export default function RosterPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-        <div>
-            <Button asChild variant="outline" className="mb-4">
-                <Link href={`/equipo/gestion/${teamId}`}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Volver al Panel
-                </Link>
-            </Button>
-            <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
-            <Users className="mr-3 h-10 w-10" />
-            Mi Plantilla
-            </h1>
-            <p className="text-lg text-muted-foreground mt-2">
-            Gestiona la plantilla de tu equipo, tanto jugadores como cuerpo técnico.
-            </p>
-        </div>
-      </div>
+    <AuthGuard>
+        <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
+                <div>
+                    <Button asChild variant="outline" className="mb-4">
+                        <Link href={`/equipo/gestion/${teamId}`}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Volver al Panel
+                        </Link>
+                    </Button>
+                    <h1 className="text-4xl font-bold font-headline text-primary flex items-center">
+                    <Users className="mr-3 h-10 w-10" />
+                    Mi Plantilla
+                    </h1>
+                    <p className="text-lg text-muted-foreground mt-2">
+                    Gestiona la plantilla de tu equipo, tanto jugadores como cuerpo técnico.
+                    </p>
+                </div>
+            </div>
 
-       <div className="space-y-8">
-         <InfoCard team={team} />
-         <StaffForm team={team} staff={staff} isLoadingStaff={isLoadingStaff} onStaffUpdated={() => setRefreshKey(k => k + 1)} />
-         <RosterForm team={team} players={players} isLoadingPlayers={isLoadingPlayers} />
-       </div>
-    </div>
+            <div className="space-y-8">
+                {team && <InfoCard team={team} />}
+                <StaffForm team={team!} staff={staff} isLoadingStaff={isLoadingStaff} onStaffUpdated={() => setRefreshKey(k => k + 1)} />
+                <RosterForm team={team!} players={players} isLoadingPlayers={isLoadingPlayers} />
+            </div>
+        </div>
+    </AuthGuard>
   );
 }
