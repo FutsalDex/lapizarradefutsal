@@ -43,14 +43,6 @@ const menuItems = [
     soon: false,
   },
   {
-    title: 'Mis Eventos',
-    description: 'Visualiza la cronología de todos tus partidos y sesiones de entrenamiento guardados.',
-    icon: <ClipboardList className="w-8 h-8 text-primary" />,
-    href: '/equipo/mis-eventos',
-    disabled: false,
-    soon: false,
-  },
-  {
     title: 'Marcador Rápido',
     description: 'Usa un marcador con crono para un partido rápido o una sesión de entrenamiento.',
     icon: <BarChart3 className="w-8 h-8 text-primary" />,
