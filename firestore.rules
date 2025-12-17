@@ -3,6 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+<<<<<<< HEAD
     // =============================
     // 🔒 UTILIDADES
     // =============================
@@ -82,6 +83,119 @@ service cloud.firestore {
     match /exercises/{exerciseId} {
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
+=======
+    // ============================================================
+    // 🔐 FUNCIONES REUTILIZABLES
+    // ============================================================
+
+    // Usuario autenticado
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Usuario dueño de su propio documento
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Usuario administrador
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'futsaldex@gmail.com' ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'
+        )
+      );
+    }
+
+    // Dueño de un equipo
+    function isTeamOwner(teamId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/teams/$(teamId)) &&
+             get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
+    }
+
+    // Miembro de un equipo (o dueño)
+    function isTeamMember(teamId) {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/teams/$(teamId)) &&
+             (
+               request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds ||
+               isTeamOwner(teamId)
+             );
+    }
+
+    // ============================================================
+    // 👤 USERS
+    // ============================================================
+
+    match /users/{userId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update, delete: if isOwner(userId) || isAdmin();
+
+      // Favoritos
+      match /favorites/{favoriteId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ============================================================
+    // 🏋️ EXERCISES
+    // ============================================================
+
+    match /exercises/{exerciseId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ============================================================
+    // 🏟️ TEAMS
+    // ============================================================
+
+    match /teams/{teamId} {
+
+      // Leer info del equipo
+      allow get, list: if isTeamMember(teamId) || isAdmin();
+
+      // Crear equipo
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+
+      // Modificar o eliminar
+      allow update, delete: if isTeamOwner(teamId) || isAdmin();
+
+      // --- 📅 Asistencias ---
+      match /attendance/{date} {
+        allow get, list, create, update, delete: if isTeamMember(teamId) || isAdmin();
+      }
+
+      // --- 🧍 Jugadores ---
+      match /players/{playerId} {
+        allow list: if isTeamMember(teamId) || isAdmin();
+        allow get: if isTeamMember(teamId) || isAdmin();
+        allow create, update, delete: if isTeamOwner(teamId) || isAdmin();
+      }
+
+      // --- 👥 Staff Técnico ---
+      match /staff/{staffId} {
+        allow list, get: if isTeamMember(teamId) || isAdmin();
+        allow create, update, delete: if isTeamOwner(teamId) || isAdmin();
+      }
+    }
+
+    // ============================================================
+    // 📅 MATCHES / SESSIONS / INVITATIONS
+    // ============================================================
+
+    match /matches/{matchId} {
+      allow get, list, create, update, delete: if isSignedIn();
+    }
+
+    match /sessions/{sessionId} {
+      allow get, list, create, update, delete: if isSignedIn();
+>>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
     }
 
 
@@ -98,10 +212,21 @@ service cloud.firestore {
     // 💌 INVITATIONS
     // =============================
     match /invitations/{invitationId} {
+<<<<<<< HEAD
       allow read, list: if isAdmin() || (isAuth() && request.auth.uid == resource.data.inviterId);
       allow create: if isAuth() && request.resource.data.inviterId == request.auth.uid;
       allow update, delete: if isAdmin();
+=======
+      allow get, list, create, update, delete: if isSignedIn();
+>>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
     }
+
+    // ============================================================
+    // ❌ Colecciones obsoletas (bloqueadas)
+    // ============================================================
+
+    match /teamMembers/{memberId} { allow read, write: if false; }
+    match /referrals/{referralId} { allow read, write: if false; }
   }
 }
 

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client';
 
 import { useState, useMemo, useRef, useSearchParams } from 'react';
@@ -11,6 +12,12 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
 
+=======
+
+"use client";
+
+import { sessions } from '@/lib/data';
+>>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Plus, Calendar as CalendarIcon, Save, Trash2, Eye, Download, Shield, Replace, Loader2, Pencil } from 'lucide-react';
 import Link from 'next/link';
+<<<<<<< HEAD
 import { Exercise, mapExercise } from '@/lib/data';
 import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
@@ -93,10 +101,59 @@ const ExerciseCard = ({
       </div>
     );
   }
+=======
+import { PlusCircle, Calendar, ListChecks } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+
+const exampleSessions = sessions;
+
+>>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
 
   return (
+<<<<<<< HEAD
     <div className="h-48">
       {children}
+=======
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div className="text-left">
+          <h1 className="text-4xl font-bold font-headline">Mis Sesiones</h1>
+          <p className="text-lg text-muted-foreground mt-2">Organiza y planifica tus entrenamientos.</p>
+        </div>
+        <Button asChild className="mt-4 md:mt-0 w-full md:w-auto">
+          <Link href="/sesiones/crear">
+            <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Sesión
+          </Link>
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {exampleSessions.map((session) => (
+          <Card key={session.id} className="flex flex-col hover:border-primary/50 transition-colors">
+            <CardHeader className='relative'>
+                <CardTitle>{session.name}</CardTitle>
+                <Badge variant="secondary" className="absolute top-4 right-4">Básico</Badge>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+               <div className="flex items-center text-muted-foreground">
+                <Calendar className="mr-3 h-5 w-5" />
+                <span>{new Date(session.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+              <div className="flex items-center text-muted-foreground">
+                <ListChecks className="mr-3 h-5 w-5" />
+                <span>{session.exercises.length} ejercicios</span>
+              </div>
+            </CardContent>
+            <CardFooter>
+                <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/sesiones/${session.id}`}>Ver Detalles</Link>
+                </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+>>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
     </div>
   );
 };
