@@ -1,8 +1,8 @@
 // src/firebase/config.ts
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,15 +13,26 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+let firebaseApp: FirebaseApp;
+let auth: Auth;
+let firestore: Firestore;
+let storage: FirebaseStorage;
 
-export const auth = getAuth(firebaseApp);
-export const firestore = getFirestore(firebaseApp);
-export const storage = getStorage(firebaseApp);
+function initializeFirebase() {
+    if (getApps().length === 0) {
+        firebaseApp = initializeApp(firebaseConfig);
+    } else {
+        firebaseApp = getApp();
+    }
+    auth = getAuth(firebaseApp);
+    firestore = getFirestore(firebaseApp);
+    storage = getStorage(firebaseApp);
 
-export default firebaseApp;
+    return { firebaseApp, auth, firestore, storage };
+}
 
-// Función para exportar todo
-export const getFirebase = () => {
-  return { firebaseApp, auth, firestore, storage };
-};
+// Export a function to get the initialized services
+export { initializeFirebase };
+
+// Export individual instances for legacy imports, but initialization is key
+export { firebaseApp, auth, firestore, storage };
