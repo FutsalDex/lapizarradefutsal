@@ -1,10 +1,6 @@
 // src/lib/data.ts
 import placeholderImages from "./placeholder-images.json";
 
-const exerciseImages = placeholderImages.placeholderImages.filter(
-  (p: { id: string }) => p.id.startsWith("exercise-")
-);
-
 export type Exercise = {
   id: string;
   number: string;
@@ -16,19 +12,27 @@ export type Exercise = {
   intensity: "low" | "medium" | "high";
 };
 
-export const sampleExercises: Exercise[] = exerciseImages.map(
-  (img: { id: string; src: string }) => ({
+/**
+ * Mapper usado por múltiples páginas
+ * (requerido por la app, faltaba el export)
+ */
+export function mapExercise(img: { id: string; src: string }): Exercise {
+  return {
     id: img.id,
-    number: img.id.split("-")[1],
+    number: img.id.split("-")[1] ?? "",
     name: `Ejercicio ${img.id}`,
     description: "Descripción de ejercicio para futsal",
     image: img.src,
     category: "Táctica",
     duration: 5,
     intensity: "medium",
-  })
+  };
+}
+
+export const exerciseImages = placeholderImages.placeholderImages.filter(
+  (p: { id: string }) => p.id.startsWith("exercise-")
 );
 
-export const sampleTeams: unknown[] = [];
+export const sampleExercises: Exercise[] = exerciseImages.map(mapExercise);
 
-export { exerciseImages };
+export const sampleTeams: unknown[] = [];
