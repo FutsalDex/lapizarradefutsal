@@ -1,3 +1,4 @@
+
 'use client';
 import { Sheet, SheetClose, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
@@ -5,14 +6,19 @@ import { Menu, BookOpen, PenSquare, Star, LayoutDashboard, UserCog, Gift, Users,
 import { useUser } from "@/firebase/use-auth-user";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
+import Link from "next/link";
+import { Logo } from "./logo";
+import { AdminBadges } from "./admin-badges";
 
 export function Header() {
-  const user = useUser();
-  const { auth } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
   const handleSignOut = () => {
     signOut(auth);
   };
+  
+  const isAdmin = user && user.email === 'futsaldex@gmail.com';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,56 +31,46 @@ export function Header() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0">
-            <SheetTitle>La Pizarra de Futsal</SheetTitle>
-            {/* Navegación mobile */}
-            <div className="my-4 flex flex-col space-y-2">
-              <Button variant="ghost" className="w-full justify-start px-2">
-                <BookOpen className="mr-2 h-4 w-4" /> Ejercicios
-              </Button>
-              <Button variant="ghost" className="w-full justify-start px-2">
-                <Users className="mr-2 h-4 w-4" /> Equipos
-              </Button>
-              {user && (
-                <>
-                  <Button variant="ghost" className="w-full justify-start px-2">
-                    <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-                  </Button>
-                  {user.role === 'admin' && (
-                    <Button variant="ghost" className="w-full justify-start px-2">
-                      <Users className="mr-2 h-4 w-4" /> Invitaciones
-                    </Button>
-                  )}
-                </>
-              )}
+            <SheetClose asChild>
+              <Link href="/" className="flex items-center gap-2 mb-4">
+                <Logo />
+                <SheetTitle>La Pizarra</SheetTitle>
+              </Link>
+            </SheetClose>
+            <div className="my-4 flex flex-col space-y-1">
+              <SheetClose asChild><Button asChild variant="ghost" className="w-full justify-start"><Link href="/ejercicios"><BookOpen className="mr-2 h-4 w-4" /> Ejercicios</Link></Button></SheetClose>
+              <SheetClose asChild><Button asChild variant="ghost" className="w-full justify-start"><Link href="/equipo/gestion"><LayoutDashboard className="mr-2 h-4 w-4" /> Mi Equipo</Link></Button></SheetClose>
+              <SheetClose asChild><Button asChild variant="ghost" className="w-full justify-start"><Link href="/favoritos"><Star className="mr-2 h-4 w-4" /> Favoritos</Link></Button></SheetClose>
+              {isAdmin && <SheetClose asChild><Button asChild variant="ghost" className="w-full justify-start"><Link href="/admin"><UserCog className="mr-2 h-4 w-4" /> Admin</Link></Button></SheetClose>}
             </div>
           </SheetContent>
         </Sheet>
-        {/* Logo y nav desktop */}
+        
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-start">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <h1 className="text-xl font-bold">La Pizarra</h1>
-          </div>
-          <nav className="hidden md:flex items-center space-x-6">
-            <Button variant="ghost">Ejercicios</Button>
-            <Button variant="ghost">Equipos</Button>
-            <Button variant="ghost">Partidos</Button>
-            {user && user.role === 'admin' && (
-              <Button variant="ghost" onClick={() => {/* Lógica invitación */}}>
-                Invitar Usuario
-              </Button>
-            )}
+          <Link href="/" className="flex items-center gap-2">
+            <Logo />
+            <h1 className="text-xl font-bold hidden sm:inline-block">LaPizarra</h1>
+          </Link>
+          <nav className="hidden md:flex items-center space-x-2">
+            <Button variant="ghost" asChild><Link href="/ejercicios">Ejercicios</Link></Button>
+            <Button variant="ghost" asChild><Link href="/equipo/gestion">Mi Equipo</Link></Button>
+            <Button variant="ghost" asChild><Link href="/favoritos">Favoritos</Link></Button>
+             <Button variant="ghost" asChild><Link href="/planes">Planes</Link></Button>
           </nav>
         </div>
-        <div className="flex items-center space-x-2">
-          {user ? (
+        
+        <div className="flex items-center space-x-1">
+          {isUserLoading ? (
+            <div className="w-10 h-10 bg-muted rounded-full animate-pulse" />
+          ) : user ? (
             <>
-              <Button variant="ghost" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+              {isAdmin && <AdminBadges />}
+              <Button asChild variant="ghost" className="h-10 w-10 rounded-full"><Link href="/perfil"><User /></Link></Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}><LogOut className="h-4 w-4" /></Button>
             </>
           ) : (
-            <Button variant="ghost">
-              <LogIn className="h-4 w-4" />
+            <Button asChild>
+              <Link href="/acceso"><LogIn className="mr-2 h-4 w-4" /> Acceder</Link>
             </Button>
           )}
         </div>
@@ -82,3 +78,4 @@ export function Header() {
     </header>
   );
 }
+

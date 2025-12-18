@@ -1,6 +1,6 @@
 
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { useAuth } from './provider';
 
@@ -41,3 +41,5 @@ export const useUser = (): UserHookResult => {
       setUser: (newUser) => setUser(newUser) // Provide a way to manually update user state if needed
   };
 };
+
+export { useAuth };

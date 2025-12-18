@@ -1,25 +1,16 @@
 
 import type { Metadata } from 'next';
-<<<<<<< HEAD
-import { Space_Grotesk, Inter } from 'next/font/google';
-=======
-import { Inter } from 'next/font/google';
->>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
+import { Poppins } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Header } from '@/components/layout/header';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
-const fontHeadline = Inter({
-  subsets: ['latin'],
-  variable: '--font-headline',
-  weight: '700',
-});
-
-const fontBody = Inter({
+const fontPoppins = Poppins({
   subsets: ['latin'],
   variable: '--font-body',
+  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900']
 });
 
 
@@ -35,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={cn('antialiased', fontHeadline.variable, fontBody.variable)}>
+      <body className={cn('antialiased', fontPoppins.variable)}>
         <FirebaseClientProvider>
           <div className="flex min-h-screen w-full flex-col">
             <Header />
