@@ -44,17 +44,18 @@ service cloud.firestore {
     // 👤 USERS
     // =============================
     match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+      allow get: if isAuth(); // Any authenticated user can read user profiles to check roles, etc.
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
       allow update: if isOwner(userId) || isAdmin();
-      allow list, delete: if isAdmin();
+      allow list, delete: if isAdmin(); // Only admins can list all users
 
       // Subcolecciones de usuario
       match /favorites/{favoriteId} {
-        allow read, write: if isOwner(userId);
+        // A user can only read and write their own favorites.
+        allow get, list, write, delete: if isOwner(userId);
       }
       match /sessions/{sessionId} {
-        allow read, write: if isOwner(userId);
+        allow get, list, write, delete: if isOwner(userId);
       }
     }
 
@@ -62,8 +63,12 @@ service cloud.firestore {
     // 🏋️ EXERCISES
     // =============================
     match /exercises/{exerciseId} {
-      allow read: if true;
-      allow create, update, delete: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
+      // ANYONE can read exercises.
+      allow get, list: if true;
+      
+      // Only admins or the user who created it can modify exercises.
+      allow create: if isAuth() && (isAdmin() || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isAuth() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     // =============================

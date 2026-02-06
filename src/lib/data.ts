@@ -1,3 +1,4 @@
+
 // src/lib/data.ts
 import placeholderImages from "./placeholder-images.json";
 
@@ -8,31 +9,47 @@ export type Exercise = {
   description: string;
   image: string;
   category: string;
-  duration: number;
-  intensity: "low" | "medium" | "high";
+  duration: string;
+  fase: string;
+  edad: string[];
+  numberOfPlayers: string;
+  objectives: string;
+  variations?: string;
+  consejos?: string;
+  visible: boolean;
+  aiHint?: string;
+  'Espacio y materiales necesarios'?: string;
 };
 
 /**
  * Mapper usado por múltiples páginas
  * (requerido por la app, faltaba el export)
  */
-export function mapExercise(img: { id: string; src: string }): Exercise {
+export function mapExercise(docData: { id: string; [key: string]: any }): Exercise {
+  const edad = docData['Edad'] || [];
   return {
-    id: img.id,
-    number: img.id.split("-")[1] ?? "",
-    name: `Ejercicio ${img.id}`,
-    description: "Descripción de ejercicio para futsal",
-    image: img.src,
-    category: "Táctica",
-    duration: 5,
-    intensity: "medium",
+    id: docData.id,
+    number: docData['Número'] || '',
+    name: docData['Ejercicio'] || '',
+    description: docData['Descripción de la tarea'] || '',
+    image: docData['Imagen'] || '',
+    category: docData['Categoría'] || '',
+    duration: docData['Duración (min)'] || '0',
+    fase: docData['Fase'] || '',
+    edad: Array.isArray(edad) ? edad : typeof edad === 'string' ? edad.split(',').map(e => e.trim()) : [],
+    numberOfPlayers: docData['Número de jugadores'] || '',
+    objectives: docData['Objetivos'] || '',
+    variations: docData['Variantes'],
+    consejos: docData['Consejos para el entrenador'],
+    visible: docData['Visible'] !== false, // default to true if undefined
+    aiHint: docData['aiHint'],
+    'Espacio y materiales necesarios': docData['Espacio y materiales necesarios'],
   };
 }
+
 
 export const exerciseImages = placeholderImages.placeholderImages.filter(
   (p: { id: string }) => p.id.startsWith("exercise-")
 );
 
-export const sampleExercises: Exercise[] = exerciseImages.map(mapExercise);
-
-export const sampleTeams: unknown[] = [];
+export const sampleExercises: Exercise[] = [];
