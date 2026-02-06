@@ -41,7 +41,7 @@ export default function Home() {
           </CardContent>
           <CardFooter>
             <Button asChild size="lg" className="w-full">
-              <Link href="/planes">
+              <Link href="/suscripcion">
                 Ver Planes
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -59,7 +59,7 @@ export default function Home() {
               </CardTitle>
             </div>
             <CardDescription className="text-base">
-              Regístrate para una prueba de 30 días
+              Regístrate para una prueba de 7 días
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">

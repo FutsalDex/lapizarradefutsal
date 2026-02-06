@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Star, Gift, ArrowRight, Send, UserPlus, Mail, Euro, CalendarCheck } from 'lucide-react';
+import { Star, Gift, ArrowRight, Send, UserPlus, CalendarCheck } from 'lucide-react';
 import { doc, collection, query, where, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
@@ -20,6 +19,14 @@ interface UserProfile {
     points?: number;
     subscriptionEndDate?: { toDate: () => Date };
 }
+
+interface Invitation {
+    id: string;
+    inviterId: string;
+    inviteeEmail: string;
+    status: 'pending' | 'completed' | 'rejected';
+}
+
 
 const StatCard = ({ title, value, icon: Icon, subtext }: { title: string; value: string | number; icon: React.ElementType; subtext?: string; }) => (
     <Card>
@@ -155,13 +162,13 @@ export default function SuscripcionPage() {
                         title="Puntos acumulados" 
                         value={userSubscription.points} 
                         icon={Gift}
-                        subtext="Gana más invitando o aportando" 
+                        subtext="¡Sigue sumando!" 
                     />
                 </div>
             </div>
             
             <div className='space-y-8'>
-                <Card>
+                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <UserPlus className="h-5 w-5" />
@@ -196,21 +203,25 @@ export default function SuscripcionPage() {
                         )}
                     </CardContent>
                 </Card>
-                 <Card>
+
+                <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Book className="h-5 w-5" />
-                            Aporta Ejercicios a la Comunidad
-                        </CardTitle>
+                        <CardTitle>¿Cómo funciona el sistema de puntos?</CardTitle>
                         <CardDescription>
-                           Gana 10 puntos por cada ejercicio que aportes a la biblioteca pública. ¡Tu conocimiento tiene premio!
+                            Acumula puntos con tus acciones y obtén descuentos en tu renovación.
                         </CardDescription>
                     </CardHeader>
-                     <CardFooter>
-                       <Button asChild>
-                            <Link href="/equipo/mis-ejercicios">
-                                <ArrowRight className="mr-2 h-4 w-4"/>
-                                Ir a Mis Ejercicios
+                    <CardContent>
+                        <ul className="space-y-2 text-sm">
+                            <li><strong className="text-primary">Aporta ejercicios:</strong> Gana 10 puntos por cada ejercicio que subas a la biblioteca pública.</li>
+                            <li><strong className="text-primary">Invita amigos:</strong> Gana 25 puntos por cada amigo que se suscriba a un plan de pago.</li>
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                         <Button asChild variant="secondary">
+                            <Link href="/planes">
+                                Ver los Planes
+                                <ArrowRight className="ml-2 h-4 w-4"/>
                             </Link>
                         </Button>
                     </CardFooter>
@@ -219,138 +230,4 @@ export default function SuscripcionPage() {
             </div>
         </div>
     );
-=======
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FileText, Users, Star, Euro, Calendar, Gift, Award } from "lucide-react";
-import Link from "next/link";
-
-export default function SuscripcionPage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold font-headline text-primary">Programa de Fidelización</h1>
-        <p className="text-lg text-muted-foreground mt-2 max-w-3xl mx-auto">
-          Tu esfuerzo y colaboración tienen recompensa. Aporta ejercicios a la comunidad (10 puntos por ejercicio y/o invita a tus amigos a unirse (25 puntos si se suscriben) y canjea tus puntos por meses gratis de suscripción.
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Ejercicios subidos</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">0 puntos ganados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Amigos suscritos</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">75 puntos ganados</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Puntos acumulados</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">75</div>
-              <p className="text-xs text-muted-foreground">¡Sigue sumando!</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Ahorro en renovación</CardTitle>
-              <Euro className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">2.50 €</div>
-              <p className="text-xs text-muted-foreground">Basado en el plan Pro</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Mi Plan</CardTitle>
-               <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Pro</div>
-              <p className="text-xs text-muted-foreground">Vence el 01/10/2026</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Próxima Renovación</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">01/10/2026</div>
-              <p className="text-xs text-muted-foreground">Pro</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Gift className="w-6 h-6 text-primary" />
-              <CardTitle className="font-headline text-2xl">Invita a tus Amigos</CardTitle>
-            </div>
-             <p className="text-muted-foreground pt-2">Gana 25 puntos si se suscriben a un plan de pago. Introduce su email para generar un mensaje de WhatsApp con el enlace de invitación.</p>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Input type="email" placeholder="Email del amigo" className="flex-grow" />
-              <Button className="w-full sm:w-auto">Invitar por WhatsApp</Button>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-3">
-                    <Award className="w-6 h-6 text-primary" />
-                    <CardTitle className="font-headline text-2xl">Renovación de Suscripción</CardTitle>
-                </div>
-                <CardDescription className="pt-2">Aquí puedes ver el estado de tu próxima renovación y el ahorro conseguido gracias a tus puntos.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="border rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex-grow">
-                        <p className="font-semibold">Precio renovación Plan Pro (anual)</p>
-                        <p className="text-sm text-muted-foreground">Descuento por puntos acumulados</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="line-through text-muted-foreground">39.95€</p>
-                        <p className="text-destructive font-semibold">-2.50€</p>
-                    </div>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-between">
-                    <p className="font-bold text-lg">Total a pagar</p>
-                    <p className="font-bold text-lg text-primary">37.45€</p>
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Button asChild className="w-full">
-                    <Link href="/planes">
-                        Instrucciones de Pago
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
-
-      </div>
-    </div>
-  );
->>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
 }
