@@ -43,7 +43,7 @@ service cloud.firestore {
       allow get: if isAuth(); // Any authenticated user can read user profiles to check roles, etc.
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
       allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-      allow list, delete: if isAdmin(); // Only admins can list all users
+      allow list: if isAdmin(); // Only admins can list all users
 
       // Subcolecciones de usuario
       match /favorites/{favoriteId} {
@@ -78,7 +78,8 @@ service cloud.firestore {
     // 🏟️ TEAMS
     // =============================
     match /teams/{teamId} {
-      allow get, list: if isTeamMember(teamId) || isAdmin();
+      allow get: if isTeamMember(teamId) || isAdmin();
+      allow list: if isAuth();
       allow create: if isAuth() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isTeamOwner(teamId) || isAdmin();
 

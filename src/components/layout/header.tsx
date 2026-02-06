@@ -55,14 +55,14 @@ export function Header() {
             <Button variant="ghost" asChild><Link href="/ejercicios">Ejercicios</Link></Button>
             <Button variant="ghost" asChild><Link href="/equipo/gestion">Mi Equipo</Link></Button>
             <Button variant="ghost" asChild><Link href="/favoritos">Favoritos</Link></Button>
-             <Button variant="ghost" asChild><Link href="/planes">Planes</Link></Button>
+             <Button variant="ghost" asChild><Link href="/suscripcion">Planes</Link></Button>
           </nav>
         </div>
         
         <div className="flex items-center space-x-1">
           {isUserLoading ? (
             <div className="w-10 h-10 bg-muted rounded-full animate-pulse" />
-          ) : user ? (
+          ) : user && !user.isAnonymous ? (
             <>
               {isAdmin && <AdminBadges />}
               <Button asChild variant="ghost" className="h-10 w-10 rounded-full"><Link href="/perfil"><User /></Link></Button>
@@ -78,4 +78,3 @@ export function Header() {
     </header>
   );
 }
-
