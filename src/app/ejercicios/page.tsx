@@ -10,7 +10,7 @@ import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User, Star } from 'lucide-react';
+import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User, Star, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import Image from 'next/image';
 
 interface UserProfileData {
     subscription?: string;
+    createdAt?: { toDate: () => Date };
 }
 
 export default function EjerciciosPage() {
@@ -71,6 +72,16 @@ export default function EjerciciosPage() {
   
   const isGuestUser = userProfile?.subscription === 'Invitado';
 
+  const isTrialExpired = useMemo(() => {
+    if (!userProfile?.createdAt) return false;
+    if (userProfile?.subscription !== 'Invitado') return false;
+
+    const registrationDate = userProfile.createdAt.toDate();
+    const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+    
+    return new Date().getTime() - registrationDate.getTime() > sevenDaysInMillis;
+  }, [userProfile]);
+
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     
@@ -87,23 +98,24 @@ export default function EjerciciosPage() {
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
 
-    if (!user || user.isAnonymous) {
+    if (!user || user.isAnonymous || (isGuestUser && isTrialExpired)) {
       return filtered.slice(0, 6);
     }
     
     return filtered;
 
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user]);
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user, isGuestUser, isTrialExpired]);
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
-      if (!user || user.isAnonymous) {
+      if (!user || user.isAnonymous || (isGuestUser && isTrialExpired)) {
         return filteredExercises;
       }
       const startIndex = (currentPage - 1) * exercisesPerPage;
       const endIndex = startIndex + exercisesPerPage;
       return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage, user]);
+  }, [filteredExercises, currentPage, exercisesPerPage, user, isGuestUser, isTrialExpired]);
+
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -178,7 +190,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && user && !user.isAnonymous && (
+        {!isLoading && user && !user.isAnonymous && !(isGuestUser && isTrialExpired) && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -220,15 +232,15 @@ export default function EjerciciosPage() {
                 </CardContent>
             </Card>
           )}
-           {user && !user.isAnonymous && isGuestUser && (
+           {user && !user.isAnonymous && isGuestUser && !isTrialExpired && (
               <Card className="mb-8 border-primary bg-primary/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-primary">
                         <Star/>
-                        ¡Bienvenido a tu prueba de 7 días!
+                        ¡Bienvenido a tu prueba de 7 días PRO!
                     </CardTitle>
                     <CardDescription>
-                        Estás en tu periodo de prueba. Disfruta de acceso completo a todas las funcionalidades. Para mantener tu acceso, suscríbete a uno de nuestros planes.
+                        Estás disfrutando de todas las ventajas del Plan Pro de forma gratuita. Para mantener tu acceso después de la prueba, suscríbete.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -237,6 +249,24 @@ export default function EjerciciosPage() {
                     </Button>
                 </CardContent>
               </Card>
+          )}
+          {user && !user.isAnonymous && isGuestUser && isTrialExpired && (
+             <Card className="mb-8 border-destructive bg-destructive/5 text-center">
+                 <CardHeader>
+                    <CardTitle className="flex items-center justify-center gap-2 text-destructive">
+                        <Clock className="h-5 w-5"/>
+                        Tu periodo de prueba ha finalizado
+                    </CardTitle>
+                    <CardDescription>
+                       Tu acceso a las funcionalidades PRO ha terminado. Suscríbete para desbloquear todo el potencial de LaPizarra.
+                    </CardDescription>
+                </CardHeader>
+                 <CardContent>
+                    <Button asChild variant="destructive">
+                      <Link href="/suscripcion">Suscribirme ahora</Link>
+                    </Button>
+                </CardContent>
+            </Card>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedExercises.map((exercise) => (
@@ -288,7 +318,7 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
-           {totalPages > 1 && user && !user.isAnonymous && (
+           {totalPages > 1 && user && !user.isAnonymous && !(isGuestUser && isTrialExpired) && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <Button 
                         onClick={() => handlePageChange(currentPage - 1)} 
