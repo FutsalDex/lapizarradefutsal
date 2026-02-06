@@ -10,7 +10,7 @@ import { Exercise, mapExercise } from '@/lib/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User, Star } from 'lucide-react';
+import { Heart, Search, Filter, Eye, ArrowLeft, ArrowRight, User, Star, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ import Image from 'next/image';
 
 interface UserProfileData {
     subscription?: string;
+    createdAt?: { toDate: () => Date };
 }
 
 export default function EjerciciosPage() {
@@ -38,12 +39,12 @@ export default function EjerciciosPage() {
   }, [firestore]);
   
   const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
   const favoritesCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return collection(firestore, `users/${user.uid}/favorites`);
   }, [firestore, user]);
 
@@ -59,7 +60,7 @@ export default function EjerciciosPage() {
   const favoriteIds = useMemo(() => new Set(favorites?.map(fav => fav.id)), [favorites]);
 
   const handleFavoriteToggle = async (exercise: Exercise) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || user.isAnonymous) return;
     const favoriteRef = doc(firestore, `users/${user.uid}/favorites`, exercise.id);
 
     if (favoriteIds.has(exercise.id)) {
@@ -71,16 +72,22 @@ export default function EjerciciosPage() {
   
   const isGuestUser = userProfile?.subscription === 'Invitado';
 
+  const isTrialExpired = useMemo(() => {
+    if (!userProfile?.createdAt) return false;
+    if (userProfile?.subscription !== 'Invitado') return false;
+
+    const registrationDate = userProfile.createdAt.toDate();
+    const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+    
+    return new Date().getTime() - registrationDate.getTime() > sevenDaysInMillis;
+  }, [userProfile]);
+
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
-    let processableExercises = exercises.filter(e => e.visible);
+    
+    const processableExercises = exercises.filter(e => e.visible);
 
-    // Si el usuario no está logueado o es anónimo, solo mostramos 12 ejercicios
-    if (!user || user.isAnonymous || isGuestUser) {
-        return processableExercises.slice(0, 12);
-    }
-
-    return processableExercises.filter(exercise => {
+    const filtered = processableExercises.filter(exercise => {
       if (!exercise.name) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -90,18 +97,25 @@ export default function EjerciciosPage() {
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user, isGuestUser]);
+
+    if (!user || user.isAnonymous || (isGuestUser && isTrialExpired)) {
+      return filtered.slice(0, 6);
+    }
+    
+    return filtered;
+
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user, isGuestUser, isTrialExpired]);
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
-      // Para usuarios no registrados, anónimos o invitados, la paginación no aplica ya que solo ven 12
-      if (!user || user.isAnonymous || isGuestUser) {
-          return filteredExercises;
+      if (!user || user.isAnonymous || (isGuestUser && isTrialExpired)) {
+        return filteredExercises;
       }
       const startIndex = (currentPage - 1) * exercisesPerPage;
       const endIndex = startIndex + exercisesPerPage;
       return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage, user, isGuestUser]);
+  }, [filteredExercises, currentPage, exercisesPerPage, user, isGuestUser, isTrialExpired]);
+
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -109,7 +123,7 @@ export default function EjerciciosPage() {
     }
   }
   
-  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading || isLoadingProfile;
+  const isLoading = isLoadingExercises || (user && !user.isAnonymous && (isLoadingFavorites || isLoadingProfile));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -176,7 +190,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && user && !user.isAnonymous && !isGuestUser && (
+        {!isLoading && user && !user.isAnonymous && !(isGuestUser && isTrialExpired) && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -218,18 +232,38 @@ export default function EjerciciosPage() {
                 </CardContent>
             </Card>
           )}
-           {user && !user.isAnonymous && isGuestUser && (
-              <Card className="text-center py-10 my-6 bg-primary/10 border-primary">
+           {user && !user.isAnonymous && isGuestUser && !isTrialExpired && (
+              <Card className="mb-8 border-primary bg-primary/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <Star/>
+                        ¡Bienvenido a tu prueba de 7 días PRO!
+                    </CardTitle>
+                    <CardDescription>
+                        Estás disfrutando de todas las ventajas del Plan Pro de forma gratuita. Para mantener tu acceso después de la prueba, suscríbete.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/suscripcion">Ver Planes de Suscripción</Link>
+                    </Button>
+                </CardContent>
+              </Card>
+          )}
+          {user && !user.isAnonymous && isGuestUser && isTrialExpired && (
+             <Card className="mb-8 border-destructive bg-destructive/5 text-center">
                  <CardHeader>
-                    <CardTitle className="text-2xl font-bold text-primary">Desbloquea todo el potencial</CardTitle>
-                    <CardDescription className="max-w-xl mx-auto text-base">Suscríbete a un plan para acceder a la biblioteca completa, guardar favoritos y desbloquear todas las funcionalidades.</CardDescription>
+                    <CardTitle className="flex items-center justify-center gap-2 text-destructive">
+                        <Clock className="h-5 w-5"/>
+                        Tu periodo de prueba ha finalizado
+                    </CardTitle>
+                    <CardDescription>
+                       Tu acceso a las funcionalidades PRO ha terminado. Suscríbete para desbloquear todo el potencial de LaPizarra.
+                    </CardDescription>
                 </CardHeader>
                  <CardContent>
-                    <Button asChild size="lg">
-                    <Link href="/suscripcion">
-                        <Star className="mr-2 h-5 w-5" />
-                        Ver Planes de Suscripción
-                    </Link>
+                    <Button asChild variant="destructive">
+                      <Link href="/suscripcion">Suscribirme ahora</Link>
                     </Button>
                 </CardContent>
             </Card>
@@ -266,7 +300,7 @@ export default function EjerciciosPage() {
                         Ver Ficha
                         </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
+                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user || user.isAnonymous}>
                         <Heart className={cn(
                             "h-5 w-5 transition-colors",
                             favoriteIds.has(exercise.id) 
@@ -284,7 +318,7 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
-           {totalPages > 1 && user && !user.isAnonymous && !isGuestUser && (
+           {totalPages > 1 && user && !user.isAnonymous && !(isGuestUser && isTrialExpired) && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <Button 
                         onClick={() => handlePageChange(currentPage - 1)} 

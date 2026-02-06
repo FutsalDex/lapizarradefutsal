@@ -31,6 +31,7 @@ interface Team {
 
 interface UserProfile {
   subscription?: 'Básico' | 'Pro' | 'Invitado';
+  createdAt?: { toDate: () => Date };
 }
 
 const createTeamSchema = z.object({
@@ -294,11 +295,23 @@ export default function GestionEquiposPage() {
   
   const ownedTeamsCount = ownedTeams?.length ?? 0;
 
+  const isTrialExpired = useMemo(() => {
+    if (!userProfile?.createdAt) return false;
+    if (userProfile?.subscription !== 'Invitado') return false;
+    const registrationDate = userProfile.createdAt.toDate();
+    const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+    return new Date().getTime() - registrationDate.getTime() > sevenDaysInMillis;
+  }, [userProfile]);
+
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
 
     if (user?.isAnonymous) {
       return { isCreationDisabled: true, disabledReason: 'Debes registrarte para crear un equipo.' };
+    }
+
+    if (plan === 'Invitado' && isTrialExpired) {
+      return { isCreationDisabled: true, disabledReason: 'Tu prueba gratuita ha finalizado. Suscríbete para crear equipos.' };
     }
     
     if (plan === 'Invitado' && ownedTeamsCount >= 1) {
@@ -311,7 +324,7 @@ export default function GestionEquiposPage() {
         return { isCreationDisabled: true, disabledReason: 'El Plan Pro permite hasta 3 equipos.'};
     }
     return { isCreationDisabled: false, disabledReason: ''};
-  }, [user, userProfile, ownedTeamsCount]);
+  }, [user, userProfile, ownedTeamsCount, isTrialExpired]);
 
   const isLoading = isAuthLoading || isLoadingOwned || isLoadingProfile;
 
