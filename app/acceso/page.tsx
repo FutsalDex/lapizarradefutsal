@@ -33,7 +33,7 @@ export default function AccesoPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (!isUserLoading && user && !user.isAnonymous) {
       router.push('/ejercicios');
     }
   }, [user, isUserLoading, router]);
@@ -64,8 +64,6 @@ export default function AccesoPage() {
         toast({ title: '¡Registro completado!', description: 'Ya puedes iniciar sesión.' });
       }
     } catch (error: any) {
-      console.error("Authentication error:", error.code, error.message);
-      
       let friendlyMessage = 'Ha ocurrido un error. Por favor, inténtalo de nuevo.';
       switch (error.code) {
           case 'auth/email-already-in-use':
@@ -74,7 +72,6 @@ export default function AccesoPage() {
               setPassword('');
               break;
           case 'auth/wrong-password':
-          case 'auth/user-not-found':
           case 'auth/invalid-credential':
               friendlyMessage = 'El correo electrónico o la contraseña son incorrectos.';
               break;
@@ -114,7 +111,7 @@ export default function AccesoPage() {
   };
 
 
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && !user.isAnonymous)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Cargando...</p>
@@ -162,7 +159,7 @@ export default function AccesoPage() {
           <Card>
             <CardHeader>
               <CardTitle>Registrarse</CardTitle>
-              <CardDescription>Crea una cuenta para disfrutar de 30 días de prueba.</CardDescription>
+              <CardDescription>Crea una cuenta para disfrutar de 7 días de prueba.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
