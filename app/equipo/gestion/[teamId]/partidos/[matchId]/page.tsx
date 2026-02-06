@@ -660,54 +660,54 @@ export default function MatchStatsPage() {
     });
   };
   
-    useEffect(() => {
-        let timerId: NodeJS.Timeout;
+  useEffect(() => {
+    if (!isTimerActive) return;
 
-        if (isTimerActive) {
-            let expected = Date.now() + 1000;
+    let lag = 0;
+    let lastTick = performance.now();
 
-            const step = () => {
-                const drift = Date.now() - expected;
-                
-                setTime(prev => {
-                    if (prev <= 1) {
-                        setIsTimerActive(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+    const timerId = setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - lastTick;
+      lastTick = now;
+      lag += elapsed;
 
-                setLocalMatchData(currentData => {
-                    if (!currentData || activePlayerIds.length === 0) {
-                        return currentData;
-                    }
+      const ticks = Math.floor(lag / 1000);
+      if (ticks > 0) {
+        lag -= ticks * 1000;
 
-                    const newData = { ...currentData };
-                    const newPlayerStats = { ...newData.playerStats };
-                    const newPeriodStats = { ...(newPlayerStats[period] || {}) };
-                    
-                    activePlayerIds.forEach(playerId => {
-                        const playerStats = newPeriodStats[playerId] || {};
-                        newPeriodStats[playerId] = {
-                            ...playerStats,
-                            minutesPlayed: (playerStats.minutesPlayed || 0) + 1
-                        };
-                    });
+        setTime(prev => {
+          const newTime = Math.max(0, prev - ticks);
+          if (newTime === 0) {
+            setIsTimerActive(false);
+          }
+          return newTime;
+        });
+        
+        setLocalMatchData(currentData => {
+          if (!currentData || activePlayerIds.length === 0) {
+            return currentData;
+          }
 
-                    newPlayerStats[period] = newPeriodStats;
-                    newData.playerStats = newPlayerStats;
-                    return newData;
-                });
+          const newData = { ...currentData };
+          const newPlayerStats = { ...newData.playerStats };
+          const newPeriodStats = { ...(newPlayerStats[period] || {}) };
+          
+          activePlayerIds.forEach(playerId => {
+            const playerStats = { ...(newPeriodStats[playerId] || {}) };
+            playerStats.minutesPlayed = (playerStats.minutesPlayed || 0) + ticks;
+            newPeriodStats[playerId] = playerStats;
+          });
 
-                expected += 1000;
-                timerId = setTimeout(step, Math.max(0, 1000 - drift));
-            };
+          newPlayerStats[period] = newPeriodStats;
+          newData.playerStats = newPlayerStats;
+          return newData;
+        });
+      }
+    }, 200); // Check 5 times a second
 
-            timerId = setTimeout(step, 1000);
-        }
-
-        return () => clearTimeout(timerId);
-    }, [isTimerActive, activePlayerIds, period]);
+    return () => clearInterval(timerId);
+  }, [isTimerActive, period, activePlayerIds]);
 
 
   const handleManualSave = async () => {
