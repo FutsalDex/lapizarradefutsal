@@ -72,6 +72,7 @@ export default function AccesoPage() {
               setEmail('');
               setPassword('');
               break;
+          case 'auth/user-not-found':
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
               friendlyMessage = 'El correo electrónico o la contraseña son incorrectos.';
@@ -100,7 +101,6 @@ export default function AccesoPage() {
       await signInAnonymously(auth);
       toast({ title: "Accediendo como invitado..." });
     } catch (error) {
-      console.error(error);
       toast({
         variant: "destructive",
         title: "Error",
