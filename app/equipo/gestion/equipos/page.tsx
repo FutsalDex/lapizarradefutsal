@@ -296,8 +296,13 @@ export default function GestionEquiposPage() {
 
   const { isCreationDisabled, disabledReason } = useMemo(() => {
     const plan = userProfile?.subscription;
-    if (plan === 'Invitado') {
-        return { isCreationDisabled: true, disabledReason: 'Necesitas un plan de suscripción para crear equipos.'};
+
+    if (user?.isAnonymous) {
+      return { isCreationDisabled: true, disabledReason: 'Debes registrarte para crear un equipo.' };
+    }
+    
+    if (plan === 'Invitado' && ownedTeamsCount >= 1) {
+      return { isCreationDisabled: true, disabledReason: 'La prueba gratuita te permite crear 1 equipo.' };
     }
     if (plan === 'Básico' && ownedTeamsCount >= 1) {
         return { isCreationDisabled: true, disabledReason: 'El Plan Básico permite solo 1 equipo.'};
@@ -306,7 +311,7 @@ export default function GestionEquiposPage() {
         return { isCreationDisabled: true, disabledReason: 'El Plan Pro permite hasta 3 equipos.'};
     }
     return { isCreationDisabled: false, disabledReason: ''};
-  }, [userProfile, ownedTeamsCount]);
+  }, [user, userProfile, ownedTeamsCount]);
 
   const isLoading = isAuthLoading || isLoadingOwned || isLoadingProfile;
 
