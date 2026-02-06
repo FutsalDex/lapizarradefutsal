@@ -23,6 +23,7 @@ import { signOut } from 'firebase/auth';
 import Link from 'next/link';
 import { Logo } from './logo';
 import { AdminBadges } from './admin-badges';
+import { TrialBadge } from './trial-badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,6 +127,7 @@ export function Header() {
             <div className="w-10 h-10 bg-muted rounded-full animate-pulse" />
           ) : user && !user.isAnonymous ? (
             <>
+              <TrialBadge />
               {isAdmin && <AdminBadges />}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
