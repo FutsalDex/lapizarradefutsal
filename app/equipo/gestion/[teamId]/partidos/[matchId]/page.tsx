@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Play, Pause, RefreshCw, Plus, Minus, Flag, Unlock, ClipboardList, Goal, ShieldAlert, Crosshair, Target, Repeat, Shuffle, UserCheck, Save, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import _ from 'lodash';
+import Link from 'next/link';
 
 // ====================
 // TYPES
@@ -75,6 +76,10 @@ interface Match {
   fouls?: { [key in Period]?: { local: number; visitor: number } };
   timeouts?: { [key in Period]?: { local: number; visitor: number } };
   events?: MatchEvent[];
+  // Legacy fields
+  localPlayers?: any[];
+  visitorPlayers?: any[];
+  userTeam?: 'local' | 'visitor';
 }
 
 
@@ -100,14 +105,43 @@ function migrateLegacyMatchData(matchData: Match): Match {
     const needsPlayerStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
     const needsOpponentStatsMigration = (stats: any) => stats && !stats['1H'] && !stats['2H'] && Object.keys(stats).length > 0 && !Array.isArray(stats);
     
+    // Migrate flat playerStats to 1H
     if (needsPlayerStatsMigration(migratedData.playerStats)) {
-        const legacyPlayerStats = migratedData.playerStats;
+        const legacyPlayerStats = migratedData.playerStats as { [playerId: string]: Partial<PlayerStats> };
         migratedData.playerStats = {
-            '1H': legacyPlayerStats as { [playerId: string]: Partial<PlayerStats> },
+            '1H': legacyPlayerStats,
             '2H': {}
         };
+         Object.keys(legacyPlayerStats).forEach(playerId => {
+            migratedData.playerStats!['2H']![playerId] = {};
+        });
         wasMigrated = true;
+    } else if (matchData.localPlayers && matchData.userTeam) { // Migrate from localPlayers/visitorPlayers
+        const playerList = matchData.userTeam === 'local' ? matchData.localPlayers : matchData.visitorPlayers;
+        if (playerList && Array.isArray(playerList)) {
+            const playerStats1H: { [playerId: string]: Partial<PlayerStats> } = {};
+            playerList.forEach(p => {
+                playerStats1H[p.id] = {
+                    goals: p.goals || 0,
+                    assists: p.assists || 0,
+                    yellowCards: p.amarillas || 0,
+                    redCards: p.rojas || 0,
+                    fouls: p.faltas || 0,
+                    shotsOnTarget: p.tirosPuerta || 0,
+                    shotsOffTarget: p.tirosFuera || 0,
+                    recoveries: p.recuperaciones || 0,
+                    turnovers: p.perdidas || 0,
+                    saves: p.paradas || 0,
+                    goalsConceded: p.gRec || 0,
+                    minutesPlayed: p.timeOnCourt || 0,
+                    unoVsUno: p.vs1 || 0,
+                }
+            });
+            migratedData.playerStats = { '1H': playerStats1H, '2H': {} };
+            wasMigrated = true;
+        }
     }
+
 
     if (needsOpponentStatsMigration(migratedData.opponentStats)) {
         const legacyOpponentStats = migratedData.opponentStats;
@@ -502,12 +536,13 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
-        const isOpponentLocal = match.localTeam === teamName;
-
+        
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
-            
+
+             const isOpponentLocal = match.localTeam === teamName;
+
              if(isOpponentLocal) {
                 batchUpdate.localScore = goals1H + goals2H;
              } else {
@@ -531,6 +566,7 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         
         if (stat === 'fouls') {
           const fouls = _.get(updatedStats, `${period}.fouls`, 0);
+          const isOpponentLocal = match.localTeam === teamName;
           const updatedFouls = _.cloneDeep(match.fouls || {});
 
           if(isOpponentLocal) {
@@ -587,6 +623,7 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
 export default function MatchStatsPage() {
   const params = useParams();
   const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const teamId = typeof params.teamId === 'string' ? params.teamId : '';
   const matchId = typeof params.matchId === 'string' ? params.matchId : '';
   
@@ -602,13 +639,25 @@ export default function MatchStatsPage() {
   const [period, setPeriod] = useState<Period>('1H');
   const [isSaving, setIsSaving] = useState(false);
 
-  const matchRef = useMemoFirebase(() => doc(firestore, `matches/${matchId}`), [firestore, matchId]);
+  const matchRef = useMemoFirebase(() => {
+    if (!firestore || !matchId || !user) return null;
+    return doc(firestore, `matches/${matchId}`);
+  }, [firestore, matchId, user]);
+  
   const { data: remoteMatchData, isLoading: isLoadingMatch } = useDoc<Match>(matchRef);
   
-  const teamRef = useMemoFirebase(() => doc(firestore, `teams/${teamId}`), [firestore, teamId]);
+  const teamRef = useMemoFirebase(() => {
+    if (!firestore || !teamId || !user) return null;
+    return doc(firestore, `teams/${teamId}`);
+  }, [firestore, teamId, user]);
+  
   const { data: team, isLoading: isLoadingTeam } = useDoc<any>(teamRef);
 
-  const playersRef = useMemoFirebase(() => collection(firestore, `teams/${teamId}/players`), [firestore, teamId]);
+  const playersRef = useMemoFirebase(() => {
+    if (!firestore || !teamId || !user) return null;
+    return collection(firestore, `teams/${teamId}/players`);
+  }, [firestore, teamId, user]);
+  
   const { data: teamPlayers, isLoading: isLoadingPlayers } = useCollection<Player>(playersRef);
   
   useEffect(() => {
@@ -663,51 +712,67 @@ export default function MatchStatsPage() {
   useEffect(() => {
     if (!isTimerActive) return;
 
-    let lag = 0;
-    let lastTick = performance.now();
+    let animationFrameId: number;
+    let lastUpdateTime = performance.now();
+    let accumulatedTime = 0;
 
-    const timerId = setInterval(() => {
-      const now = performance.now();
-      const elapsed = now - lastTick;
-      lastTick = now;
-      lag += elapsed;
+    const tick = (timestamp: number) => {
+      const delta = timestamp - lastUpdateTime;
+      lastUpdateTime = timestamp;
+      accumulatedTime += delta;
 
-      const ticks = Math.floor(lag / 1000);
-      if (ticks > 0) {
-        lag -= ticks * 1000;
+      if (accumulatedTime >= 1000) {
+        const secondsElapsed = Math.floor(accumulatedTime / 1000);
+        accumulatedTime -= secondsElapsed * 1000;
 
         setTime(prev => {
-          const newTime = Math.max(0, prev - ticks);
-          if (newTime === 0) {
+          const newTime = prev - secondsElapsed;
+          if (newTime <= 0) {
             setIsTimerActive(false);
+            return 0;
           }
           return newTime;
         });
-        
-        setLocalMatchData(currentData => {
-          if (!currentData || activePlayerIds.length === 0) {
-            return currentData;
-          }
 
-          const newData = { ...currentData };
-          const newPlayerStats = { ...newData.playerStats };
-          const newPeriodStats = { ...(newPlayerStats[period] || {}) };
-          
-          activePlayerIds.forEach(playerId => {
-            const playerStats = { ...(newPeriodStats[playerId] || {}) };
-            playerStats.minutesPlayed = (playerStats.minutesPlayed || 0) + ticks;
-            newPeriodStats[playerId] = playerStats;
+        if (activePlayerIds.length > 0) {
+          setLocalMatchData(currentData => {
+            if (!currentData) return null;
+
+            const newPlayerStats = {
+              ...currentData.playerStats,
+              [period]: {
+                ...currentData.playerStats?.[period],
+                ...Object.fromEntries(
+                  activePlayerIds.map(id => {
+                    const playerStat = currentData.playerStats?.[period]?.[id] || {};
+                    return [id, {
+                      ...playerStat,
+                      minutesPlayed: (playerStat.minutesPlayed || 0) + secondsElapsed
+                    }];
+                  })
+                )
+              }
+            };
+            
+            return {
+              ...currentData,
+              playerStats: newPlayerStats
+            };
           });
-
-          newPlayerStats[period] = newPeriodStats;
-          newData.playerStats = newPlayerStats;
-          return newData;
-        });
+        }
       }
-    }, 200); // Check 5 times a second
 
-    return () => clearInterval(timerId);
-  }, [isTimerActive, period, activePlayerIds]);
+      if (isTimerActive) {
+        animationFrameId = requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [isTimerActive, period, activePlayerIds, setTime, setLocalMatchData, setIsTimerActive]);
 
 
   const handleManualSave = async () => {
@@ -788,14 +853,29 @@ export default function MatchStatsPage() {
     });
   };
 
-  const isLoading = isLoadingMatch || isLoadingTeam || isLoadingPlayers;
+  const isLoadingApp = isLoadingMatch || isLoadingTeam || isLoadingPlayers || isUserLoading;
 
-  if (isLoading) {
+  if (isLoadingApp) {
     return <div className="container mx-auto px-4 py-8"><Skeleton className="h-screen w-full"/></div>;
   }
   
+  if (!user) {
+    return (
+        <div className="container mx-auto px-4 py-8 text-center">
+           <h2 className="text-2xl font-bold mb-4">Acceso Denegado</h2>
+           <p className="text-muted-foreground mb-4">Debes iniciar sesión para gestionar un partido.</p>
+           <Button asChild variant="outline">
+             <Link href="/acceso">
+               <ArrowLeft className="mr-2 h-4 w-4" />
+               Volver
+             </Link>
+           </Button>
+        </div>
+      );
+  }
+
   if (!localMatchData || !team) {
-    return null;
+    return <div className="container mx-auto px-4 py-8 text-center">No se han encontrado datos del partido o del equipo.</div>;
   }
   
   const myTeamName = team.name;
