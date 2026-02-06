@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, updateDoc, collection, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
@@ -631,6 +631,12 @@ export default function MatchStatsPage() {
   const { toast } = useToast();
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
+  const localMatchDataRef = useRef(localMatchData);
+
+  useEffect(() => {
+    localMatchDataRef.current = localMatchData;
+  }, [localMatchData]);
+
   const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
   
   const matchDuration = 25 * 60; // 25 minutes in seconds
@@ -673,8 +679,10 @@ export default function MatchStatsPage() {
   }, [remoteMatchData]);
 
   const debouncedSave = useCallback(
-    _.debounce(async (dataToSave: Match) => {
-      if (!matchRef) return;
+    _.debounce(async () => {
+      const dataToSave = localMatchDataRef.current;
+      if (!matchRef || !dataToSave) return;
+      
       setIsSaving(true);
       try {
         await updateDoc(matchRef, {
@@ -704,7 +712,7 @@ export default function MatchStatsPage() {
                 return _.unionWith(objValue, srcValue, _.isEqual);
             }
         });
-        debouncedSave(newState as Match);
+        debouncedSave();
         return newState as Match;
     });
   };
@@ -717,6 +725,8 @@ export default function MatchStatsPage() {
     let accumulatedTime = 0;
 
     const tick = (timestamp: number) => {
+      animationFrameId = requestAnimationFrame(tick);
+      
       const delta = timestamp - lastUpdateTime;
       lastUpdateTime = timestamp;
       accumulatedTime += delta;
@@ -738,32 +748,25 @@ export default function MatchStatsPage() {
           setLocalMatchData(currentData => {
             if (!currentData) return null;
 
-            const newPlayerStats = {
-              ...currentData.playerStats,
-              [period]: {
-                ...currentData.playerStats?.[period],
-                ...Object.fromEntries(
-                  activePlayerIds.map(id => {
-                    const playerStat = currentData.playerStats?.[period]?.[id] || {};
-                    return [id, {
-                      ...playerStat,
-                      minutesPlayed: (playerStat.minutesPlayed || 0) + secondsElapsed
-                    }];
-                  })
-                )
-              }
-            };
+            const newPlayerStats = { ...currentData.playerStats };
+            const newPeriodStats = { ...(newPlayerStats[period] || {}) };
             
+            activePlayerIds.forEach(id => {
+              const currentPlayerStat = newPeriodStats[id] || {};
+              newPeriodStats[id] = {
+                ...currentPlayerStat,
+                minutesPlayed: (currentPlayerStat.minutesPlayed || 0) + secondsElapsed,
+              };
+            });
+
+            newPlayerStats[period] = newPeriodStats;
+
             return {
               ...currentData,
-              playerStats: newPlayerStats
+              playerStats: newPlayerStats,
             };
           });
         }
-      }
-
-      if (isTimerActive) {
-        animationFrameId = requestAnimationFrame(tick);
       }
     };
 
@@ -772,7 +775,7 @@ export default function MatchStatsPage() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isTimerActive, period, activePlayerIds, setTime, setLocalMatchData, setIsTimerActive]);
+  }, [isTimerActive, period, activePlayerIds]);
 
 
   const handleManualSave = async () => {
