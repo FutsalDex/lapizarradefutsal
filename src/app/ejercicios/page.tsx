@@ -36,13 +36,19 @@ export default function EjerciciosPage() {
     if (!firestore) return null;
     return collection(firestore, 'exercises');
   }, [firestore]);
+  
+  const userProfileRef = useMemoFirebase(() => {
+    if (!firestore || !user || user.isAnonymous) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
 
   const favoritesCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
+    if (!firestore || !user || user.isAnonymous) return null;
     return collection(firestore, `users/${user.uid}/favorites`);
   }, [firestore, user]);
 
   const { data: rawExercises, isLoading: isLoadingExercises } = useCollection<any>(exercisesCollection);
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfileData>(userProfileRef);
   const { data: favorites, isLoading: isLoadingFavorites } = useCollection(favoritesCollectionRef);
 
   const exercises = useMemo(() => {
@@ -65,10 +71,9 @@ export default function EjerciciosPage() {
   
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
-    let processableExercises = exercises.filter(e => e.visible);
-
-    return processableExercises.filter(exercise => {
-      if (!exercise.name) return false;
+    
+    return exercises.filter(exercise => {
+      if (!exercise.name || !exercise.visible) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
@@ -92,7 +97,7 @@ export default function EjerciciosPage() {
     }
   }
   
-  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading;
+  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading || isLoadingProfile;
 
   return (
     <div className="container mx-auto px-4 py-8">
