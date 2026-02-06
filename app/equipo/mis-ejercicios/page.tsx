@@ -60,7 +60,7 @@ const exerciseSchema = z.object({
 
 type ExerciseFormValues = z.infer<typeof exerciseSchema>;
 
-function AddExerciseForm({ onExerciseAdded, disabled }: { onExerciseAdded: () => void, disabled?: boolean }) {
+function AddExerciseForm({ onExerciseAdded, disabled, disabledReason }: { onExerciseAdded: () => void, disabled?: boolean, disabledReason?: string }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
@@ -82,7 +82,7 @@ function AddExerciseForm({ onExerciseAdded, disabled }: { onExerciseAdded: () =>
       return;
     }
     if (disabled) {
-      toast({ variant: 'destructive', title: 'Límite alcanzado', description: 'Has alcanzado el límite de subida de ejercicios para este año.' });
+      toast({ variant: 'destructive', title: 'Acción no permitida', description: disabledReason || 'No puedes realizar esta acción en este momento.' });
       return;
     }
 
@@ -280,7 +280,7 @@ export default function MyExercisesPage() {
         if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [firestore, user]);
-    const { data: userProfile } = useDoc<{subscriptionStartDate?: {toDate: () => Date}}>(userProfileRef);
+    const { data: userProfile, isLoading: isLoadingProfile } = useDoc<{subscription?: string; subscriptionStartDate?: {toDate: () => Date}}>(userProfileRef);
 
     const userExercisesQuery = useMemoFirebase(() => {
         if (!user || !userProfile?.subscriptionStartDate) return null;
@@ -294,9 +294,22 @@ export default function MyExercisesPage() {
 
     const { data: exercisesThisYear } = useCollection<UserExercise>(userExercisesQuery);
     const uploadedCount = exercisesThisYear?.length ?? 0;
+    
     const hasReachedExerciseLimit = uploadedCount >= 25;
+    const isGuest = user?.isAnonymous || userProfile?.subscription === 'Invitado';
 
-    if (isUserLoading) {
+    let uploadDisabled = false;
+    let disabledReason = '';
+    
+    if (isGuest) {
+        uploadDisabled = true;
+        disabledReason = 'Debes tener una suscripción activa (Básico o Pro) para poder subir ejercicios.';
+    } else if (hasReachedExerciseLimit) {
+        uploadDisabled = true;
+        disabledReason = 'Has alcanzado el límite de 25 ejercicios subidos este año.';
+    }
+
+    if (isUserLoading || isLoadingProfile) {
         return <div className="container mx-auto px-4 py-8 text-center">Cargando...</div>;
     }
 
@@ -362,12 +375,12 @@ export default function MyExercisesPage() {
                         <div className="text-sm text-muted-foreground">
                             <p>Ejercicios subidos este año: {uploadedCount} de 25</p>
                             <Progress value={(uploadedCount / 25) * 100} className="w-full mt-1" />
-                            {hasReachedExerciseLimit && (
-                                <p className="text-destructive font-semibold mt-2">Has alcanzado el límite de subida de ejercicios para este año.</p>
+                            {uploadDisabled && (
+                                <p className="text-destructive font-semibold mt-2">{disabledReason}</p>
                             )}
                         </div>
                     </div>
-                    <AddExerciseForm onExerciseAdded={() => setRefreshKey(k => k + 1)} disabled={hasReachedExerciseLimit} />
+                    <AddExerciseForm onExerciseAdded={() => setRefreshKey(k => k + 1)} disabled={uploadDisabled} disabledReason={disabledReason} />
                 </TabsContent>
                 <TabsContent value="list" className="mt-6">
                     <MyExercisesList refreshKey={refreshKey} />
