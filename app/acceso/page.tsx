@@ -14,6 +14,7 @@ import {
   signInWithEmailAndPassword,
   signInAnonymously,
   updateProfile,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +110,39 @@ export default function AccesoPage() {
       setLoading(false);
     }
   };
+  
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'Correo electrónico necesario',
+        description: 'Por favor, introduce tu correo electrónico para restablecer la contraseña.',
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: 'Correo enviado',
+        description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
+      });
+    } catch (error: any) {
+      let friendlyMessage = 'No se pudo enviar el correo de restablecimiento.';
+      if (error.code === 'auth/user-not-found') {
+        friendlyMessage = 'No se encontró ningún usuario con este correo electrónico.';
+      } else if (error.code === 'auth/invalid-email') {
+          friendlyMessage = 'El formato del correo electrónico no es válido.';
+      }
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: friendlyMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   if (isUserLoading || (user && !user.isAnonymous)) {
@@ -144,6 +178,18 @@ export default function AccesoPage() {
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3">
                   {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                 </button>
+              </div>
+               <div className="text-right">
+                  <Button
+                      variant="link"
+                      size="sm"
+                      type="button"
+                      className="p-0 h-auto font-normal text-primary"
+                      onClick={handlePasswordReset}
+                      disabled={loading}
+                  >
+                      ¿Has olvidado tu contraseña?
+                  </Button>
               </div>
               <Button onClick={() => handleAuthAction('login')} disabled={loading} className="w-full">
                 {loading ? 'Accediendo...' : 'Iniciar Sesión'}
