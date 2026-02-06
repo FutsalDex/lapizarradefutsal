@@ -112,6 +112,7 @@ export default function AccesoPage() {
   };
   
   const handlePasswordReset = async () => {
+    console.log(`Attempting password reset for: ${email}`);
     if (!email) {
       toast({
         variant: 'destructive',
@@ -123,11 +124,13 @@ export default function AccesoPage() {
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
+      console.log('Password reset email sent successfully.');
       toast({
         title: 'Correo enviado',
         description: 'Se ha enviado un enlace para restablecer tu contraseña a tu correo electrónico.',
       });
     } catch (error: any) {
+      console.error('Password reset failed:', error);
       let friendlyMessage = 'No se pudo enviar el correo de restablecimiento.';
       if (error.code === 'auth/user-not-found') {
         friendlyMessage = 'No se encontró ningún usuario con este correo electrónico.';
