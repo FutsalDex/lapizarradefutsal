@@ -28,24 +28,17 @@ service cloud.firestore {
     
     // Miembro de un equipo (o dueño)
     function isTeamMember(teamId) {
-      if (!isAuth()) {
-        return false;
-      }
-      if (!exists(/databases/$(database)/documents/teams/$(teamId))) {
-        return false;
-      }
-      
-      let teamData = get(/databases/$(database)/documents/teams/$(teamId)).data;
-      
-      if (teamData.ownerId == request.auth.uid) {
-        return true;
-      }
-      
-      if ('memberIds' in teamData && teamData.memberIds is list) {
-        return request.auth.uid in teamData.memberIds;
-      }
-      
-      return false;
+      // A user is a member if they are authenticated AND the team document exists.
+      // They also must be either the owner OR their UID must be in the memberIds list.
+      return isAuth() && exists(/databases/$(database)/documents/teams/$(teamId)) &&
+             (
+               get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid ||
+               (
+                 'memberIds' in get(/databases/$(database)/documents/teams/$(teamId)).data &&
+                 get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds is list &&
+                 request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds
+               )
+             );
     }
 
     // =============================
