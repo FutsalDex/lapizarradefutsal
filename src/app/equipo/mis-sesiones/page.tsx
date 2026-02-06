@@ -3,20 +3,18 @@
 
 import { useState, useMemo } from 'react';
 import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
-import { collection, doc, query, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, query, deleteDoc } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Calendar as CalendarIcon, ListChecks, Star, User, Eye, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import { Exercise, mapExercise } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 
 interface Session {
@@ -33,39 +31,18 @@ interface UserProfileData {
 }
 
 function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessionId: string) => void; }) {
-    const firestore = useFirestore();
-    const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     
-    const exerciseIds = useMemo(() => {
-        if (!session.exercises) return [];
-        if (Array.isArray(session.exercises)) return session.exercises;
-        if (typeof session.exercises === 'object') {
-            return [
-                ...(session.exercises.initial || []),
-                ...(session.exercises.main || []),
-                ...(session.exercises.final || [])
-            ];
-        }
-        return [];
-    }, [session.exercises]);
-
-    const exerciseRefs = useMemoFirebase(() => {
-        if (!firestore || exerciseIds.length === 0) return [];
-        return exerciseIds.map(id => doc(firestore, 'exercises', id));
-    }, [firestore, exerciseIds]);
-
-    // This creates an array of hooks, which is against the rules of hooks if the length changes.
-    // However, `exerciseRefs` is memoized, so this should be stable across renders for a given session.
-    // A more robust solution might involve a custom hook that fetches multiple documents.
-    const exerciseHooks = exerciseRefs.map(ref => useDoc<any>(ref));
-    const isLoadingExercises = exerciseHooks.some(hook => hook.isLoading);
-    
-    const exerciseDetails = useMemo(() => {
-        return exerciseHooks.map(hook => hook.data ? mapExercise(hook.data) : null).filter(Boolean) as Exercise[];
-    }, [exerciseHooks]);
-
     const getExerciseCount = (session: Session) => {
-      return exerciseIds.length;
+        if (!session.exercises) return 0;
+        if (Array.isArray(session.exercises)) {
+            return session.exercises.length;
+        }
+        if (typeof session.exercises === 'object') {
+            return (session.exercises.initial?.length || 0) +
+                   (session.exercises.main?.length || 0) +
+                   (session.exercises.final?.length || 0);
+        }
+        return 0;
     }
 
     return (
@@ -91,44 +68,11 @@ function SessionCard({ session, onDelete }: { session: Session; onDelete: (sessi
                 </div>
             </CardContent>
             <CardFooter className="flex justify-between">
-                <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full mr-2">
-                             <Eye className="mr-2 h-4 w-4" /> Ver Detalles
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                         <DialogHeader>
-                            <DialogTitle>{session.name}</DialogTitle>
-                            <DialogDescription>
-                                {format(session.date.toDate ? session.date.toDate() : new Date(session.date), 'PPP', { locale: es })}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                            {session.objectives && (
-                                <div>
-                                    <h4 className="font-semibold">Objetivos</h4>
-                                    <p className="text-sm text-muted-foreground">{session.objectives}</p>
-                                </div>
-                            )}
-                            <div>
-                                <h4 className="font-semibold">Ejercicios</h4>
-                                {isLoadingExercises ? (
-                                    <p>Cargando ejercicios...</p>
-                                ) : (
-                                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                                        {exerciseDetails.map((ex, index) => <li key={`${ex.id}-${index}`}>{ex.name}</li>)}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="secondary">Cerrar</Button>
-                            </DialogClose>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <Button variant="outline" className="w-full mr-2" asChild>
+                    <Link href={`/sesiones/${session.id}`}>
+                        <Eye className="mr-2 h-4 w-4" /> Ver Ficha
+                    </Link>
+                </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                          <Button variant="destructive" size="icon">

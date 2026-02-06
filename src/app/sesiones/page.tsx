@@ -1,42 +1,34 @@
-<<<<<<< HEAD
+
 'use client';
 
-import { useState, useMemo, useRef, useSearchParams } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useState, useMemo, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useFirestore, useUser, useCollection, useDoc } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-=======
-
-"use client";
-
-import { sessions } from '@/lib/data';
->>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Plus, Calendar as CalendarIcon, Save, Trash2, Eye, Download, Shield, Replace, Loader2, Pencil } from 'lucide-react';
+import { Plus, PlusCircle, Calendar as CalendarIcon, Search, Save, Trash2, Eye, Download, Shield, Replace, Loader2, Pencil, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-<<<<<<< HEAD
 import { Exercise, mapExercise } from '@/lib/data';
 import Image from 'next/image';
 import { FutsalCourt } from '@/components/futsal-court';
-import { useDoc } from '@/firebase';
 import { Separator } from '@/components/ui/separator';
 
 // ====================
@@ -101,59 +93,10 @@ const ExerciseCard = ({
       </div>
     );
   }
-=======
-import { PlusCircle, Calendar, ListChecks } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-
-
-const exampleSessions = sessions;
-
->>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
 
   return (
-<<<<<<< HEAD
     <div className="h-48">
       {children}
-=======
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-        <div className="text-left">
-          <h1 className="text-4xl font-bold font-headline">Mis Sesiones</h1>
-          <p className="text-lg text-muted-foreground mt-2">Organiza y planifica tus entrenamientos.</p>
-        </div>
-        <Button asChild className="mt-4 md:mt-0 w-full md:w-auto">
-          <Link href="/sesiones/crear">
-            <PlusCircle className="mr-2 h-4 w-4" /> Crear Nueva Sesión
-          </Link>
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {exampleSessions.map((session) => (
-          <Card key={session.id} className="flex flex-col hover:border-primary/50 transition-colors">
-            <CardHeader className='relative'>
-                <CardTitle>{session.name}</CardTitle>
-                <Badge variant="secondary" className="absolute top-4 right-4">Básico</Badge>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-               <div className="flex items-center text-muted-foreground">
-                <Calendar className="mr-3 h-5 w-5" />
-                <span>{new Date(session.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
-              <div className="flex items-center text-muted-foreground">
-                <ListChecks className="mr-3 h-5 w-5" />
-                <span>{session.exercises.length} ejercicios</span>
-              </div>
-            </CardContent>
-            <CardFooter>
-                <Button variant="outline" className="w-full" asChild>
-                    <Link href={`/sesiones/${session.id}`}>Ver Detalles</Link>
-                </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
->>>>>>> ab01bf1182e15ad6b7471b2d0c44bb16ace71fe0
     </div>
   );
 };
@@ -161,8 +104,8 @@ const exampleSessions = sessions;
 
 function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { allExercises: Exercise[], onSelect: (id: Exercise, phase: PhaseType) => void, phase: PhaseType, children: React.ReactNode }) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('Todas');
-    const [ageFilter, setAgeFilter] = useState('Todas');
+    const [categoryFilter, setCategoryFilter] = useState('Todos');
+    const [ageFilter, setAgeFilter] = useState('Todos');
 
     const categories = useMemo(() => {
         if (!allExercises) return [];
@@ -179,7 +122,7 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
         if (!allExercises) return [];
         return allExercises.filter(ex => {
             const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesCategory = categoryFilter === 'Todas' || ex.category === categoryFilter;
+            const matchesCategory = categoryFilter === 'Todos' || ex.category === categoryFilter;
             const matchesAge = ageFilter === 'Todas' || (Array.isArray(ex.edad) && ex.edad.some(e => e.toLowerCase() === ageFilter.toLowerCase()));
             return matchesSearch && matchesCategory && matchesAge && ex.visible;
         });
@@ -201,16 +144,16 @@ function ExercisePickerDialog({ allExercises, onSelect, phase, children }: { all
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                       <Select onValueChange={setCategoryFilter} defaultValue="Todas">
+                       <Select onValueChange={setCategoryFilter} defaultValue="Todos">
                           <SelectTrigger>
                             <SelectValue placeholder="Categoría" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Todas">Todas las Categorías</SelectItem>
+                            <SelectItem value="Todos">Todas las Categorías</SelectItem>
                             {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                         <Select onValueChange={setAgeFilter} defaultValue="Todas">
+                         <Select onValueChange={setAgeFilter} defaultValue="Todos">
                           <SelectTrigger>
                             <SelectValue placeholder="Edad" />
                           </SelectTrigger>
@@ -268,8 +211,8 @@ function AddExerciseCard({ title }: { title: string }) {
                 <CardTitle className="text-lg font-semibold">{title}</CardTitle>
             </CardHeader>
             <CardContent className="p-0 mt-2">
-                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary text-primary-foreground">
-                    <Plus className="h-5 w-5" />
+                <div className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary text-secondary-foreground">
+                    <Plus className="h-6 w-6" />
                 </div>
             </CardContent>
         </Card>
@@ -346,7 +289,6 @@ export default function CreateSessionPage() {
 
     const [isSaving, setIsSaving] = useState(false);
     
-    // State for selected exercises
     const [initialExercises, setInitialExercises] = useState<(Exercise | null)[]>([null]);
     const [mainExercises, setMainExercises] = useState<(Exercise | null)[]>([null, null]);
     const [finalExercises, setFinalExercises] = useState<(Exercise | null)[]>([null]);
@@ -372,7 +314,6 @@ export default function CreateSessionPage() {
                 const teamDoc = await getDoc(teamDocRef);
                 if (teamDoc.exists()) {
                     const data = teamDoc.data();
-                    // Set default values for the form from the team data
                     form.setValue('team', data.name);
                     form.setValue('club', data.club);
                 }
@@ -382,9 +323,9 @@ export default function CreateSessionPage() {
     }, [teamId, form, firestore]);
     
      useEffect(() => {
-        if (sessionId && firestore) {
+        if (sessionId && firestore && user) {
             const fetchSession = async () => {
-                const sessionRef = doc(firestore, 'sessions', sessionId);
+                const sessionRef = doc(firestore, `users/${user.uid}/sessions`, sessionId);
                 const sessionSnap = await getDoc(sessionRef);
                 if (sessionSnap.exists()) {
                     const sessionData = sessionSnap.data();
@@ -397,6 +338,7 @@ export default function CreateSessionPage() {
                             chunks.push(ids.slice(i, i + 30));
                         }
                         for(const chunk of chunks) {
+                            if (chunk.length === 0) continue;
                             const exercisesQuery = query(collection(firestore, 'exercises'), where('__name__', 'in', chunk));
                             const exercisesSnapshot = await getDocs(exercisesQuery);
                             exercisesSnapshot.forEach(doc => {
@@ -406,9 +348,9 @@ export default function CreateSessionPage() {
                         return ids.map(id => exercisesData[id] || null);
                     }
                     
-                    const populatedInitial = await fetchExercises(sessionData.initialExercises || []);
-                    const populatedMain = await fetchExercises(sessionData.mainExercises || []);
-                    const populatedFinal = await fetchExercises(sessionData.finalExercises || []);
+                    const populatedInitial = await fetchExercises(sessionData.exercises?.initial || []);
+                    const populatedMain = await fetchExercises(sessionData.exercises?.main || []);
+                    const populatedFinal = await fetchExercises(sessionData.exercises?.final || []);
                     
                     setInitialExercises(populatedInitial.length > 0 ? populatedInitial : [null]);
                     setMainExercises(populatedMain.length > 0 ? populatedMain : [null, null]);
@@ -426,7 +368,7 @@ export default function CreateSessionPage() {
             };
             fetchSession();
         }
-    }, [sessionId, form, firestore]);
+    }, [sessionId, form, firestore, user]);
 
 
     const handleExerciseSelected = (type: PhaseType, index: number, exercise: Exercise) => {
@@ -464,7 +406,7 @@ export default function CreateSessionPage() {
         
         updater(prev => {
             const newArr = prev.filter((_, i) => i !== index);
-            return newArr.length > 0 ? newArr : [null]; // Always keep at least one slot
+            return newArr.length > 0 ? newArr : [null];
         });
     }
 
@@ -495,26 +437,29 @@ export default function CreateSessionPage() {
             ...sanitizedData,
             userId: user.uid,
             teamId: teamId || null,
-            initialExercises: initialExercises.map(ex => ex?.id).filter(Boolean),
-            mainExercises: mainExercises.map(ex => ex?.id).filter(Boolean),
-            finalExercises: finalExercises.map(ex => ex?.id).filter(Boolean),
+            exercises: {
+                initial: initialExercises.map(ex => ex?.id).filter(Boolean),
+                main: mainExercises.map(ex => ex?.id).filter(Boolean),
+                final: finalExercises.map(ex => ex?.id).filter(Boolean),
+            }
         };
         
         try {
             if (sessionId) {
-                const sessionRef = doc(firestore, 'sessions', sessionId);
+                const sessionRef = doc(firestore, `users/${user.uid}/sessions`, sessionId);
                 await updateDoc(sessionRef, {
                     ...sessionData,
                     updatedAt: serverTimestamp()
                 });
                 toast({ title: '¡Sesión Actualizada!', description: 'Tu sesión de entrenamiento ha sido actualizada.' });
+                router.push(`/sesiones/${sessionId}`);
             } else {
-                const newSession = await addDoc(collection(firestore, 'sessions'), {
+                const newSession = await addDoc(collection(firestore, `users/${user.uid}/sessions`), {
                     ...sessionData,
                     createdAt: serverTimestamp(),
                 });
                 toast({ title: '¡Sesión Guardada!', description: 'Tu sesión de entrenamiento ha sido guardada.' });
-                router.push(`/sesiones?sessionId=${newSession.id}`);
+                router.push(`/sesiones/${newSession.id}`);
             }
         } catch (error) {
             console.error("Error saving session: ", error);
@@ -532,10 +477,10 @@ export default function CreateSessionPage() {
                         <Pencil className="h-16 w-16 text-primary" />
                     </div>
                     <h1 className="text-4xl font-bold font-headline tracking-tight text-primary">
-                        Creador de Sesiones
+                        {sessionId ? 'Editar Sesión' : 'Crear Sesión de Entrenamiento'}
                     </h1>
                     <p className="text-xl text-muted-foreground mt-2">
-                        Diseña tu sesión de entrenamiento paso a paso o deja que la IA te ayude.
+                        {sessionId ? 'Modifica los detalles de tu sesión.' : 'Diseña tu sesión de entrenamiento paso a paso.'}
                     </p>
                 </div>
 
@@ -607,7 +552,7 @@ export default function CreateSessionPage() {
                         <div className="flex flex-col md:flex-row justify-end items-center gap-4">
                             <Button size="lg" type="submit" disabled={isSaving}>
                                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-5 w-5" />}
-                                {sessionId ? 'Actualizar Sesión' : 'Guardar Sesión'}
+                                {sessionId ? 'Actualizar y Ver Ficha' : 'Guardar y Ver Ficha'}
                             </Button>
                         </div>
                     </form>
