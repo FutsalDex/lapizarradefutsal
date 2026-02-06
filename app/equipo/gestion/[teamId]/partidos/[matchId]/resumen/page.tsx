@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, collection } from 'firebase/firestore';
-import { useDoc, useFirestore, useCollection } from '@/firebase';
+import { useDoc, useFirestore, useCollection, useUser } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -75,20 +75,26 @@ const formatStatTime = (totalSeconds: number) => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: string) => {
-    const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
+const aggregateStats = (squadPlayers: Player[], match: Match | null) => {
+    const initialTotals: PlayerStats = {
+        minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
+        shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
+        goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
+    };
+    
+    if (!match || !squadPlayers || !squadPlayers.length) return { aggregated: [], totals: initialTotals };
 
-    if (!match || !squadPlayers.length) return { aggregated: [], totals: {} };
+    const statsMap = new Map<string, PlayerStats & { name: string; number: string }>();
 
     squadPlayers.forEach(player => {
         statsMap.set(player.id, {
             name: player.name, number: player.number,
-            minutesPlayed: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0,
-            saves: 0, goalsConceded: 0, unoVsUno: 0, shotsOnTarget: 0, shotsOffTarget: 0,
-            recoveries: 0, turnovers: 0,
+            minutesPlayed: 0, goals: 0, assists: 0, fouls: 0, shotsOnTarget: 0,
+            shotsOffTarget: 0, recoveries: 0, turnovers: 0, saves: 0,
+            goalsConceded: 0, unoVsUno: 0, yellowCards: 0, redCards: 0
         });
     });
-
+    
     const isModern = match.playerStats && (match.playerStats['1H'] || match.playerStats['2H']);
     
     if (isModern) {
@@ -100,42 +106,55 @@ const aggregateStats = (squadPlayers: Player[], match: Match | null, teamName: s
                 if (statsMap.has(playerId)) {
                     const existingStats = statsMap.get(playerId)!;
                     const playerPeriodStats = periodStats[playerId] as Partial<PlayerStats>;
-                    Object.keys(playerPeriodStats).forEach(key => {
-                        const statKey = key as keyof PlayerStats;
-                        (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerPeriodStats[statKey] || 0);
+                    (Object.keys(playerPeriodStats) as Array<keyof PlayerStats>).forEach(key => {
+                        (existingStats[key] as number) = (existingStats[key] || 0) + (playerPeriodStats[key] || 0);
                     });
                 }
             }
         });
-    } else if (match.playerStats && !isModern) { // Legacy format in playerStats
-        const legacyPlayerStats = match.playerStats;
+    } else if (match.playerStats && !isModern) { // Legacy flat format in playerStats
+        const legacyPlayerStats = match.playerStats as { [playerId: string]: Partial<PlayerStats> };
         for (const playerId in legacyPlayerStats) {
              if (statsMap.has(playerId)) {
                 const existingStats = statsMap.get(playerId)!;
-                const playerLegacyStats = legacyPlayerStats[playerId] as Partial<PlayerStats>;
-                Object.keys(playerLegacyStats).forEach(key => {
-                    const statKey = key as keyof PlayerStats;
-                    (existingStats[statKey] as number) = (existingStats[statKey] || 0) + (playerLegacyStats[statKey] || 0);
+                const playerLegacyStats = legacyPlayerStats[playerId] || {};
+                 (Object.keys(playerLegacyStats) as Array<keyof PlayerStats>).forEach(key => {
+                    (existingStats[key] as number) = (existingStats[key] || 0) + (playerLegacyStats[key] || 0);
                 });
             }
+        }
+    } else if (match.localPlayers && match.userTeam) { // Even older legacy format
+        const legacyPlayerList = match.userTeam === 'local' ? match.localPlayers : match.visitorPlayers;
+        if (legacyPlayerList && Array.isArray(legacyPlayerList)) {
+            legacyPlayerList.forEach((legacyPlayer) => {
+                if (legacyPlayer.id && statsMap.has(legacyPlayer.id)) {
+                    const stats = statsMap.get(legacyPlayer.id)!;
+                    stats.goals = legacyPlayer.goals || 0;
+                    stats.assists = legacyPlayer.assists || 0;
+                    stats.yellowCards = legacyPlayer.amarillas || 0;
+                    stats.redCards = legacyPlayer.rojas || 0;
+                    stats.fouls = legacyPlayer.faltas || 0;
+                    stats.shotsOnTarget = legacyPlayer.tirosPuerta || 0;
+                    stats.shotsOffTarget = legacyPlayer.tirosFuera || 0;
+                    stats.recoveries = legacyPlayer.recuperaciones || 0;
+                    stats.turnovers = legacyPlayer.perdidas || 0;
+                    stats.saves = legacyPlayer.paradas || 0;
+                    stats.goalsConceded = legacyPlayer.gRec || 0;
+                    stats.unoVsUno = legacyPlayer.vs1 || 0;
+                    stats.minutesPlayed = legacyPlayer.timeOnCourt || 0;
+                }
+            });
         }
     }
     
     const aggregated = Array.from(statsMap.values()).sort((a, b) => parseInt(a.number, 10) - parseInt(b.number, 10));
 
-    const totals = aggregated.reduce((acc, player) => {
-        acc.goals += player.goals || 0;
-        acc.assists += player.assists || 0;
-        acc.yellowCards += player.yellowCards || 0;
-        acc.redCards += player.redCards || 0;
-        acc.fouls += player.fouls || 0;
-        acc.saves += player.saves || 0;
-        acc.goalsConceded += player.goalsConceded || 0;
-        acc.unoVsUno += player.unoVsUno || 0;
+    const totals: PlayerStats = aggregated.reduce((acc, player) => {
+        (Object.keys(acc) as Array<keyof PlayerStats>).forEach(key => {
+            (acc as any)[key] = ((acc as any)[key] || 0) + (player[key] || 0);
+        });
         return acc;
-    }, {
-        goals: 0, assists: 0, yellowCards: 0, redCards: 0, fouls: 0, saves: 0, goalsConceded: 0, unoVsUno: 0
-    });
+    }, { ...initialTotals });
 
     return { aggregated, totals };
 };
@@ -178,7 +197,7 @@ const PlayerStatsTable = ({ match, teamId, teamName }: { match: Match, teamId: s
         return allPlayers.filter(p => squadIds.has(p.id));
     }, [allPlayers, match.squad]);
     
-    const { aggregated, totals } = useMemo(() => aggregateStats(squadPlayers, match, teamName), [squadPlayers, match, teamName]);
+    const { aggregated, totals } = useMemo(() => aggregateStats(squadPlayers, match), [squadPlayers, match]);
 
     if (isLoadingPlayers) {
         return <Skeleton className="h-40 w-full" />;

@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, updateDoc, collection, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useCollection } from '@/firebase';
 import { useMemoFirebase } from '@/firebase/use-memo-firebase';
 import { Button } from '@/components/ui/button';
@@ -315,8 +315,7 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                 batchUpdate.localScore = opponentGoals1H + opponentGoals2H;
                 batchUpdate.visitorScore = teamGoals1H + teamGoals2H;
             }
-
-             // Add or remove goal event
+            
              if (increment) {
                  const minuteInPeriod = Math.floor((25 * 60 - time) / 60);
                  const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
@@ -328,7 +327,14 @@ const StatsTable = ({ teamName, players, match, onUpdate, isMyTeam, onActivePlay
                      playerId: player.id,
                      playerName: player.name
                  };
-                 batchUpdate.events = arrayUnion(newEvent) as any;
+                 batchUpdate.events = [...(match.events || []), newEvent];
+             } else {
+                const lastGoalEventIndex = _.findLastIndex(match.events || [], e => e.type === 'goal' && e.playerId === player.id);
+                if (lastGoalEventIndex > -1) {
+                    const newEvents = [...(match.events || [])];
+                    newEvents.splice(lastGoalEventIndex, 1);
+                    batchUpdate.events = newEvents;
+                }
              }
         }
         
@@ -536,20 +542,22 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
         _.set(updatedStats, `${period}.${stat}`, newVal);
         
         let batchUpdate: Partial<Match> = { opponentStats: updatedStats };
+        const isOpponentLocal = match.localTeam === teamName;
         
         if (stat === 'goals') {
              const goals1H = _.get(updatedStats, '1H.goals', 0);
              const goals2H = _.get(updatedStats, '2H.goals', 0);
-
-             const isOpponentLocal = match.localTeam === teamName;
+             const opponentTotalGoals = goals1H + goals2H;
+             const myTeamTotalGoals = isOpponentLocal ? match.visitorScore : match.localScore;
 
              if(isOpponentLocal) {
-                batchUpdate.localScore = goals1H + goals2H;
+                batchUpdate.localScore = opponentTotalGoals;
+                batchUpdate.visitorScore = myTeamTotalGoals;
              } else {
-                batchUpdate.visitorScore = goals1H + goals2H;
+                batchUpdate.localScore = myTeamTotalGoals;
+                batchUpdate.visitorScore = opponentTotalGoals;
              }
-
-             // Add or remove goal event
+             
              if (increment) {
                  const minuteInPeriod = Math.floor((25 * 60 - time) / 60);
                  const eventMinute = period === '2H' ? 25 + minuteInPeriod : minuteInPeriod;
@@ -560,13 +568,20 @@ const OpponentStatsGrid = ({ teamName, match, onUpdate, period, time }: { teamNa
                      minute: eventMinute,
                      playerName: 'Rival'
                  };
-                 batchUpdate.events = arrayUnion(newEvent) as any;
+                 batchUpdate.events = [...(match.events || []), newEvent];
+             } else {
+                const teamType = isOpponentLocal ? 'local' : 'visitor';
+                const lastGoalEventIndex = _.findLastIndex(match.events || [], e => e.type === 'goal' && e.team === teamType && e.playerName === 'Rival');
+                 if (lastGoalEventIndex > -1) {
+                    const newEvents = [...(match.events || [])];
+                    newEvents.splice(lastGoalEventIndex, 1);
+                    batchUpdate.events = newEvents;
+                }
              }
         }
         
         if (stat === 'fouls') {
           const fouls = _.get(updatedStats, `${period}.fouls`, 0);
-          const isOpponentLocal = match.localTeam === teamName;
           const updatedFouls = _.cloneDeep(match.fouls || {});
 
           if(isOpponentLocal) {
@@ -631,12 +646,6 @@ export default function MatchStatsPage() {
   const { toast } = useToast();
 
   const [localMatchData, setLocalMatchData] = useState<Match | null>(null);
-  const localMatchDataRef = useRef(localMatchData);
-
-  useEffect(() => {
-    localMatchDataRef.current = localMatchData;
-  }, [localMatchData]);
-
   const [activePlayerIds, setActivePlayerIds] = useState<string[]>([]);
   
   const matchDuration = 25 * 60; // 25 minutes in seconds
@@ -679,9 +688,8 @@ export default function MatchStatsPage() {
   }, [remoteMatchData]);
 
   const debouncedSave = useCallback(
-    _.debounce(async () => {
-      const dataToSave = localMatchDataRef.current;
-      if (!matchRef || !dataToSave) return;
+    _.debounce(async (dataToSave: Match) => {
+      if (!matchRef) return;
       
       setIsSaving(true);
       try {
@@ -707,25 +715,23 @@ export default function MatchStatsPage() {
     if (localMatchData?.isFinished) return;
     setLocalMatchData(prevData => {
         if (!prevData) return null;
-        const newState = _.mergeWith({}, prevData, data, (objValue, srcValue) => {
-            if (_.isArray(objValue) && _.isArray(srcValue)) {
-                return _.unionWith(objValue, srcValue, _.isEqual);
-            }
-        });
-        debouncedSave();
-        return newState as Match;
+        const newState = _.merge({}, prevData, data);
+        debouncedSave(newState);
+        return newState;
     });
   };
   
   useEffect(() => {
-    if (!isTimerActive) return;
-
     let animationFrameId: number;
     let lastUpdateTime = performance.now();
     let accumulatedTime = 0;
 
     const tick = (timestamp: number) => {
       animationFrameId = requestAnimationFrame(tick);
+      if(!isTimerActive || time <= 0) {
+        setIsActive(false);
+        return;
+      }
       
       const delta = timestamp - lastUpdateTime;
       lastUpdateTime = timestamp;
@@ -735,31 +741,18 @@ export default function MatchStatsPage() {
         const secondsElapsed = Math.floor(accumulatedTime / 1000);
         accumulatedTime -= secondsElapsed * 1000;
 
-        setTime(prev => {
-          const newTime = prev - secondsElapsed;
-          if (newTime <= 0) {
-            setIsTimerActive(false);
-            return 0;
-          }
-          return newTime;
-        });
+        setTime(prev => Math.max(0, prev - secondsElapsed));
 
         if (activePlayerIds.length > 0) {
           setLocalMatchData(currentData => {
             if (!currentData) return null;
 
-            const newPlayerStats = { ...currentData.playerStats };
-            const newPeriodStats = { ...(newPlayerStats[period] || {}) };
+            const newPlayerStats = _.cloneDeep(currentData.playerStats);
             
             activePlayerIds.forEach(id => {
-              const currentPlayerStat = newPeriodStats[id] || {};
-              newPeriodStats[id] = {
-                ...currentPlayerStat,
-                minutesPlayed: (currentPlayerStat.minutesPlayed || 0) + secondsElapsed,
-              };
+              const currentMinutes = _.get(newPlayerStats, `${period}.${id}.minutesPlayed`, 0);
+              _.set(newPlayerStats, `${period}.${id}.minutesPlayed`, (currentMinutes || 0) + secondsElapsed);
             });
-
-            newPlayerStats[period] = newPeriodStats;
 
             return {
               ...currentData,
@@ -775,7 +768,7 @@ export default function MatchStatsPage() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isTimerActive, period, activePlayerIds]);
+  }, [isTimerActive, period, activePlayerIds, time]);
 
 
   const handleManualSave = async () => {
