@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -217,6 +216,14 @@ export default function SuscripcionPage() {
                             <li><strong className="text-primary">Invita amigos:</strong> Gana 25 puntos por cada amigo que se suscriba a un plan de pago.</li>
                         </ul>
                     </CardContent>
+                    <CardFooter>
+                         <Button asChild variant="secondary">
+                            <Link href="/planes">
+                                Ver los Planes
+                                <ArrowRight className="ml-2 h-4 w-4"/>
+                            </Link>
+                        </Button>
+                    </CardFooter>
                 </Card>
 
             </div>
