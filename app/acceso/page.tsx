@@ -12,7 +12,6 @@ import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInAnonymously,
   updateProfile,
   sendPasswordResetEmail,
 } from 'firebase/auth';
@@ -34,7 +33,7 @@ export default function AccesoPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isUserLoading && user && !user.isAnonymous) {
+    if (!isUserLoading && user) {
       router.push('/ejercicios');
     }
   }, [user, isUserLoading, router]);
@@ -94,22 +93,6 @@ export default function AccesoPage() {
       setLoading(false);
     }
   };
-
-   const handleAnonymousSignIn = async () => {
-    setLoading(true);
-    try {
-      await signInAnonymously(auth);
-      toast({ title: "Accediendo como invitado..." });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo iniciar sesión como invitado.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
   
   const handlePasswordReset = async () => {
     console.log(`Attempting password reset for: ${email}`);
@@ -148,7 +131,7 @@ export default function AccesoPage() {
   };
 
 
-  if (isUserLoading || (user && !user.isAnonymous)) {
+  if (isUserLoading || user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p>Cargando...</p>
@@ -196,9 +179,6 @@ export default function AccesoPage() {
               </div>
               <Button onClick={() => handleAuthAction('login')} disabled={loading} className="w-full">
                 {loading ? 'Accediendo...' : 'Iniciar Sesión'}
-              </Button>
-               <Button onClick={handleAnonymousSignIn} disabled={loading} className="w-full" variant="outline">
-                {loading ? 'Accediendo...' : 'Entrar como Invitado'}
               </Button>
             </CardContent>
           </Card>
