@@ -59,7 +59,7 @@ export default function EjerciciosPage() {
   const favoriteIds = useMemo(() => new Set(favorites?.map(fav => fav.id)), [favorites]);
 
   const handleFavoriteToggle = async (exercise: Exercise) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore || user.isAnonymous) return;
     const favoriteRef = doc(firestore, `users/${user.uid}/favorites`, exercise.id);
 
     if (favoriteIds.has(exercise.id)) {
@@ -69,11 +69,15 @@ export default function EjerciciosPage() {
     }
   };
   
+  const isGuestUser = userProfile?.subscription === 'Invitado';
+
   const filteredExercises = useMemo(() => {
     if (!exercises) return [];
     
-    return exercises.filter(exercise => {
-      if (!exercise.name || !exercise.visible) return false;
+    const processableExercises = exercises.filter(e => e.visible);
+
+    const filtered = processableExercises.filter(exercise => {
+      if (!exercise.name) return false;
 
       const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'Todas' || exercise.category === categoryFilter;
@@ -82,14 +86,24 @@ export default function EjerciciosPage() {
 
       return matchesSearch && matchesCategory && matchesPhase && matchesAge;
     });
-  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter]);
+
+    if (!user || user.isAnonymous) {
+      return filtered.slice(0, 6);
+    }
+    
+    return filtered;
+
+  }, [exercises, searchTerm, categoryFilter, phaseFilter, ageFilter, user]);
   
   const totalPages = Math.ceil(filteredExercises.length / exercisesPerPage);
   const paginatedExercises = useMemo(() => {
+      if (!user || user.isAnonymous) {
+        return filteredExercises;
+      }
       const startIndex = (currentPage - 1) * exercisesPerPage;
       const endIndex = startIndex + exercisesPerPage;
       return filteredExercises.slice(startIndex, endIndex);
-  }, [filteredExercises, currentPage, exercisesPerPage]);
+  }, [filteredExercises, currentPage, exercisesPerPage, user]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -97,7 +111,7 @@ export default function EjerciciosPage() {
     }
   }
   
-  const isLoading = isLoadingExercises || isLoadingFavorites || isUserLoading || isLoadingProfile;
+  const isLoading = isLoadingExercises || (user && !user.isAnonymous && (isLoadingFavorites || isLoadingProfile));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -164,7 +178,7 @@ export default function EjerciciosPage() {
               </SelectContent>
             </Select>
         </div>
-        {!isLoading && (
+        {!isLoading && user && !user.isAnonymous && (
             <p className="text-sm text-muted-foreground mt-4">Mostrando {paginatedExercises.length} de {filteredExercises.length} ejercicios. Página {currentPage} de {totalPages > 0 ? totalPages : 1}.</p>
         )}
       </div>
@@ -190,6 +204,40 @@ export default function EjerciciosPage() {
 
       {!isLoading && (
         <>
+           {(!user || user.isAnonymous) && (
+             <Card className="text-center py-10 my-6 bg-primary/10 border-primary">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-primary">¡Estás viendo una vista previa!</CardTitle>
+                    <CardDescription className="max-w-xl mx-auto text-base">Regístrate para acceder a la biblioteca completa con cientos de ejercicios, guardar tus favoritos y mucho más.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild size="lg">
+                        <Link href="/acceso">
+                            <User className="mr-2 h-5 w-5" />
+                            Regístrate Gratis
+                        </Link>
+                    </Button>
+                </CardContent>
+            </Card>
+          )}
+           {user && !user.isAnonymous && isGuestUser && (
+              <Card className="mb-8 border-primary bg-primary/5">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-primary">
+                        <Star/>
+                        ¡Bienvenido a tu prueba de 7 días!
+                    </CardTitle>
+                    <CardDescription>
+                        Estás en tu periodo de prueba. Disfruta de acceso completo a todas las funcionalidades. Para mantener tu acceso, suscríbete a uno de nuestros planes.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                        <Link href="/suscripcion">Ver Planes de Suscripción</Link>
+                    </Button>
+                </CardContent>
+              </Card>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {paginatedExercises.map((exercise) => (
               <Card key={exercise.id} className="overflow-hidden group flex flex-col border rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 bg-background">
@@ -222,7 +270,7 @@ export default function EjerciciosPage() {
                         Ver Ficha
                         </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user}>
+                    <Button variant="ghost" size="icon" onClick={() => handleFavoriteToggle(exercise)} disabled={!user || user.isAnonymous}>
                         <Heart className={cn(
                             "h-5 w-5 transition-colors",
                             favoriteIds.has(exercise.id) 
@@ -240,7 +288,7 @@ export default function EjerciciosPage() {
                 <p>No se encontraron ejercicios con los filtros seleccionados.</p>
             </div>
           )}
-           {totalPages > 1 && (
+           {totalPages > 1 && user && !user.isAnonymous && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <Button 
                         onClick={() => handlePageChange(currentPage - 1)} 

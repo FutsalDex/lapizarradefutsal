@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -60,7 +59,7 @@ export default function Home() {
               </CardTitle>
             </div>
             <CardDescription className="text-base">
-              Regístrate para una prueba de 30 días
+              Regístrate para una prueba de 7 días
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow">
