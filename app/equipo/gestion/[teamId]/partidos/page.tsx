@@ -252,15 +252,22 @@ function MatchFormDialog({
       setIsOpen(false);
       onFinished();
 
-    } catch (error) {
-        const matchRef = isEditMode && matchToEdit ? doc(firestore, 'matches', matchToEdit.id) : collection(firestore, 'matches');
-        const path = isEditMode && matchToEdit ? matchRef.path : 'matches';
-        const permissionError = new FirestorePermissionError({
-            path: path,
-            operation: isEditMode ? 'update' : 'create',
-            requestResourceData: { ...values, teamId: team.id }
-        });
-        errorEmitter.emit('permission-error', permissionError);
+    } catch (error: any) {
+        const isPermissionError = (error.code === 'permission-denied');
+        if (isPermissionError) {
+             toast({
+                variant: 'destructive',
+                title: 'Permiso denegado',
+                description: 'No tienes permiso para crear o modificar un partido. Si eres un usuario de prueba, asegúrate de que tu prueba de 7 días no haya expirado.',
+             });
+        } else {
+            console.error('Error saving match:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo guardar el partido.',
+            });
+        }
     } finally {
       setIsSubmitting(false);
     }
@@ -551,6 +558,7 @@ ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
 // ====================
 function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: (match: Match) => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
   const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
+  const { toast } = useToast();
   const firestore = useFirestore();
 
   const getResultClasses = () => {

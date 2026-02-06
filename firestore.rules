@@ -19,27 +19,33 @@ service cloud.firestore {
       return isAuth() && authEmail() == 'futsaldex@gmail.com';
     }
 
-    // 🧑‍💼 Propietario del equipo
     function isTeamOwner(teamId) {
+      // Ensure the user is authenticated and the team document exists before checking ownerId
       return isAuth() &&
         exists(/databases/$(database)/documents/teams/$(teamId)) &&
         get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
     }
-
+    
     // Miembro de un equipo (o dueño)
     function isTeamMember(teamId) {
       if (!isAuth()) {
         return false;
       }
-      let teamDocExists = exists(/databases/$(database)/documents/teams/$(teamId));
-      if (!teamDocExists) {
+      if (!exists(/databases/$(database)/documents/teams/$(teamId))) {
         return false;
       }
+      
       let teamData = get(/databases/$(database)/documents/teams/$(teamId)).data;
-      // Use .get() with a default value to safely access memberIds
-      let isMember = request.auth.uid in teamData.get('memberIds', []);
-      let isOwner = teamData.ownerId == request.auth.uid;
-      return isMember || isOwner;
+      
+      if (teamData.ownerId == request.auth.uid) {
+        return true;
+      }
+      
+      if ('memberIds' in teamData && teamData.memberIds is list) {
+        return request.auth.uid in teamData.memberIds;
+      }
+      
+      return false;
     }
 
     // =============================
