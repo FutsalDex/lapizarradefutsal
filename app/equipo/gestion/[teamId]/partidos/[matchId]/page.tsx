@@ -661,46 +661,54 @@ export default function MatchStatsPage() {
   };
   
     useEffect(() => {
-    if (!isTimerActive) {
-      return;
-    }
+        let timerId: NodeJS.Timeout;
 
-    const interval = setInterval(() => {
-      setTime(prevTime => {
-        if (prevTime <= 1) {
-          setIsTimerActive(false); // Stop the timer
-          return 0;
+        if (isTimerActive) {
+            let expected = Date.now() + 1000;
+
+            const step = () => {
+                const drift = Date.now() - expected;
+                
+                setTime(prev => {
+                    if (prev <= 1) {
+                        setIsTimerActive(false);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+
+                setLocalMatchData(currentData => {
+                    if (!currentData || activePlayerIds.length === 0) {
+                        return currentData;
+                    }
+
+                    const newData = { ...currentData };
+                    const newPlayerStats = { ...newData.playerStats };
+                    const newPeriodStats = { ...(newPlayerStats[period] || {}) };
+                    
+                    activePlayerIds.forEach(playerId => {
+                        const playerStats = newPeriodStats[playerId] || {};
+                        newPeriodStats[playerId] = {
+                            ...playerStats,
+                            minutesPlayed: (playerStats.minutesPlayed || 0) + 1
+                        };
+                    });
+
+                    newPlayerStats[period] = newPeriodStats;
+                    newData.playerStats = newPlayerStats;
+                    return newData;
+                });
+
+                expected += 1000;
+                timerId = setTimeout(step, Math.max(0, 1000 - drift));
+            };
+
+            timerId = setTimeout(step, 1000);
         }
-        return prevTime - 1;
-      });
 
-      if (activePlayerIds.length > 0) {
-        setLocalMatchData(prevData => {
-          if (!prevData) return prevData;
+        return () => clearTimeout(timerId);
+    }, [isTimerActive, activePlayerIds, period]);
 
-          const newPeriodStats = { ...(prevData.playerStats?.[period] || {}) };
-          
-          activePlayerIds.forEach(playerId => {
-              const currentPlayerStats = newPeriodStats[playerId] || {};
-              newPeriodStats[playerId] = {
-                  ...currentPlayerStats,
-                  minutesPlayed: (currentPlayerStats.minutesPlayed || 0) + 1,
-              };
-          });
-      
-          return {
-              ...prevData,
-              playerStats: {
-                  ...prevData.playerStats,
-                  [period]: newPeriodStats,
-              },
-          };
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isTimerActive, activePlayerIds, period]);
 
   const handleManualSave = async () => {
       if (!matchRef || !localMatchData) return;
