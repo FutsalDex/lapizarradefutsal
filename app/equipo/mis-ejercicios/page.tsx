@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, List, Trash2, Edit, Book, ArrowLeft } from 'lucide-react';
+import { Upload, List, Trash2, Edit, Book, ArrowLeft, User } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -283,8 +283,8 @@ export default function MyExercisesPage() {
     const { data: userProfile } = useDoc<{subscriptionStartDate?: {toDate: () => Date}}>(userProfileRef);
 
     const userExercisesQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const startDate = userProfile?.subscriptionStartDate?.toDate() || new Date(0);
+        if (!user || !userProfile?.subscriptionStartDate) return null;
+        const startDate = userProfile.subscriptionStartDate.toDate();
         return query(
             collection(firestore, 'userExercises'), 
             where('userId', '==', user.uid),
@@ -302,9 +302,36 @@ export default function MyExercisesPage() {
 
     if (!user) {
         return (
-            <div className="container mx-auto px-4 py-8 text-center">
-                <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
-                <p className="text-muted-foreground">Debes iniciar sesión para gestionar tus ejercicios.</p>
+            <div className="container mx-auto px-4 py-8">
+                 <div className="mb-8">
+                     <Button asChild variant="outline" className="mb-4">
+                        <Link href={`/equipo/gestion`}>
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Volver al Panel
+                        </Link>
+                    </Button>
+                    <div className="text-center">
+                        <Book className="mx-auto h-12 w-12 text-primary mb-4" />
+                        <h1 className="text-4xl font-bold font-headline text-primary">Mis Ejercicios</h1>
+                        <p className="text-lg text-muted-foreground mt-2">Aporta ejercicios a la comunidad, gestiónalos y gana puntos para tu suscripción.</p>
+                    </div>
+                </div>
+                 <Card className="text-center py-16 max-w-lg mx-auto border-primary bg-primary/10">
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-bold text-primary">Aporta y Gestiona tus Ejercicios</CardTitle>
+                        <CardDescription className="max-w-md mx-auto text-base mt-2">
+                            Regístrate para empezar a subir tus propios ejercicios, gestionarlos y ganar puntos para tu suscripción.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild size="lg">
+                            <Link href="/acceso">
+                                <User className="mr-2 h-5 w-5" />
+                                Registrarme Gratis
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
