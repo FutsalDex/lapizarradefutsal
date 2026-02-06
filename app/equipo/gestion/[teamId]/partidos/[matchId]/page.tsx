@@ -729,7 +729,7 @@ export default function MatchStatsPage() {
     const tick = (timestamp: number) => {
       animationFrameId = requestAnimationFrame(tick);
       if(!isTimerActive || time <= 0) {
-        setIsActive(false);
+        setIsTimerActive(false);
         return;
       }
       
