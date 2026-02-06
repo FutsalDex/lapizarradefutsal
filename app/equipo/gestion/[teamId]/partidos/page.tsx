@@ -90,6 +90,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FirestorePermissionError, errorEmitter } from '@/firebase';
 
 // ====================
 // TIPOS Y SCHEMAS
@@ -252,12 +253,14 @@ function MatchFormDialog({
       onFinished();
 
     } catch (error) {
-      console.error('Error saving match:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo guardar el partido.',
-      });
+        const matchRef = isEditMode && matchToEdit ? doc(firestore, 'matches', matchToEdit.id) : collection(firestore, 'matches');
+        const path = isEditMode && matchToEdit ? matchRef.path : 'matches';
+        const permissionError = new FirestorePermissionError({
+            path: path,
+            operation: isEditMode ? 'update' : 'create',
+            requestResourceData: { ...values, teamId: team.id }
+        });
+        errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
@@ -472,8 +475,12 @@ const ConvocatoriaDialog = forwardRef<HTMLDivElement, { teamId: string, match: M
       setIsOpen(false);
       onSquadSaved();
     } catch (error) {
-      console.error("Error saving squad:", error);
-      toast({ variant: "destructive", title: "Error", description: "No se pudo guardar la convocatoria." });
+      const permissionError = new FirestorePermissionError({
+        path: doc(firestore, 'matches', match.id).path,
+        operation: 'update',
+        requestResourceData: { squad: selectedPlayers },
+      });
+      errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsSubmitting(false);
     }
@@ -542,9 +549,8 @@ ConvocatoriaDialog.displayName = 'ConvocatoriaDialog';
 // ====================
 // TARJETA DE PARTIDO
 // ====================
-function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: () => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
+function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved }: { match: Match; team: Team, isOwner: boolean, onEdit: (match: Match) => void; onMatchDeleted: () => void, onSquadSaved: () => void; }) {
   const { id, isFinished, localTeam, visitorTeam, localScore = 0, visitorScore = 0, date, squad } = match;
-  const { toast } = useToast();
   const firestore = useFirestore();
 
   const getResultClasses = () => {
@@ -564,8 +570,11 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
         toast({ title: "Partido eliminado" });
         onMatchDeleted();
     } catch (error) {
-        console.error("Error deleting match:", error);
-        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el partido." });
+        const permissionError = new FirestorePermissionError({
+            path: doc(firestore, "matches", id).path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     }
   }
 
@@ -624,7 +633,7 @@ function MatchCard({ match, team, isOwner, onEdit, onMatchDeleted, onSquadSaved 
                           </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={onEdit}>
+                          <DropdownMenuItem onClick={() => onEdit(match)}>
                               <Edit className="mr-2 h-4 w-4" />
                               <span>Editar Partido</span>
                           </DropdownMenuItem>
@@ -804,7 +813,7 @@ export default function MatchesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMatches.length > 0 ? (
           filteredMatches.map((match) => (
-            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={() => handleOpenForm(match)} onMatchDeleted={handleRefresh} onSquadSaved={handleRefresh}/>
+            <MatchCard key={match.id} match={match} team={team} isOwner={!!isOwner} onEdit={handleOpenForm} onMatchDeleted={handleRefresh} onSquadSaved={handleRefresh}/>
           ))
         ) : (
           <div className="col-span-full text-center py-16 text-muted-foreground">

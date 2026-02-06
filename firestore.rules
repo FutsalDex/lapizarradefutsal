@@ -28,12 +28,18 @@ service cloud.firestore {
 
     // Miembro de un equipo (o dueño)
     function isTeamMember(teamId) {
-      return isAuth() &&
-             exists(/databases/$(database)/documents/teams/$(teamId)) &&
-             (
-               request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds ||
-               isTeamOwner(teamId)
-             );
+      if (!isAuth()) {
+        return false;
+      }
+      let teamDocExists = exists(/databases/$(database)/documents/teams/$(teamId));
+      if (!teamDocExists) {
+        return false;
+      }
+      let teamData = get(/databases/$(database)/documents/teams/$(teamId)).data;
+      // Use .get() with a default value to safely access memberIds
+      let isMember = request.auth.uid in teamData.get('memberIds', []);
+      let isOwner = teamData.ownerId == request.auth.uid;
+      return isMember || isOwner;
     }
 
     // =============================
@@ -70,7 +76,7 @@ service cloud.firestore {
     // 📖 USER EXERCISES (personales)
     // =============================
     match /userExercises/{exerciseId} {
-      allow read, write: if isAuth() && resource.data.userId == request.auth.uid;
+      allow read, write: if isAuth() && request.resource.data.userId == request.auth.uid;
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
     }
 
@@ -98,10 +104,12 @@ service cloud.firestore {
     // ⚽ MATCHES (PARTIDOS)
     // =============================
     match /matches/{matchId} {
-      function isMatchOwnerOrMember() {
-          return isAuth() && exists(/databases/$(database)/documents/teams/$(resource.data.teamId)) && isTeamMember(resource.data.teamId);
-      }
-      allow read, list, create, update, delete: if isMatchOwnerOrMember() || isAdmin();
+      // Allow read/update/delete if the user is a member of the team associated with the match.
+      allow read, update, delete: if isTeamMember(resource.data.teamId) || isAdmin();
+      // Allow create if the user is a member of the team they are creating the match for.
+      allow create: if isTeamMember(request.resource.data.teamId) || isAdmin();
+      // Allow list operations for any authenticated user. Queries should be secured client-side.
+      allow list: if isAuth() || isAdmin();
     }
 
     // =============================
