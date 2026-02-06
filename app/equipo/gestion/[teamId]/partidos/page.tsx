@@ -159,6 +159,7 @@ function MatchFormDialog({
   const firestore = useFirestore();
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const isEditMode = !!matchToEdit;
 
@@ -322,7 +323,7 @@ function MatchFormDialog({
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Fecha del partido</FormLabel>
-                  <Popover>
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -345,7 +346,10 @@ function MatchFormDialog({
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                            field.onChange(date);
+                            setIsCalendarOpen(false);
+                        }}
                         disabled={(date) => date < new Date('1990-01-01')}
                         initialFocus
                       />

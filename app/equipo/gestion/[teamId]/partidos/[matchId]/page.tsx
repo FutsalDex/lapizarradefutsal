@@ -660,31 +660,35 @@ export default function MatchStatsPage() {
     });
   };
   
-  useEffect(() => {
-      let interval: NodeJS.Timeout | null = null;
-      if (isTimerActive && time > 0) {
-          interval = setInterval(() => {
-              setTime(prevTime => prevTime - 1);
-               if (activePlayerIds.length > 0) {
-                   setLocalMatchData(prevData => {
-                      if (!prevData) return null;
-                      const newLocalData = _.cloneDeep(prevData);
-                      activePlayerIds.forEach(playerId => {
-                          const currentMinutes = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
-                          _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, (currentMinutes || 0) + 1);
-                      });
-                      return newLocalData;
-                  });
-              }
-          }, 1000);
-      } else if (isTimerActive && time === 0) {
-          setIsTimerActive(false);
-      }
+    useEffect(() => {
+        if (!isTimerActive) {
+            return;
+        }
 
-      return () => {
-          if (interval) clearInterval(interval);
-      };
-  }, [isTimerActive, time, activePlayerIds, period]);
+        const interval = setInterval(() => {
+            setTime(prevTime => {
+                if (prevTime <= 1) {
+                    setIsTimerActive(false);
+                    return 0;
+                }
+                return prevTime - 1;
+            });
+
+            if (activePlayerIds.length > 0) {
+                setLocalMatchData(prevData => {
+                    if (!prevData) return null;
+                    const newLocalData = _.cloneDeep(prevData);
+                    activePlayerIds.forEach(playerId => {
+                        const currentSeconds = _.get(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, 0);
+                        _.set(newLocalData, `playerStats.${period}.${playerId}.minutesPlayed`, (currentSeconds || 0) + 1);
+                    });
+                    return newLocalData;
+                });
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [isTimerActive, activePlayerIds, period]);
 
   const handleManualSave = async () => {
       if (!matchRef || !localMatchData) return;
