@@ -10,10 +10,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isAuth() && request.auth.uid == userId;
-    }
-
     function authEmail() {
       return isAuth() ? request.auth.token.email : null;
     }
@@ -46,16 +42,15 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isAuth(); // Any authenticated user can read user profiles to check roles, etc.
       allow create: if isAuth() && request.resource.data.uid == request.auth.uid;
-      allow update: if isOwner(userId) || isAdmin();
+      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
       allow list, delete: if isAdmin(); // Only admins can list all users
 
       // Subcolecciones de usuario
       match /favorites/{favoriteId} {
-        // A user can only read and write their own favorites.
-        allow get, list, write, delete: if isOwner(userId);
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
       match /sessions/{sessionId} {
-        allow get, list, write, delete: if isOwner(userId);
+        allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
